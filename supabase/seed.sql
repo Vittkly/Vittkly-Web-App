@@ -1,0 +1,2 @@
+-- Vittkly Seed Data (Staging / Development Cloud sa-east-1)
+-- Las migraciones y estructuras se gestionan en supabase/migrations/
