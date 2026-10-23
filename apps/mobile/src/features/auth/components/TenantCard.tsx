@@ -3,13 +3,13 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { tokens, useTheme } from '@/theme';
-
 import type { MembershipRole, Tenant } from '../types/auth.types';
 import { getInitials } from '../utils/profile';
 
 export interface TenantCardProps {
   tenant: Tenant;
   isSelected: boolean;
+  isLastActive?: boolean;
   disabled?: boolean;
   onSelect: (tenant: Tenant) => void | Promise<void>;
 }
@@ -20,25 +20,25 @@ const SMALL_ICON_SIZE = tokens.spacing.space4; // 16px
 const ACTIVE_DOT_SIZE = tokens.spacing.space2; // 8px
 
 function formatRoleLabel(role: MembershipRole, jobTitle?: string | null): string {
-  if (jobTitle && jobTitle.trim().length > 0) {
-    return jobTitle;
-  }
-  switch (role) {
-    case 'owner':
-      return 'Titular de Empresa';
-    case 'admin':
-      return 'Supervisor';
-    case 'member':
-    default:
-      return 'Técnico de Campo';
-  }
+  if (jobTitle && jobTitle.trim().length > 0) return jobTitle;
+  if (role === 'owner') return 'Titular de Empresa';
+  if (role === 'admin') return 'Supervisor';
+  return 'Técnico de Campo';
 }
 
-export function TenantCard({ tenant, isSelected, disabled = false, onSelect }: TenantCardProps) {
+export function TenantCard({
+  tenant,
+  isSelected,
+  isLastActive = false,
+  disabled = false,
+  onSelect,
+}: TenantCardProps) {
   const { colors, spacing, radius, typography, control, fontFamilies } = useTheme();
 
   const roleLabel = formatRoleLabel(tenant.role, tenant.jobTitle);
   const companyInitials = getInitials(tenant.name);
+  const isHighlighted = isSelected || isLastActive;
+  const badgeLabel = isLastActive ? 'Última activa' : isSelected ? 'Activa' : null;
 
   return (
     <Pressable
@@ -54,13 +54,9 @@ export function TenantCard({ tenant, isSelected, disabled = false, onSelect }: T
           minHeight: control.lg + spacing.space6,
           borderRadius: radius.md,
           padding: spacing.space4,
-          backgroundColor: isSelected
-            ? colors.tenantAccentSoft
-            : pressed
-              ? colors.primarySoft
-              : colors.surfaceRaised,
-          borderColor: isSelected ? colors.tenantAccent : pressed ? colors.primary : colors.line,
-          borderWidth: isSelected ? 2 : 1.5,
+          backgroundColor: isHighlighted ? colors.tenantAccentSoft : pressed ? colors.primarySoft : colors.surfaceRaised,
+          borderColor: isHighlighted ? colors.tenantAccent : pressed ? colors.primary : colors.line,
+          borderWidth: isHighlighted ? 2 : 1.5,
           gap: spacing.space3,
           opacity: disabled ? 0.5 : 1,
         },
@@ -73,8 +69,8 @@ export function TenantCard({ tenant, isSelected, disabled = false, onSelect }: T
             width: AVATAR_SIZE,
             height: AVATAR_SIZE,
             borderRadius: radius.pill,
-            backgroundColor: isSelected ? colors.tenantAccent : colors.tenantAccentSoft,
-            borderColor: isSelected ? colors.tenantAccent : colors.line,
+            backgroundColor: isHighlighted ? colors.tenantAccent : colors.tenantAccentSoft,
+            borderColor: isHighlighted ? colors.tenantAccent : colors.line,
             borderWidth: 1,
           },
         ]}
@@ -82,10 +78,7 @@ export function TenantCard({ tenant, isSelected, disabled = false, onSelect }: T
         <Text
           style={[
             typography.bodyStrong,
-            {
-              fontFamily: fontFamilies.bold,
-              color: isSelected ? colors.onTenantAccent : colors.successInk,
-            },
+            { fontFamily: fontFamilies.bold, color: isHighlighted ? colors.onTenantAccent : colors.successInk },
           ]}
         >
           {companyInitials}
@@ -96,19 +89,15 @@ export function TenantCard({ tenant, isSelected, disabled = false, onSelect }: T
         <View style={[styles.titleRow, { gap: spacing.space2 }]}>
           <Text
             testID={`tenant-card-name-${tenant.id}`}
-            style={[
-              typography.bodyStrong,
-              styles.companyName,
-              { fontFamily: fontFamilies.bold, color: colors.ink },
-            ]}
+            style={[typography.bodyStrong, styles.companyName, { fontFamily: fontFamilies.bold, color: colors.ink }]}
             numberOfLines={1}
           >
             {tenant.name}
           </Text>
 
-          {isSelected ? (
+          {badgeLabel ? (
             <View
-              testID={`tenant-card-active-badge-${tenant.id}`}
+              testID={isLastActive ? `tenant-card-last-active-badge-${tenant.id}` : `tenant-card-active-badge-${tenant.id}`}
               style={[
                 styles.activeTenantBadge,
                 {
@@ -129,7 +118,7 @@ export function TenantCard({ tenant, isSelected, disabled = false, onSelect }: T
                   backgroundColor: colors.tenantAccent,
                 }}
               />
-              <Text style={[typography.label, { color: colors.successInk }]}>Activa</Text>
+              <Text style={[typography.label, { color: colors.successInk }]}>{badgeLabel}</Text>
             </View>
           ) : null}
         </View>
@@ -191,41 +180,13 @@ export function TenantCard({ tenant, isSelected, disabled = false, onSelect }: T
 }
 
 const styles = StyleSheet.create({
-  card: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  orgAvatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoColumn: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  companyName: {
-    flexShrink: 1,
-  },
-  activeTenantBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  trailingIndicator: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  card: { width: '100%', flexDirection: 'row', alignItems: 'center' },
+  orgAvatar: { alignItems: 'center', justifyContent: 'center' },
+  infoColumn: { flex: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center' },
+  companyName: { flexShrink: 1 },
+  activeTenantBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
+  roleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  roleBadge: { flexDirection: 'row', alignItems: 'center' },
+  trailingIndicator: { alignItems: 'center', justifyContent: 'center' },
 });

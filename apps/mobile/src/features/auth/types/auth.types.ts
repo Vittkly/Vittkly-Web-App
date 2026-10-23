@@ -69,6 +69,7 @@ export interface AuthState {
   tenants: Tenant[];
   activeOrganizationId: string | null;
   activeTenant: Tenant | null;
+  lastActiveTenantId: string | null;
   pin: PinState;
   biometricType: BiometricType;
   isBiometricEnabled: boolean;
@@ -91,6 +92,7 @@ export interface AuthBootstrapData {
   sessionToken: string | null;
   pinHash: string | null;
   activeOrganizationId: string | null;
+  lastActiveTenantId?: string | null;
   user: UserProfile | null;
   tenants: Tenant[];
   isBiometricEnabled: boolean;

@@ -14,7 +14,8 @@ import { getInitials } from '../utils/profile';
 
 export function PinLockScreen() {
   const { colors, spacing, radius, typography, control } = useTheme();
-  const { user, isOffline, tenants, activeTenant, activeOrganizationId, signOut } = useAuth();
+  const { user, isOffline, tenants, activeTenant, activeOrganizationId, switchTenant, signOut } =
+    useAuth();
 
   // Bloquea el botón físico "Atrás" de Android para impedir saltar el bloqueo por PIN.
   useEffect(() => {
@@ -25,6 +26,11 @@ export function PinLockScreen() {
   }, []);
 
   const navigateAfterUnlock = () => {
+    if (tenants.length === 1 && tenants[0]) {
+      void switchTenant(tenants[0].id);
+      router.replace('/');
+      return;
+    }
     if (tenants.length > 1 && !activeOrganizationId) {
       router.replace('/(auth)/select-tenant');
       return;

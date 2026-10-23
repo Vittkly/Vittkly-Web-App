@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import { authService } from '../../services/auth.service';
@@ -22,11 +23,19 @@ export interface UseAuthSessionActionsProps {
 }
 
 export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSessionActionsProps) {
+  const queryClient = useQueryClient();
+
   const setSession = useCallback(
     async (payload: SetSessionPayload) => {
       const tenants = payload.tenants ?? [];
-      const activeTenant = resolveActiveTenant(tenants, payload.activeOrganizationId ?? null);
-      const resolvedOrgId = activeTenant?.id ?? payload.activeOrganizationId ?? null;
+      let resolvedOrgId = payload.activeOrganizationId ?? null;
+      if (tenants.length === 1 && tenants[0]) {
+        resolvedOrgId = tenants[0].id;
+        await secureStorageService.saveLastActiveTenantId(resolvedOrgId);
+        await offlineSessionService.saveActiveTenantId(resolvedOrgId);
+      }
+
+      const activeTenant = resolveActiveTenant(tenants, resolvedOrgId);
 
       await Promise.all([
         secureStorageService.setSessionJwt(payload.token),
@@ -56,7 +65,18 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
   const establishUserSession = useCallback(
     async (sessionResult: AuthSessionResult) => {
       const tenants = await tenantService.fetchUserTenants(sessionResult.user.id);
-      const activeOrgId = tenants[0]?.id ?? null;
+      const lastActiveId = await secureStorageService.getLastActiveTenantId();
+
+      let activeOrgId: string | null = null;
+      if (tenants.length === 1 && tenants[0]) {
+        // Criterio 1: Entrada directa si tiene una sola empresa
+        activeOrgId = tenants[0].id;
+        await secureStorageService.saveLastActiveTenantId(activeOrgId);
+        await offlineSessionService.saveActiveTenantId(activeOrgId);
+      } else if (tenants.length > 1) {
+        // Criterio 2: Si tiene varias, activeOrgId queda null para elegir en select-tenant
+        activeOrgId = null;
+      }
 
       await setSession({
         token: sessionResult.accessToken,
@@ -64,6 +84,11 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
         tenants,
         activeOrganizationId: activeOrgId,
       });
+
+      if (lastActiveId) {
+        setState(prev => ({ ...prev, lastActiveTenantId: lastActiveId }));
+      }
+
       const hasPin = await hydrateCloudPin(sessionResult.pinHash ?? null);
 
       return {
@@ -72,7 +97,7 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
         hasPin,
       };
     },
-    [hydrateCloudPin, setSession],
+    [hydrateCloudPin, setSession, setState],
   );
 
   const loginWithPassword = useCallback(
@@ -145,21 +170,32 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
     [establishUserSession],
   );
 
-  const selectOrganization = useCallback(
+  const switchTenant = useCallback(
     async (organizationId: string) => {
-      await secureStorageService.setActiveOrganizationId(organizationId);
+      // 1. Persistir en SecureStore y SQLite
+      await Promise.all([
+        secureStorageService.saveLastActiveTenantId(organizationId),
+        offlineSessionService.saveActiveTenantId(organizationId),
+      ]);
 
+      // 2. Actualizar estado en AuthContext
       setState(prev => {
         const activeTenant = resolveActiveTenant(prev.tenants, organizationId);
         return {
           ...prev,
           activeOrganizationId: organizationId,
           activeTenant,
+          lastActiveTenantId: organizationId,
         };
       });
+
+      // 3. Criterio 4: Aislamiento estricto de datos — purgar caché de consultas previas
+      queryClient.clear();
     },
-    [setState],
+    [queryClient, setState],
   );
+
+  const selectOrganization = switchTenant;
 
   const setBiometricPreference = useCallback(
     async (enabled: boolean, type?: BiometricType) => {
@@ -199,6 +235,7 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
     updatePassword,
     requestPhoneOtp,
     verifyPhoneOtp,
+    switchTenant,
     selectOrganization,
     setBiometricPreference,
     signOut,

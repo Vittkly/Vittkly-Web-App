@@ -1,6 +1,7 @@
 export * from './AlertBanner';
 export * from './BackButton';
 export * from './BottomSheet';
+export * from './CompanyCircleButton';
 export * from './FormField';
 export * from './NumericKeypad';
 export * from './OptionCard';

@@ -10,6 +10,7 @@ export const SECURE_STORAGE_KEYS = {
   SESSION_JWT: 'vittkly.auth.session_jwt',
   PIN_HASH: 'vittkly.auth.pin_hash',
   ACTIVE_ORGANIZATION_ID: 'vittkly.auth.active_organization_id',
+  LAST_ACTIVE_TENANT_ID: 'vittkly.auth.last_active_tenant_id',
   USER_PROFILE: 'vittkly.auth.user_profile',
   TENANTS: 'vittkly.auth.tenants',
   BIOMETRIC_ENABLED: 'vittkly.auth.biometric_enabled',
@@ -142,6 +143,27 @@ export const secureStorageService = {
    */
   async removeActiveOrganizationId(): Promise<void> {
     await removeRawItem(SECURE_STORAGE_KEYS.ACTIVE_ORGANIZATION_ID);
+  },
+
+  /**
+   * Guarda el ID de la última empresa activa seleccionada por el usuario.
+   * Se persiste tanto en LAST_ACTIVE_TENANT_ID como en ACTIVE_ORGANIZATION_ID.
+   */
+  async saveLastActiveTenantId(tenantId: string): Promise<void> {
+    await Promise.all([
+      setRawItem(SECURE_STORAGE_KEYS.LAST_ACTIVE_TENANT_ID, tenantId),
+      setRawItem(SECURE_STORAGE_KEYS.ACTIVE_ORGANIZATION_ID, tenantId),
+    ]);
+  },
+
+  /**
+   * Obtiene el ID de la última empresa activa seleccionada por el usuario.
+   * Consulta primero LAST_ACTIVE_TENANT_ID y hace fallback a ACTIVE_ORGANIZATION_ID.
+   */
+  async getLastActiveTenantId(): Promise<string | null> {
+    const last = await getRawItem(SECURE_STORAGE_KEYS.LAST_ACTIVE_TENANT_ID);
+    if (last) return last;
+    return this.getActiveOrganizationId();
   },
 
   /**
@@ -310,6 +332,7 @@ export const secureStorageService = {
       sessionToken,
       pinHash,
       activeOrganizationId,
+      lastActiveTenantId,
       user,
       tenants,
       isBiometricEnabled,
@@ -318,6 +341,7 @@ export const secureStorageService = {
       this.getSessionJwt(),
       this.getPinHash(),
       this.getActiveOrganizationId(),
+      this.getLastActiveTenantId(),
       this.getCachedUserProfile(),
       this.getCachedTenants(),
       this.getBiometricEnabled(),
@@ -328,6 +352,7 @@ export const secureStorageService = {
       sessionToken,
       pinHash,
       activeOrganizationId,
+      lastActiveTenantId,
       user,
       tenants,
       isBiometricEnabled,

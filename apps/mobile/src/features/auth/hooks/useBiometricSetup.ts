@@ -5,16 +5,22 @@ import { useAuth } from './useAuth';
 import { useBiometrics } from './useBiometrics';
 
 export function useBiometricSetup() {
-  const { isOffline, tenants, activeOrganizationId, setBiometricPreference } = useAuth();
+  const { isOffline, tenants, activeOrganizationId, switchTenant, setBiometricPreference } =
+    useAuth();
   const { isAvailable, biometricType, authenticateWithBiometrics } = useBiometrics();
   const [isActivating, setIsActivating] = useState(false);
 
   const navigateToNext = () => {
+    if (tenants.length === 1 && tenants[0]) {
+      void switchTenant(tenants[0].id);
+      router.replace('/');
+      return;
+    }
     if (tenants.length > 1 && !activeOrganizationId) {
       router.replace('/(auth)/select-tenant');
       return;
     }
-    router.replace('/dashboard');
+    router.replace('/');
   };
 
   const handleActivateBiometrics = async () => {

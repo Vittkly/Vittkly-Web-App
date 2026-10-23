@@ -1,144 +1,138 @@
-# Vittkly Mobile App 📱
+# Vittkly Mobile App (`@vittkly/mobile`) 📱
 
-Aplicación móvil universal de **Vittkly** desarrollada con **React Native (Expo SDK 57)**, **Expo Router**, **Supabase Multi-tenant** y un **Ecosistema de Agentes de IA**.
+Aplicación móvil universal para técnicos de campo y cuadrillas operativas de **Vittkly**, construida con **React Native**, **Expo SDK 57**, **Expo Router** y persistencia offline segura.
 
 ---
 
-## 🚀 Inicio Rápido y Onboarding
+## 🚀 1. Stack Tecnológico Real
 
-### 1. Requisitos Previos
+- **Runtime & Framework:** [Expo SDK 57](https://expo.dev) (`~57.0.30`) con [React Native 0.86.3](https://reactnative.dev) y [React 19.2.3](https://react.dev)
+- **Navegación:** Expo Router (`~57.0.28`) con estructura de rutas delgadas en `src/app/`
+- **Seguridad Nativa & Hardware:** `expo-secure-store` (`~57.0.4`) y `expo-local-authentication` (`~57.0.3`)
+- **Persistencia Offline:** `expo-sqlite` (`~57.0.4`) para sesiones y caché local
+- **Backend & Auth:** `@supabase/supabase-js` (`^2.109.0`) conectado a Supabase Cloud (`sa-east-1`)
+- **Estado Asíncrono:** `@tanstack/react-query` (`^5.104.3`)
+- **UI & Animaciones:** `react-native-reanimated` (`4.5.1`), `react-native-safe-area-context` y `lucide-react-native`
+- **Monorepo Packages:** Consumo directo de `@vittkly/shared` y `@vittkly/db-types`
 
-- **Node.js**: v20.x o superior
-- **npm**: v10.x o superior
-- **Expo Go** o build de desarrollo en dispositivo móvil / emulador
+---
 
-### 2. Instalación de Dependencias
+## 🔐 2. Módulo de Autenticación y Seguridad Offline (`src/features/auth/`)
 
-Al clonar o actualizar el repositorio, ejecuta:
+La aplicación móvil cuenta con un sistema completo y auditado de autenticación híbrida (Online Cloud + Offline First):
 
-```bash
-npm install
+```mermaid
+stateDiagram-v2
+    [*] --> Splash: Inicia Aplicación
+    Splash --> Welcome: Sin sesión previa
+    Splash --> PinLock: Sesión activa + PIN configurado
+    Splash --> SelectTenant: Sesión activa sin tenant activo
+    Splash --> Dashboard: Sesión activa + PIN verificado + Tenant
+
+    Welcome --> EmailLogin: Ingresar con Email
+    Welcome --> PhoneLogin: Ingresar con Teléfono
+    Welcome --> SignupFlow: Crear cuenta nueva
+
+    SignupFlow --> OtpVerifySignup: Validar OTP (type: signup)
+    OtpVerifySignup --> PinSetup: Crear PIN de 4 dígitos
+    PinSetup --> BiometricsSetup: Opcional Huella / FaceID
+    BiometricsSetup --> SelectTenant
+
+    EmailLogin --> SelectTenant: Credenciales válidas
+    EmailLogin --> ForgotPassword: Olvidé contraseña
+    ForgotPassword --> OtpVerifyRecovery: Validar OTP (type: recovery)
+    OtpVerifyRecovery --> ResetPassword: Nueva contraseña
+
+    PinLock --> Dashboard: PIN correcto o Biometría
+    Dashboard --> PinLock: Inactividad > 15 min (useInactivityLock)
 ```
 
-> [!NOTE]
-> La instalación de dependencias activa automáticamente **Husky** (`npm run prepare`), configurando los hooks de `pre-commit` y `commit-msg` en tu entorno local.
+### Funcionalidades Implementadas en Código:
+1. **Flujo de Registro con Verificación OTP Obligatoria:**
+   - `SignupScreen`: Paso de datos de usuario (`SignupAccountStep`) y empresa (`SignupCompanyStep`).
+   - `auth.service.signUpWithEmail`: Registro contra Supabase Cloud.
+   - `auth.service.verifySignupOtp`: Validación estricta con `supabase.auth.verifyOtp({ type: 'signup' })`. No permite acceso si el token es incorrecto o expiró.
+2. **Recuperación de Contraseña Segura:**
+   - `ForgotPasswordScreen`: Solicitud de código y pantalla de validación OTP (`ForgotVerifyStep`).
+   - `auth.service.verifyRecoveryOtp`: Verificación estricta con `supabase.auth.verifyOtp({ type: 'recovery' })`.
+   - `auth.service.updatePassword`: Actualización de la clave únicamente tras haber validado el OTP de recovery.
+3. **PIN Pad Táctil Ergonómico de Alta Precisión (`PinPadLock.tsx`):**
+   - Rejilla táctil de botones numéricos con dimensión ergonómica de **72×64px** (`KEY_WIDTH = 72`, `KEY_HEIGHT = 64`) diseñada para uso en campo (con guantes o una sola mano).
+   - Feedback háptico nativo en pulsación (`Vibration.vibrate`) y animación visual en caso de error.
+   - Integración nativa de slot biométrico (Huella dactilar / FaceID).
+4. **Almacenamiento Seguro y Persistencia Offline:**
+   - `secureStorageService`: Resguardo seguro en hardware mediante `expo-secure-store` para el hash del PIN (`vittkly_pin_hash_v1`), token de sesión y última marca de tiempo.
+   - `offlineSessionService`: Caché local de tenant y perfil en `expo-sqlite` para arranque instantáneo sin red en zonas sin cobertura.
+5. **Bloqueo Automático por Inactividad (`useInactivityLock.ts`):**
+   - Monitor de ciclo de vida (`AppState`). Si la aplicación permanece en segundo plano durante **15 minutos o más** (`INACTIVITY_LOCK_MS = 15 * 60 * 1000`), la sesión se bloquea automáticamente y exige ingresar el PIN o autenticarse con biometría.
 
-### 3. Configuración de Variables de Entorno
+---
 
-Copia la plantilla de entorno:
+## 🎨 3. Design Tokens y Sistema de Diseño (`src/theme/`)
+
+Todo componente visual respeta estrictamente los tokens centralizados en `src/theme/tokens.ts`:
+
+- **Modos:** Soporte nativo para `light` y `dark`.
+- **Colores Semánticos Principales:**
+  - Superficie: `colors.light.surface` (`#F3F8FA`) / `colors.dark.surface` (`#0A1C27`).
+  - Tinta/Texto: `colors.light.ink` (`#0E2A3B`) / `colors.dark.ink` (`#E7F1F6`).
+  - Primario Acción: `colors.light.primary` (`#157AA8`).
+  - **Kleanly / Success:** `#3EC49B` (`tokens.colors.primary.kleanly`). **Exclusivo para estados completados, pagados o éxito operativo**.
+- **Tipografía:** Tipografías Manrope (`Regular`, `Medium`, `SemiBold`, `Bold`, `ExtraBold`) y tipografía monoespaciada para cronómetros/códigos con `tabular-nums`.
+- **Accesibilidad Táctil:** Altura mínima de controles estándar `tokens.control.lg` (48px) y teclado numérico `72×64px`.
+
+---
+
+## ⚙️ 4. Configuración y Variables de Entorno
+
+Crea el archivo `.env.local` en esta carpeta a partir de `.env.example`:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edita `.env.local` con las credenciales de tu proyecto:
-
+### Variables Requeridas:
 ```env
-# Conexión Supabase (Cliente Expo)
+# URL del proyecto Supabase Cloud (sa-east-1)
 EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+
+# Llave pública de cliente Supabase
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-publishable-key
-
-# Token Personal de Supabase (Para MCP Server y Supabase CLI)
-SUPABASE_PERSONAL_ACCESS_TOKEN=your-supabase-pat-token
 ```
 
-> [!IMPORTANT]
-> El archivo `.env.local` está protegido en `.gitignore`. **Nunca commitees claves reales al repositorio**.
+---
 
-### 4. Iniciar el Servidor de Desarrollo
+## 📱 5. Ejecución en Entornos de Desarrollo
+
+Desde la raíz del monorepo ejecuta:
 
 ```bash
-npm start
+# Iniciar Metro Bundler
+pnpm dev:mobile
 ```
 
----
-
-## 🛠️ Scripts de Calidad y Mantenimiento
-
-Disponemos de herramientas automatizadas para asegurar la estabilidad del proyecto:
-
-| Comando                 | Acción                                                                 |
-| :---------------------- | :--------------------------------------------------------------------- |
-| `npm run typecheck`     | Valida tipos TypeScript sin compilar (`tsc --noEmit`).                 |
-| `npm run lint`          | Ejecuta ESLint (Flat Config) con reglas de arquitectura Vittkly.       |
-| `npm run format`        | Aplica formato con Prettier en todo el proyecto.                       |
-| `npm run format:check`  | Verifica que el código cumpla con el formato de Prettier.              |
-| `npm run pre-flight`    | Suite integral previa a entrega: **Typecheck + ESLint + Expo Doctor**. |
-| `npm run sync:db-types` | Regenera `src/types/database.types.ts` conectándose a Supabase.        |
-
----
-
-## 🏛️ Pilares de Arquitectura Obligatorios
-
-Todo código nuevo en el proyecto debe alinearse con estos 4 pilares:
-
-### 1. Thin Routing (`src/app/`)
-
-- Los archivos en `src/app/` son exclusivamente pantallas y layouts de **Expo Router**.
-- **Prohibido** incluir llamadas a red, queries pesadas o manipulación compleja de estado dentro de las pantallas. La lógica de negocio reside en `src/features/` o Custom Hooks en `src/hooks/`.
-
-### 2. Repository & Custom Hook Pattern (Supabase)
-
-- **Prohibido** importar `@/services/supabase` dentro de `src/app/**` o `src/components/**`. Una regla de ESLint (`no-restricted-imports`) bloqueará el commit si se detecta un acceso directo.
-- Todo acceso a base de datos debe pasar por un servicio tipado (`src/services/<entity>.service.ts`) y exponerse a la UI mediante un Custom Hook (`src/hooks/use<Entity>.ts`).
-
-### 3. Design Tokens de Marca Vittkly (`@/theme`)
-
-- **Cero Magic Numbers o Colores Arbitrarios**: No utilices valores hexadecimales ni márgenes hardcodeados en los estilos.
-- Todo valor estético debe provenir de `@/theme` (`tokens`, `useTheme`, `colors`, `typography`, `spacing`, `radii`).
-- **Dimensión Táctil Mínima**: Los botones, inputs y controles principales deben tener un alto mínimo de `tokens.sizes.control.lg` (48px) para accesibilidad táctil.
-- **Semántica Kleanly**: El color verde Kleanly (`tokens.colors.primary.kleanly` / `#3EC49B`) está reservado **exclusivamente** para estados completados, pagados o transacciones exitosas.
-
-### 4. Continuous Native Generation (CNG)
-
-- **Nunca** modifiques manualmente las carpetas `ios/` o `android/`.
-- Cualquier configuración o plugin nativo debe definirse de manera declarativa en `app.json`.
-
----
-
-## 🤖 Ecosistema de Agentes de IA (`.agents/`)
-
-El repositorio incluye herramientas integradas para asistentes y agentes de IA (Antigravity / Cursor / Claude):
-
-- **Rules (`.agents/rules/`)**: Reglas de contexto activo que guían la generación de código:
-  - `thin-routing.md`
-  - `supabase-repository-pattern.md`
-  - `strict-brand-tokens.md`
-  - `component-architecture.md`
-  - `rls-security-policy.md`
-  - `expo-cng.md`
-- **Skills (`.agents/skills/`)**: Procedimientos paso a paso para tareas complejas:
-  - `vittkly-ui-builder`: Construcción de componentes UI accesibles y tipados.
-  - `supabase-repository-hook`: Creación del flujo Tipos -> Repositorio -> Custom Hook.
-  - `rls-migration-auditor`: Checklist de seguridad para migraciones SQL.
-  - `pre-flight`: Verificación automática de calidad.
-  - `sync-db-types`: Guía para refrescar tipos de la base de datos.
-- **MCP Servers (`.agents/mcp_config.json`)**: Configuración lista para conectar `supabase-mcp` (lectura de esquema real) y `context7-mcp` (documentación oficial actualizada).
-- **Hooks (`.agents/hooks.json`)**: Auto-typecheck post-edición al escribir o modificar código.
-
----
-
-## 📝 Convención de Commits (Conventional Commits)
-
-El proyecto utiliza **Commitlint** junto con **Husky** para estandarizar los mensajes de Git:
-
-```text
-<tipo>(<alcance opcional>): <descripción concisa>
-```
-
-### Tipos Permitidos:
-
-- `feat`: Nueva característica para el usuario.
-- `fix`: Corrección de un bug.
-- `docs`: Cambios exclusivamente en documentación.
-- `style`: Formateo, espaciado, comas (sin cambios en lógica de código).
-- `refactor`: Refactorización de código sin alterar comportamiento.
-- `perf`: Mejoras de rendimiento.
-- `test`: Adición o corrección de pruebas.
-- `chore`: Tareas de mantenimiento, dependencias o configuración del repositorio.
-
-_Ejemplo:_
-
+O desde el directorio de la aplicación (`apps/mobile`):
 ```bash
-git commit -m "feat(auth): implement OTP pinpad component with accessibility labels"
+# Iniciar con menú interactivo de Expo
+pnpm start
+
+# Abrir directamente en emulador de Android
+pnpm android
+
+# Abrir directamente en simulador de iOS (macOS requerido)
+pnpm ios
 ```
+
+---
+
+## 🔧 6. Troubleshooting y Preguntas Frecuentes
+
+### ¿El bundler arroja advertencias de ciclo de dependencias?
+Todas las importaciones dentro de `src/features/auth/` utilizan rutas relativas directas a archivos individuales. Si añades un nuevo componente o pantalla dentro del módulo, asegúrate de **no importar desde el propio `index.ts`**.
+
+### ¿Problemas de resolución de paquetes en el monorepo?
+Limpia la caché de Metro Bundler e inicia de nuevo:
+```bash
+npx expo start -c
+```
+Gracias a la directiva `node-linker=hoisted` en la raíz, los paquetes `@vittkly/shared` y `@vittkly/db-types` se resuelven sin conflictos de symlinks.

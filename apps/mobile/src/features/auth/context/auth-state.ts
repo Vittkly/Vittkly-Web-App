@@ -15,6 +15,7 @@ export const initialAuthState: AuthState = {
   tenants: [],
   activeOrganizationId: null,
   activeTenant: null,
+  lastActiveTenantId: null,
   pin: {
     isConfigured: false,
     isLocked: false,
@@ -48,5 +49,8 @@ export function resolveActiveTenant(
       return found;
     }
   }
-  return tenants[0] ?? null;
+  if (tenants.length === 1) {
+    return tenants[0] ?? null;
+  }
+  return null;
 }

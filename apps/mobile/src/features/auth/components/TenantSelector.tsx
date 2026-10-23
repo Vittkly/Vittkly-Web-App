@@ -10,6 +10,7 @@ import { TenantCard } from './TenantCard';
 export interface TenantSelectorProps {
   tenants: Tenant[];
   selectedTenantId?: string | null;
+  lastActiveTenantId?: string | null;
   disabled?: boolean;
   onSelectTenant: (tenant: Tenant) => void | Promise<void>;
   style?: StyleProp<ViewStyle>;
@@ -25,6 +26,7 @@ const ICON_SIZE = tokens.spacing.space6;
 export function TenantSelector({
   tenants,
   selectedTenantId = null,
+  lastActiveTenantId = null,
   disabled = false,
   onSelectTenant,
   style,
@@ -67,6 +69,7 @@ export function TenantSelector({
           key={tenant.id}
           tenant={tenant}
           isSelected={tenant.id === selectedTenantId}
+          isLastActive={tenant.id === lastActiveTenantId}
           disabled={disabled}
           onSelect={onSelectTenant}
         />

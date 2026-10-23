@@ -36,8 +36,16 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
       const resolvedTenants =
         bootstrap.tenants.length > 0 ? bootstrap.tenants : sqliteSnapshot.tenants;
 
-      const activeTenant = resolveActiveTenant(resolvedTenants, bootstrap.activeOrganizationId);
-      const resolvedOrgId = activeTenant?.id ?? bootstrap.activeOrganizationId;
+      // Criterio 1: Entrada directa si tiene una sola empresa
+      let resolvedOrgId = bootstrap.activeOrganizationId;
+      if (resolvedTenants.length === 1 && resolvedTenants[0]) {
+        resolvedOrgId = resolvedTenants[0].id;
+        void secureStorageService.saveLastActiveTenantId(resolvedOrgId);
+        void offlineSessionService.saveActiveTenantId(resolvedOrgId);
+      }
+
+      const activeTenant = resolveActiveTenant(resolvedTenants, resolvedOrgId);
+      const lastActiveTenantId = bootstrap.lastActiveTenantId ?? resolvedOrgId ?? null;
 
       let nextStatus: AuthStatus = 'unauthenticated';
       let isLoggedIn = false;
@@ -69,6 +77,7 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
         tenants: resolvedTenants,
         activeOrganizationId: resolvedOrgId,
         activeTenant,
+        lastActiveTenantId,
         pin: {
           ...prev.pin,
           isConfigured: hasPinConfigured,

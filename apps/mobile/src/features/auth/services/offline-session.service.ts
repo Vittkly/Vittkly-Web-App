@@ -37,6 +37,7 @@ let isInitialized = false;
 let memoryProfileCache: UserProfile | null = null;
 let memoryTenantsCache: Tenant[] = [];
 let memoryPinMetaCache: OfflinePinMeta | null = null;
+let memoryActiveTenantId: string | null = null;
 
 async function getDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   if (Platform.OS === 'web') {
@@ -64,6 +65,11 @@ async function getDatabase(): Promise<SQLite.SQLiteDatabase | null> {
           id TEXT PRIMARY KEY NOT NULL,
           pin_enabled INTEGER NOT NULL,
           pin_synced_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS offline_active_tenant (
+          id TEXT PRIMARY KEY NOT NULL,
+          tenant_id TEXT NOT NULL,
+          updated_at TEXT NOT NULL
         );
       `);
       isInitialized = true;
@@ -245,12 +251,58 @@ export const offlineSessionService = {
   },
 
   /**
+   * Guarda el ID de la empresa activa en SQLite local.
+   */
+  async saveActiveTenantId(tenantId: string): Promise<void> {
+    memoryActiveTenantId = tenantId;
+    const db = await getDatabase();
+    if (!db) return;
+
+    try {
+      const now = new Date().toISOString();
+      await db.runAsync(
+        `INSERT OR REPLACE INTO offline_active_tenant (id, tenant_id, updated_at) VALUES ('current', ?, ?);`,
+        [tenantId, now],
+      );
+    } catch {
+      // Fallback en memoria ya actualizado
+    }
+  },
+
+  /**
+   * Recupera el ID de la empresa activa almacenada en SQLite local.
+   */
+  async getActiveTenantId(): Promise<string | null> {
+    const db = await getDatabase();
+    if (!db) {
+      return memoryActiveTenantId;
+    }
+
+    try {
+      interface ActiveTenantRow {
+        tenant_id: string;
+      }
+      const row = await db.getFirstAsync<ActiveTenantRow>(
+        `SELECT tenant_id FROM offline_active_tenant WHERE id = 'current' LIMIT 1;`,
+      );
+      if (row?.tenant_id) {
+        memoryActiveTenantId = row.tenant_id;
+        return row.tenant_id;
+      }
+      return memoryActiveTenantId;
+    } catch {
+      return memoryActiveTenantId;
+    }
+  },
+
+  /**
    * Limpia todas las tablas de caché offline en SQLite al cerrar sesión.
    */
   async clearOfflineSession(): Promise<void> {
     memoryProfileCache = null;
     memoryTenantsCache = [];
     memoryPinMetaCache = null;
+    memoryActiveTenantId = null;
 
     const db = await getDatabase();
     if (!db) return;
@@ -260,6 +312,7 @@ export const offlineSessionService = {
         DELETE FROM offline_user_profile;
         DELETE FROM offline_tenants;
         DELETE FROM offline_pin_meta;
+        DELETE FROM offline_active_tenant;
       `);
     } catch {
       // Ignorar si las tablas aún no existen

@@ -70,6 +70,7 @@ export interface AuthContextValue extends AuthState {
     tenants: Tenant[];
     hasPin: boolean;
   }>;
+  switchTenant: (organizationId: string) => Promise<void>;
   selectOrganization: (organizationId: string) => Promise<void>;
   selectTenant: (organizationId: string) => Promise<void>;
   savePinHash: (pinHash: string) => Promise<void>;
@@ -126,7 +127,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: state.isLoggedIn,
       isPinRequired: !state.user?.email,
       ...sessionActions,
-      selectTenant: sessionActions.selectOrganization,
+      switchTenant: sessionActions.switchTenant,
+      selectTenant: sessionActions.switchTenant,
+      selectOrganization: sessionActions.switchTenant,
       savePinHash,
       verifyPinHash,
       unlockOfflineSession,

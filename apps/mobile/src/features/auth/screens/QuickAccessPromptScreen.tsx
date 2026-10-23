@@ -11,7 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export function QuickAccessPromptScreen() {
   const { colors, spacing } = useTheme();
-  const { isOffline, tenants, activeOrganizationId } = useAuth();
+  const { isOffline, tenants, activeOrganizationId, switchTenant } = useAuth();
 
   const handleSelectPin = () => {
     router.replace({
@@ -21,6 +21,11 @@ export function QuickAccessPromptScreen() {
   };
 
   const handleSelectEmailOnly = () => {
+    if (tenants.length === 1 && tenants[0]) {
+      void switchTenant(tenants[0].id);
+      router.replace('/');
+      return;
+    }
     if (tenants.length > 1 && !activeOrganizationId) {
       router.replace('/(auth)/select-tenant');
       return;
