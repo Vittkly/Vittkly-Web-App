@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export * from './auth/login.schema';
+
 /**
  * Esquemas de validación Zod compartidos entre Central Web y App Móvil.
  */
