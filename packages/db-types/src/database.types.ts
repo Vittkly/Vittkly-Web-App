@@ -62,6 +62,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       profiles: {
         Row: {
@@ -94,6 +95,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       access_profiles: {
         Row: {
@@ -126,6 +128,7 @@ export interface Database {
           config_sections?: Json | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       memberships: {
         Row: {
@@ -170,6 +173,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       invitations: {
         Row: {
@@ -211,6 +215,7 @@ export interface Database {
           accepted_by?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       customers: {
         Row: {
@@ -255,6 +260,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       work_orders: {
         Row: {
@@ -311,6 +317,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       time_entries: {
         Row: {
@@ -346,6 +353,181 @@ export interface Database {
           notes?: string | null;
           created_at?: string;
         };
+        Relationships: [];
+      };
+      usuarios: {
+        Row: {
+          id: string;
+          nombre: string;
+          correo: string | null;
+          celular: string | null;
+          avatar_ruta: string | null;
+          ultima_empresa_id: string | null;
+          ultimo_ingreso_en: string | null;
+          creado_en: string;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id: string;
+          nombre: string;
+          correo?: string | null;
+          celular?: string | null;
+          avatar_ruta?: string | null;
+          ultima_empresa_id?: string | null;
+          ultimo_ingreso_en?: string | null;
+          creado_en?: string;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          nombre?: string;
+          correo?: string | null;
+          celular?: string | null;
+          avatar_ruta?: string | null;
+          ultima_empresa_id?: string | null;
+          ultimo_ingreso_en?: string | null;
+          creado_en?: string;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [];
+      };
+      intentos_ingreso: {
+        Row: {
+          id: string;
+          identificador: string;
+          fallos_consecutivos: number;
+          bloqueado_hasta: string | null;
+          ultimo_intento_en: string;
+          creado_en: string;
+        };
+        Insert: {
+          id?: string;
+          identificador: string;
+          fallos_consecutivos?: number;
+          bloqueado_hasta?: string | null;
+          ultimo_intento_en?: string;
+          creado_en?: string;
+        };
+        Update: {
+          id?: string;
+          identificador?: string;
+          fallos_consecutivos?: number;
+          bloqueado_hasta?: string | null;
+          ultimo_intento_en?: string;
+          creado_en?: string;
+        };
+        Relationships: [];
+      };
+      empresas: {
+        Row: {
+          id: string;
+          cuenta_id: string;
+          razon_social: string;
+          nombre_comercial: string | null;
+          ruc: string | null;
+          direccion: string | null;
+          logo_ruta: string | null;
+          color_marca: string | null;
+          modelo_operacion: string;
+          zona_horaria: string;
+          pais: string;
+          moneda: string;
+          activa: boolean;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+          eliminado_en: string | null;
+        };
+        Insert: {
+          id?: string;
+          cuenta_id: string;
+          razon_social: string;
+          nombre_comercial?: string | null;
+          ruc?: string | null;
+          direccion?: string | null;
+          logo_ruta?: string | null;
+          color_marca?: string | null;
+          modelo_operacion?: string;
+          zona_horaria?: string;
+          pais?: string;
+          moneda?: string;
+          activa?: boolean;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+          eliminado_en?: string | null;
+        };
+        Update: {
+          id?: string;
+          cuenta_id?: string;
+          razon_social?: string;
+          nombre_comercial?: string | null;
+          ruc?: string | null;
+          direccion?: string | null;
+          logo_ruta?: string | null;
+          color_marca?: string | null;
+          modelo_operacion?: string;
+          zona_horaria?: string;
+          pais?: string;
+          moneda?: string;
+          activa?: boolean;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+          eliminado_en?: string | null;
+        };
+        Relationships: [];
+      };
+      membresias: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          usuario_id: string;
+          perfil_id: string;
+          es_propietario: boolean;
+          acceso_web: boolean;
+          activo: boolean;
+          invitado_por: string | null;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          usuario_id: string;
+          perfil_id: string;
+          es_propietario?: boolean;
+          acceso_web?: boolean;
+          activo?: boolean;
+          invitado_por?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          usuario_id?: string;
+          perfil_id?: string;
+          es_propietario?: boolean;
+          acceso_web?: boolean;
+          activo?: boolean;
+          invitado_por?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [];
       };
     };
     Views: {
@@ -361,6 +543,7 @@ export interface Database {
           job_title: string | null;
           access_scope: AccessScope;
         };
+        Relationships: [];
       };
     };
     Functions: {
@@ -380,6 +563,20 @@ export interface Database {
         Args: { _code: string };
         Returns: Json;
       };
+      ingreso_bloqueado_hasta: {
+        Args: { identificador: string };
+        Returns: string | null;
+      };
+      registrar_intento: {
+        Args: { identificador: string; exito: boolean };
+        Returns: string | null;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }
