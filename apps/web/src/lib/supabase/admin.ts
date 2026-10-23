@@ -15,9 +15,15 @@ export function createAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl) {
     throw new Error(
-      '[Vittkly AppSec] Variables de entorno de servidor requeridas no configuradas (NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY).'
+      '[Vittkly AppSec] Variable de entorno NEXT_PUBLIC_SUPABASE_URL no configurada.'
+    );
+  }
+
+  if (!serviceRoleKey) {
+    throw new Error(
+      '[Vittkly AppSec] Variable de entorno SUPABASE_SERVICE_ROLE_KEY no configurada. Este valor es obligatorio para operaciones administrativas del servidor.'
     );
   }
 

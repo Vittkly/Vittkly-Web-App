@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useActionState } from 'react';
+import React, { useState, useEffect, useActionState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
@@ -13,7 +13,7 @@ const initialState: AuthActionState = {
   success: false,
 };
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const wasUpdated = searchParams.get('updated') === 'true';
   const urlError = searchParams.get('error');
@@ -202,5 +202,19 @@ export default function LoginPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[320px] items-center justify-center">
+          <Loader2 className="text-soft h-6 w-6 animate-spin" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

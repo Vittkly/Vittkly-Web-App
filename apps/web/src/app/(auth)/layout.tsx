@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { VittklyLogo } from '@/components/brand/VittklyLogo';
+import { CurrentYear } from '@/components/ui/CurrentYear';
 
 export default function AuthLayout({
   children,
@@ -30,7 +31,7 @@ export default function AuthLayout({
 
         {/* Pie de página accesible */}
         <footer className="text-soft mt-8 text-center text-xs">
-          <p>&copy; {new Date().getFullYear()} Vittkly. Todos los derechos reservados.</p>
+          <p>&copy; <CurrentYear /> Vittkly. Todos los derechos reservados.</p>
           <p className="mt-1">
             Plataforma segura con encriptación TLS y RLS estricto.
           </p>
