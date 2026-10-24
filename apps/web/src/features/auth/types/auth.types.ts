@@ -7,4 +7,5 @@ export interface AuthActionState {
   success?: boolean;
   blockedUntil?: string | null;
   remainingSeconds?: number;
+  fieldErrors?: Record<string, string>;
 }

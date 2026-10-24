@@ -3,6 +3,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { Loader2 } from 'lucide-react';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'tenant';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -11,6 +12,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: ButtonVariant;
   size?: ButtonSize;
   block?: boolean;
+  loading?: boolean;
+  loadingText?: string;
   children: React.ReactNode;
 }
 
@@ -18,13 +21,15 @@ export function Button({
   variant = 'primary',
   size = 'md',
   block = false,
+  loading = false,
+  loadingText,
   className = '',
   children,
   disabled,
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'inline-flex items-center justify-center font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-40 disabled:cursor-not-allowed select-none rounded-pill whitespace-nowrap';
+    'inline-flex items-center justify-center font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-40 disabled:cursor-not-allowed select-none rounded-pill whitespace-nowrap gap-2';
 
   const sizeStyles: Record<ButtonSize, string> = {
     sm: 'h-8 px-3 text-[13px] leading-5',
@@ -34,7 +39,7 @@ export function Button({
 
   const variantStyles: Record<ButtonVariant, string> = {
     primary:
-      'bg-primary hover:bg-primary-hover active:opacity-90 text-on-primary border border-transparent',
+      'bg-primary hover:bg-primary-hover active:opacity-90 text-on-primary border border-transparent shadow-xs',
     secondary:
       'bg-surface-sunken hover:bg-primary-soft hover:text-primary-ink active:bg-line text-ink border border-transparent',
     outline:
@@ -43,18 +48,28 @@ export function Button({
     danger:
       'bg-transparent hover:bg-danger-soft text-danger-ink border border-transparent active:opacity-90',
     tenant:
-      'bg-tenant-accent hover:opacity-90 active:opacity-80 text-on-tenant-accent border border-transparent',
+      'bg-tenant-accent hover:opacity-90 active:opacity-80 text-on-tenant-accent border border-transparent shadow-xs',
   };
+
+  const isDisabled = disabled || loading;
 
   return (
     <button
       className={twMerge(
         clsx(baseStyles, sizeStyles[size], variantStyles[variant], block ? 'w-full' : '', className)
       )}
-      disabled={disabled}
+      disabled={isDisabled}
+      aria-busy={loading}
       {...props}
     >
-      {children}
+      {loading ? (
+        <>
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+          <span>{loadingText || children}</span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

@@ -1,11 +1,13 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   loginSchema,
+  registerSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
 } from '@vittkly/shared';
@@ -21,7 +23,10 @@ import type { AuthActionState } from '../types/auth.types';
  * 3. Ejecuta `supabase.auth.signInWithPassword`.
  * 4. Si falla: invoca `registrar_intento(identificador, false)`. Al 3.er fallo bloquea 30s;
  *    al 5.º fallo bloquea 15m. Retorna mensaje genérico o aviso de bloqueo temporal.
- * 5. Si tiene éxito: invoca `registrar_intento(identificador, true)` y redirige al dashboard.
+ * 5. Si tiene éxito: invoca `registrar_intento(identificador, true)`.
+ * 6. Verifica que el usuario tenga permiso de acceso a la Central Web (`acceso_web = true`).
+ *    Si es un perfil exclusivamente móvil (ej. Técnico de Campo sin acceso web), lo informa y cierra sesión.
+ * 7. Invalida la caché de sesión y redirige a `/dashboard`.
  */
 export async function loginAction(
   _prevState: AuthActionState,
@@ -150,7 +155,172 @@ export async function loginAction(
     }
   }
 
-  redirect('/');
+  // 5. Validación de Acceso Web según Membresías y Roles de seed.sql
+  try {
+    const { data: userMemberships } = await supabase
+      .from('membresias')
+      .select('id, empresa_id, perfil_id, acceso_web, activo')
+      .eq('usuario_id', data.user.id)
+      .eq('activo', true);
+
+    // Si tiene membresías y NINGUNA tiene acceso web (ej. Técnico de Campo en seed.sql)
+    if (
+      userMemberships &&
+      userMemberships.length > 0 &&
+      !userMemberships.some((m) => m.acceso_web)
+    ) {
+      await supabase.auth.signOut();
+      return {
+        error:
+          'Tu cuenta tiene asignado un perfil exclusivo para la App Móvil de Campo. Para acceder a la Central Web contacta a tu administrador.',
+      };
+    }
+
+    // Si el usuario aún no tiene membresías (ej. cuenta creada pero pendiente de provisión)
+    if (!userMemberships || userMemberships.length === 0) {
+      const meta = data.user.user_metadata || {};
+      if (meta.company_name) {
+        try {
+          await supabase.rpc('crear_cuenta_y_empresa', {
+            p_nombre_empresa: meta.company_name,
+            p_ruc: meta.ruc || null,
+            p_plan_codigo: meta.plan_code || 'empresa',
+          });
+        } catch (provErr) {
+          console.warn('[Vittkly Auth] Auto-aprovisionamiento al iniciar sesión:', provErr);
+        }
+      }
+    }
+  } catch (memErr) {
+    console.warn('[Vittkly Auth] Advertencia verificando membresías:', memErr);
+  }
+
+  revalidatePath('/', 'layout');
+  redirect('/dashboard');
+}
+
+/**
+ * Server Action: Registro de nueva cuenta y aprovisionamiento inicial.
+ *
+ * CORRECCIÓN CRÍTICA DE REDIRECCIÓN Y RETROALIMENTACIÓN:
+ * 1. Valida el payload con `registerSchema` (@vittkly/shared).
+ * 2. Registra el usuario en Supabase Auth (`signUp`).
+ * 3. Si se obtiene sesión activa en el servidor:
+ *    - Invoca `public.crear_cuenta_y_empresa` para crear cuenta, suscripción, empresa y rol admin.
+ *    - Invalida caché y REDIRIGE inmediatamente a `/dashboard?welcome=true`.
+ * 4. Si Supabase requiere confirmación de correo:
+ *    - REDIRIGE inmediatamente a `/register/confirmacion` con instrucciones claras.
+ *    El usuario NUNCA se queda estancado en el formulario sin respuesta.
+ */
+export async function registerAction(
+  _prevState: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const rawData = {
+    fullName: formData.get('fullName')?.toString() || '',
+    companyName: formData.get('companyName')?.toString() || '',
+    ruc: formData.get('ruc')?.toString() || undefined,
+    planCode: formData.get('planCode')?.toString() || 'empresa',
+    email: formData.get('email')?.toString() || '',
+    password: formData.get('password')?.toString() || '',
+    confirmPassword: formData.get('confirmPassword')?.toString() || '',
+  };
+
+  const validation = registerSchema.safeParse(rawData);
+
+  if (!validation.success) {
+    const fieldErrors: Record<string, string> = {};
+    validation.error.issues.forEach((issue) => {
+      const field = issue.path[0];
+      if (field && typeof field === 'string' && !fieldErrors[field]) {
+        fieldErrors[field] = issue.message;
+      }
+    });
+
+    return {
+      error: validation.error.issues[0]?.message || 'Por favor completa los campos correctamente',
+      fieldErrors,
+    };
+  }
+
+  const { fullName, companyName, ruc, planCode, email, password } = validation.data;
+  const cleanEmail = email.toLowerCase();
+  const supabase = await createServerClient();
+
+  const reqHeaders = await headers();
+  const origin =
+    reqHeaders.get('origin') ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    'http://localhost:3000';
+
+  // 1. Registro en Supabase Auth
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email: cleanEmail,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
+      data: {
+        full_name: fullName,
+        company_name: companyName,
+        ruc: ruc || null,
+        plan_code: planCode,
+      },
+    },
+  });
+
+  if (signUpError) {
+    if (
+      signUpError.message?.toLowerCase().includes('already registered') ||
+      signUpError.message?.toLowerCase().includes('user already exists')
+    ) {
+      return {
+        error:
+          'Ya existe una cuenta registrada con este correo electrónico. Por favor inicia sesión.',
+      };
+    }
+
+    return {
+      error: signUpError.message || 'No se pudo crear la cuenta. Intenta nuevamente.',
+    };
+  }
+
+  // 2. Si se estableció sesión activa inmediata
+  if (signUpData.session && signUpData.user) {
+    try {
+      // Aprovisionar cuenta, suscripción, empresa y membresía admin
+      await supabase.rpc('crear_cuenta_y_empresa', {
+        p_nombre_empresa: companyName,
+        p_ruc: ruc || null,
+        p_plan_codigo: planCode,
+      });
+
+      // Asegurar datos en public.usuarios
+      await supabase.from('usuarios').upsert({
+        id: signUpData.user.id,
+        nombre: fullName,
+        correo: cleanEmail,
+      });
+    } catch (provErr) {
+      console.warn('[Vittkly Register] Advertencia aprovisionando empresa:', provErr);
+    }
+
+    revalidatePath('/', 'layout');
+    redirect('/dashboard?welcome=true');
+  }
+
+  // 3. Si el entorno requiere confirmación de correo electrónico
+  const confirmUrl = `/register/confirmacion?email=${encodeURIComponent(cleanEmail)}&company=${encodeURIComponent(companyName)}&plan=${encodeURIComponent(planCode)}`;
+  redirect(confirmUrl);
+}
+
+/**
+ * Server Action: Cerrar sesión activa en la Central Web.
+ */
+export async function logoutAction(): Promise<void> {
+  const supabase = await createServerClient();
+  await supabase.auth.signOut();
+  revalidatePath('/', 'layout');
+  redirect('/login');
 }
 
 /**

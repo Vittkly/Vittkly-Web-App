@@ -3,9 +3,13 @@
 import React, { useState, useEffect, useActionState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { Clock, KeyRound, ChevronDown, ChevronUp } from 'lucide-react';
 import { loginAction } from '@/features/auth/actions/auth.actions';
 import type { AuthActionState } from '@/features/auth/types/auth.types';
+import { Button } from '@/components/ui/Button';
+import { TextField } from '@/components/ui/TextField';
+import { PasswordField } from '@/components/ui/PasswordField';
+import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 
 const initialState: AuthActionState = {
   error: null,
@@ -13,13 +17,48 @@ const initialState: AuthActionState = {
   success: false,
 };
 
+const SEED_TEST_ACCOUNTS = [
+  {
+    label: 'Administrador (Plan Empresa)',
+    email: 'admin@vittakleanly.test',
+    area: 'Administración · Acceso total',
+  },
+  {
+    label: 'Supervisor (Plan Empresa)',
+    email: 'supervisor@vittakleanly.test',
+    area: 'Operaciones y Validación',
+  },
+  {
+    label: 'Ventas (Plan Empresa)',
+    email: 'ventas@vittakleanly.test',
+    area: 'Cotizaciones y Clientes',
+  },
+  {
+    label: 'Contabilidad (Plan Empresa)',
+    email: 'contabilidad@vittakleanly.test',
+    area: 'Finanzas, Cobros y Bancos',
+  },
+  {
+    label: 'Administrador Prueba (Plan Crece)',
+    email: 'admin@empresaprueba.test',
+    area: 'Segunda Empresa · Plan Crece',
+  },
+  {
+    label: 'Técnico de Campo (Sin Acceso Web)',
+    email: 'tecnico@vittakleanly.test',
+    area: 'Solo App Móvil (Prueba RLS/Permiso)',
+  },
+];
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const wasUpdated = searchParams.get('updated') === 'true';
   const urlError = searchParams.get('error');
 
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
-  const [showPassword, setShowPassword] = useState(false);
+  const [emailValue, setEmailValue] = useState('');
+  const [passwordValue, setPasswordValue] = useState('');
+  const [showSeedAccounts, setShowSeedAccounts] = useState(false);
   const [now, setNow] = useState<number>(() => Date.now());
 
   // Actualizar el reloj cada segundo solo si hay un bloqueo temporal activo
@@ -39,7 +78,6 @@ function LoginForm() {
     return () => clearInterval(interval);
   }, [state.blockedUntil]);
 
-  // Cálculo derivado en tiempo real sin estados redundantes
   const targetTime = state.blockedUntil ? new Date(state.blockedUntil).getTime() : 0;
   const countdown = Math.max(0, Math.ceil((targetTime - now) / 1000));
   const isLocked = countdown > 0;
@@ -50,12 +88,15 @@ function LoginForm() {
       ? `${minutes}m ${seconds.toString().padStart(2, '0')}s`
       : `${seconds}s`;
 
+  const fillAccount = (email: string) => {
+    setEmailValue(email);
+    setPasswordValue('Prueba123!');
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5 text-center sm:text-left">
-        <h1 className="text-ink text-2xl font-bold tracking-tight">
-          Iniciar Sesión
-        </h1>
+        <h1 className="text-ink text-2xl font-bold tracking-tight">Iniciar Sesión</h1>
         <p className="text-soft text-sm">
           Ingresa tus credenciales para acceder a la Central Web.
         </p>
@@ -63,144 +104,138 @@ function LoginForm() {
 
       {/* Alerta de contraseña actualizada exitosamente */}
       {wasUpdated && (
-        <div
-          role="status"
-          className="border-success/30 bg-success-soft text-success-ink flex items-start gap-3 rounded-lg border p-3.5 text-xs font-medium"
-        >
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-          <span>
-            Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave.
-          </span>
-        </div>
+        <FeedbackBanner
+          variant="success"
+          message="Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave."
+        />
       )}
 
       {/* Alerta de enlace expirado */}
       {urlError === 'enlace_expirado' && (
-        <div
-          role="alert"
-          className="border-warning/30 bg-warning-soft text-warning-ink flex items-start gap-3 rounded-lg border p-3.5 text-xs font-medium"
-        >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-          <span>
-            El enlace de recuperación ha expirado o ya fue utilizado. Solicita uno nuevo.
-          </span>
-        </div>
+        <FeedbackBanner
+          variant="warning"
+          message="El enlace de recuperación ha expirado o ya fue utilizado. Solicita uno nuevo."
+        />
       )}
 
       {/* Alerta de bloqueo por fuerza bruta con cuenta regresiva en vivo */}
       {isLocked && (
-        <div
-          role="alert"
-          className="border-danger/30 bg-danger-soft text-danger-ink flex items-start gap-3 rounded-lg border p-3.5 text-xs font-medium"
-        >
-          <Clock className="text-danger mt-0.5 h-4 w-4 shrink-0 animate-pulse" />
-          <div className="flex flex-col gap-1">
-            <span className="font-semibold">Acceso bloqueado temporalmente</span>
+        <FeedbackBanner
+          variant="danger"
+          icon={<Clock className="text-danger mt-0.5 h-4 w-4 shrink-0 animate-pulse" />}
+          title="Acceso bloqueado temporalmente"
+          message={
             <span>
               Has superado el límite de intentos fallidos. Por tu seguridad, espera{' '}
-              <span className="font-mono text-sm font-bold tabular-nums">
-                {timeFormatted}
-              </span>{' '}
+              <span className="font-mono text-sm font-bold tabular-nums">{timeFormatted}</span>{' '}
               antes de volver a intentar.
             </span>
-          </div>
-        </div>
+          }
+        />
       )}
 
       {/* Mensaje de error genérico anti-enumeración */}
       {!isLocked && state.error && (
-        <div
-          role="alert"
-          className="border-danger/30 bg-danger-soft text-danger-ink flex items-start gap-3 rounded-lg border p-3.5 text-xs font-medium"
-        >
-          <AlertCircle className="text-danger mt-0.5 h-4 w-4 shrink-0" />
-          <span>{state.error}</span>
-        </div>
+        <FeedbackBanner variant="danger" message={state.error} />
       )}
 
-      <form action={formAction} className="flex flex-col gap-4.5">
-        {/* Campo Correo Electrónico */}
-        <div className="flex flex-col gap-1.5 text-left">
-          <label
-            htmlFor="email"
-            className="text-soft text-xs font-semibold tracking-wide uppercase select-none"
-          >
-            Correo electrónico
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            disabled={isPending || isLocked}
-            placeholder="tu.correo@empresa.com"
-            className="border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border px-3.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-          />
-        </div>
-
-        {/* Campo Contraseña con Toggle de Visibilidad */}
-        <div className="flex flex-col gap-1.5 text-left">
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor="password"
-              className="text-soft text-xs font-semibold tracking-wide uppercase select-none"
-            >
-              Contraseña
-            </label>
-            <Link
-              href="/olvide-contrasena"
-              tabIndex={isPending ? -1 : 0}
-              className="text-accent hover:text-primary-hover text-xs font-semibold transition-colors focus-visible:underline"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-          <div className="relative flex items-center">
-            <input
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              required
-              disabled={isPending || isLocked}
-              placeholder="••••••••"
-              className="border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border pr-11 pl-3.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-              className="text-soft hover:text-ink absolute right-3 inline-flex p-1 transition-colors focus-visible:outline-none"
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Botón Primario de Envío */}
-        <button
-          type="submit"
+      <form action={formAction} className="flex flex-col gap-4">
+        <TextField
+          id="email"
+          name="email"
+          type="email"
+          label="Correo electrónico"
+          autoComplete="email"
+          required
           disabled={isPending || isLocked}
-          className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full select-none items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          value={emailValue}
+          onChange={(e) => setEmailValue(e.target.value)}
+          placeholder="tu.correo@empresa.com"
+        />
+
+        <PasswordField
+          id="password"
+          name="password"
+          label="Contraseña"
+          autoComplete="current-password"
+          required
+          disabled={isPending || isLocked}
+          value={passwordValue}
+          onChange={(e) => setPasswordValue(e.target.value)}
+          placeholder="••••••••"
+          forgotPasswordHref="/olvide-contrasena"
+        />
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          block
+          loading={isPending}
+          loadingText="Verificando credenciales..."
+          disabled={isLocked}
+          className="mt-2"
         >
-          {isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Verificando...</span>
-            </>
-          ) : isLocked ? (
-            <span>Bloqueado ({timeFormatted})</span>
+          {isLocked ? `Bloqueado (${timeFormatted})` : 'Ingresar a la Central'}
+        </Button>
+      </form>
+
+      {/* Enlace para registrar cuenta nueva */}
+      <div className="border-line border-t pt-4 text-center">
+        <p className="text-soft text-xs">
+          ¿Aún no tienes una cuenta?{' '}
+          <Link
+            href="/register"
+            className="text-accent hover:text-primary-hover font-bold transition-colors focus-visible:underline"
+          >
+            Registra tu empresa gratis
+          </Link>
+        </p>
+      </div>
+
+      {/* Selector rápido de cuentas de prueba de seed.sql para revisión ágil */}
+      <div className="border-line/60 bg-surface-sunken/40 rounded-lg border p-3 text-left">
+        <button
+          type="button"
+          onClick={() => setShowSeedAccounts(!showSeedAccounts)}
+          className="text-soft hover:text-ink flex w-full items-center justify-between text-xs font-semibold select-none"
+        >
+          <span className="flex items-center gap-1.5">
+            <KeyRound className="h-3.5 w-3.5 text-primary" />
+            Cuentas de Prueba Staging (seed.sql)
+          </span>
+          {showSeedAccounts ? (
+            <ChevronUp className="h-3.5 w-3.5" />
           ) : (
-            <span>Ingresar a la Central</span>
+            <ChevronDown className="h-3.5 w-3.5" />
           )}
         </button>
-      </form>
+
+        {showSeedAccounts && (
+          <div className="mt-2.5 flex flex-col gap-1.5 border-t border-line/40 pt-2">
+            <p className="text-soft text-[11px]">
+              Haz clic en cualquier cuenta para autocompletar credenciales (clave:{' '}
+              <span className="font-mono font-bold text-ink">Prueba123!</span>):
+            </p>
+            <div className="flex flex-col gap-1">
+              {SEED_TEST_ACCOUNTS.map((acc) => (
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => fillAccount(acc.email)}
+                  className="hover:bg-surface-raised flex items-center justify-between rounded p-1.5 text-left text-xs transition-colors"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-ink">{acc.label}</span>
+                    <span className="font-mono text-[11px] text-soft">{acc.email}</span>
+                  </div>
+                  <span className="text-[10px] text-soft italic">{acc.area}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -210,7 +245,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[320px] items-center justify-center">
-          <Loader2 className="text-soft h-6 w-6 animate-spin" />
+          <div className="bg-line/60 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       }
     >

@@ -1,25 +1,73 @@
 import React from 'react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/features/auth/services/auth.service';
 import { VittklyLogo } from '@/components/brand/VittklyLogo';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { CurrentYear } from '@/components/ui/CurrentYear';
+import { ArrowRight, ShieldCheck, Layers, Building } from 'lucide-react';
 
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
+
+  if (user) {
+    redirect('/dashboard');
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
-      <div className="flex max-w-md flex-col items-center gap-6">
+    <main className="bg-surface flex min-h-dvh flex-col items-center justify-center p-6 text-center transition-colors">
+      <div className="flex max-w-lg flex-col items-center gap-6">
         <VittklyLogo variant="wordmark" height={44} priority />
+
         <div className="flex flex-col gap-2">
-          <h1 className="text-ink text-xl font-bold tracking-tight">
-            Plataforma Web SaaS &middot; Espacio de Trabajo
+          <Badge variant="plan" size="md" className="mx-auto" mono>
+            Central de Servicios Web
+          </Badge>
+          <h1 className="text-ink text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Plataforma All-in-One para Empresas de Servicios
           </h1>
-          <p className="text-ink-muted text-sm">
-            Infraestructura base inicializada con Next.js App Router, Tailwind CSS, fuentes Manrope
-            y tokens oficiales de Vittkly.
+          <p className="text-soft text-sm sm:text-base leading-relaxed">
+            Gestión inteligente de operaciones de campo, cuadrillas, cotizaciones, CRM,
+            agenda y finanzas con arquitectura Multi-Tenant y RLS estricto.
           </p>
         </div>
-        <div className="rounded-pill bg-surface-sunken border-line text-ink-muted inline-flex items-center gap-2 border px-3 py-1 font-mono text-xs tabular-nums">
-          <span>vittkly-web</span>
-          <span>&bull;</span>
-          <span>Workspace Ready</span>
+
+        {/* Botones de Acción Principal */}
+        <div className="flex w-full flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Link href="/login" className="w-full sm:w-auto">
+            <Button variant="primary" size="lg" className="w-full sm:w-auto min-w-[180px]">
+              <span>Iniciar Sesión</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+
+          <Link href="/register" className="w-full sm:w-auto">
+            <Button variant="outline" size="lg" className="w-full sm:w-auto min-w-[180px]">
+              <span>Registrar Empresa</span>
+            </Button>
+          </Link>
         </div>
+
+        {/* Pilares Técnicos */}
+        <div className="border-line/70 bg-surface-sunken/60 grid w-full grid-cols-1 gap-2.5 rounded-xl border p-4 sm:grid-cols-3 text-left text-xs">
+          <div className="flex items-center gap-2">
+            <Building className="text-primary h-4 w-4 shrink-0" />
+            <span className="text-ink font-semibold">Multi-Tenant Aislado</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="text-success h-4 w-4 shrink-0" />
+            <span className="text-ink font-semibold">RLS & AppSec Estricto</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Layers className="text-accent h-4 w-4 shrink-0" />
+            <span className="text-ink font-semibold">Módulos por Plan & Rol</span>
+          </div>
+        </div>
+
+        <footer className="text-soft text-xs">
+          &copy; <CurrentYear /> Vittkly Inc. Todos los derechos reservados.
+        </footer>
       </div>
     </main>
   );

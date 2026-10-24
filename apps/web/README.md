@@ -1,71 +1,89 @@
-# Vittkly SaaS Web Platform
+# Vittkly Web SaaS (`@vittkly/web`) 💻
 
-Plataforma web oficial de **Vittkly** para empresas de servicios en campo (limpieza especializada, mantenimiento técnico, despacho de cuadrillas, CRM, cotizaciones y facturación).
+Central de administración web de **Vittkly** para despachadores, supervisores y administradores de empresas de mantenimiento técnico y servicios en campo.
 
----
-
-## 1. Stack Tecnológico
-
-- **Framework:** [Next.js 16](https://nextjs.org) (App Router con React 19 Server Components)
-- **Lenguaje:** TypeScript 5 (Modo estricto)
-- **Estilos:** Tailwind CSS v4 con variables CSS bitemáticas (Light/Dark mode)
-- **Tipografía:** Manrope (400-800) y JetBrains Mono con `tabular-nums`
-- **Backend / Auth:** Supabase SSR (`@supabase/ssr`) con aislamiento RLS Multi-Tenant por `org_id`
-- **Estado Cliente / Servidor:** TanStack Query (`@tanstack/react-query`) y Zustand
-- **Validación:** Zod
-- **Testing:** Vitest, React Testing Library y Playwright E2E
-- **Calidad de Código:** ESLint (Flat Config con reglas arquitectónicas), Prettier, Husky, lint-staged y Commitlint
+Desarrollada sobre **Next.js 16 (App Router)** con Server Components de **React 19**, **Tailwind CSS v4** y autenticación SSR aislada por `org_id` con **Supabase Cloud**.
 
 ---
 
-## 2. Reglas Arquitectónicas Innegociables
+## 🚀 1. Stack Tecnológico Real
 
-1. **Thin Routing en `src/app/`:** Las rutas solo orquestan layouts, páginas delgadas y metadatos. La lógica de negocio reside en `src/features/`.
-2. **Patrón Repositorio en Supabase SSR:** Prohibido importar `@/lib/supabase/*` directamente en componentes de presentación o rutas. Todo acceso a datos pasa por `src/features/[feature]/services/`.
-3. **Tokens Inmutables de Marca:** Usar siempre tokens semánticos (`bg-surface`, `bg-surface-raised`, `text-ink`, `border-line`). `#3EC49B` (`kleanly`/`success`) está estrictamente reservado para estados completados o cobrados.
-4. **RSC por Defecto:** Server Components por defecto; `'use client'` solo en hojas interactivas con estado o eventos.
-5. **Seguridad RLS Multi-Tenant:** Toda consulta y mutación debe estar aislada por `org_id` y protegida por las políticas RLS y funciones `is_org_member()` / `is_org_admin()`.
+- **Framework:** [Next.js 16.4.2](https://nextjs.org) (App Router con React Server Components)
+- **Runtime React:** React 19.3.0
+- **Estilos:** Tailwind CSS v4 (`@tailwindcss/turbopack`)
+- **Backend & Auth:** `@supabase/ssr` (`^0.12.7`) y `@supabase/supabase-js` (`^2.118.0`)
+- **Estado Global:** Zustand (`^5.0.15`) y TanStack Query (`^5.104.3`)
+- **Validación:** Zod (`^4.6.7`) y `@vittkly/shared`
+- **Testing:** Vitest (`^5.0.5`), `@testing-library/react` (`^16.3.3`) y Playwright E2E (`^1.64.1`)
+- **Integración Monorepo:** `transpilePackages: ['@vittkly/shared', '@vittkly/db-types']` en `next.config.ts`
 
 ---
 
-## 3. Scripts de Verificación y Desarrollo
+## 📊 2. Estado Actual de la Base de Código vs. Roadmap
+
+### ✅ Lo que ya está construido en el repositorio:
+1. **Infraestructura Supabase SSR (`src/lib/supabase/`):**
+   - `client.ts`: Cliente de navegación para Client Components.
+   - `server.ts`: Cliente seguro para Server Components y Server Actions con gestión de cookies.
+   - `middleware.ts`: Verificación de sesión y renovación de cookies en el borde (`src/middleware.ts`).
+2. **Sistema de Temas y Tokens Semánticos (`src/components/providers/ThemeProvider.tsx` y `src/theme/`):**
+   - Soporte completo para modo oscuro y claro con `next-themes` y variables CSS en `src/app/globals.css`.
+   - Regla estricta de color: `#3EC49B` (`kleanly` / `success`) únicamente para transacciones u órdenes exitosas.
+3. **UI Kit Base Tipado (`src/components/ui/`):**
+   - `Button`: Botones accesibles con variantes primarias, secundarias y de peligro.
+   - `Card`: Contenedores semánticos con sombras y bordes acordes al sistema de diseño.
+   - `StatusBadge`: Insignias de estado operativo (con suite de tests unitarios en Vitest).
+   - `TextField`: Inputs de formulario con validación y estados de foco.
+   - `ThemeToggle`: Selector accesible de modo claro/oscuro.
+   - `VittklyLogo`: Logotipo institucional vectorizado.
+
+### 🚧 Roadmap de Funcionalidades Pendientes (Próximos Sprints):
+- **`src/features/auth/`**: Pantallas de Login con magic link / contraseña, registro de empresa y recuperación.
+- **`src/features/dashboard/`**: Panel analítico general de la empresa con métricas de órdenes de trabajo.
+- **`src/features/work-orders/`**: Creación, programación y despacho de órdenes a técnicos en campo.
+- **`src/features/crm/`**: Gestión de clientes, contratos y ubicaciones de servicio.
+- **`src/features/billing/`**: Liquidación de servicios, cobros y facturación.
+
+---
+
+## ⚙️ 3. Variables de Entorno
+
+Genera el archivo `.env.local` a partir de `.env.example`:
 
 ```bash
-# Desarrollo local
-npm run dev
+cp .env.example .env.local
+```
 
-# Verificación de tipos TypeScript
-npm run typecheck
+### Variables Requeridas:
+```env
+# URL de tu instancia en Supabase Cloud
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 
-# Linter de código y reglas arquitectónicas
-npm run lint
-
-# Pruebas unitarias
-npm run test
-
-# Pruebas End-to-End
-npm run test:e2e
-
-# Protocolo pre-flight completo (typecheck + lint + test)
-npm run pre-flight
-
-# Compilación de producción
-npm run build
+# Llave anónima pública
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-publishable-key
 ```
 
 ---
 
-## 4. Estructura del Proyecto
+## 💻 4. Scripts y Flujo de Desarrollo
 
-```text
-Vittkly-Web/
-├── .agents/          # Ecosistema de Agentes IA (rules, skills, mcp, hooks)
-├── docs/             # Docs-as-Code (seguridad RLS, arquitectura, sistema de diseño)
-├── public/           # Activos públicos (brand, icons, favicons)
-└── src/
-    ├── app/          # Thin Routing (App Router)
-    ├── components/   # UI Kit base (brand, icons, ui, providers)
-    ├── lib/          # Clientes Supabase SSR (client, server, middleware)
-    ├── theme/        # Tokens semánticos de diseño y constantes
-    └── types/        # Tipos TypeScript de base de datos Supabase
+Desde la raíz del monorepo:
+```bash
+# Iniciar servidor de desarrollo en http://localhost:3000
+pnpm dev:web
+
+# Ejecutar verificación de tipos
+pnpm --filter @vittkly/web typecheck
+
+# Ejecutar suite de pruebas unitarias con Vitest
+pnpm --filter @vittkly/web test
+
+# Ejecutar pruebas End-to-End con Playwright
+pnpm --filter @vittkly/web test:e2e
 ```
+
+---
+
+## ☁️ 5. Despliegue Objetivo (Production Target)
+
+La Central Web está optimizada para desplegarse de manera fluida en arquitecturas de borde o serverless modernas (como **Cloudflare Pages / Workers** mediante `@cloudflare/next-on-pages` o **Vercel**), aprovechando la ejecución ultrarrápida del middleware de Supabase SSR.

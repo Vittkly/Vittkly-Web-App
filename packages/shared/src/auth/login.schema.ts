@@ -86,3 +86,39 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+/**
+ * Esquema de validación para registro de nueva cuenta y organización inicial.
+ */
+export const registerSchema = z
+  .object({
+    fullName: z.string().trim().min(2, 'Ingresa tu nombre completo'),
+    companyName: z.string().trim().min(2, 'Ingresa el nombre o razón social de tu empresa'),
+    ruc: z
+      .string()
+      .trim()
+      .optional()
+      .refine(
+        (val) => !val || /^(10|20)\d{9}$/.test(val),
+        'El RUC debe tener 11 dígitos e iniciar con 10 o 20'
+      ),
+    planCode: z.enum(['inicia', 'crece', 'empresa']).default('empresa'),
+    email: z
+      .string()
+      .trim()
+      .min(1, 'El correo electrónico es requerido')
+      .email('Ingresa un correo electrónico válido'),
+    password: z
+      .string()
+      .min(8, 'La contraseña debe tener al menos 8 caracteres')
+      .regex(/[A-Z]/, 'Debe incluir al menos una letra mayúscula')
+      .regex(/[0-9]/, 'Debe incluir al menos un número')
+      .regex(/[^A-Za-z0-9]/, 'Debe incluir al menos un carácter especial o símbolo'),
+    confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  });
+
+export type RegisterInput = z.infer<typeof registerSchema>;
