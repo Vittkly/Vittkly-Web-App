@@ -14,9 +14,37 @@ web-build/
 # Turborepo
 .turbo/
 
+# TypeScript
+*.tsbuildinfo
+
+# Testing and coverage
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Agent private configs
+**/.agents/mcp_config.json
+
+# Heavy demo artifacts (option C)
+/docs/artifacts/Demo/completa/
+
+# Generated native folders
+/apps/mobile/ios/
+/apps/mobile/android/
+expo-env.d.ts
+
+# Husky internals
+/.husky/_/
+
+# Vercel
+.vercel/
+
 # Environment variables
 .env*.local
 .env
+!.env.example
 
 # Logs
 npm-debug.log*
