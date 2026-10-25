@@ -1,0 +1,36 @@
+# =====================================================================
+# Supabase CLI Project Configuration (Referencia de Desarrollo)
+# =====================================================================
+# NOTA: Vittkly utiliza Supabase en la nube (sa-east-1).
+# No se utiliza Docker local. Este archivo estandariza la configuración
+# del proyecto y migraciones para la CLI oficial de Supabase.
+
+project_id = "vittkly-cloud"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 16
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"

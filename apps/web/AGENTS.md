@@ -8,23 +8,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Vittkly SaaS Web Platform — Reglas para Agentes IA
+# Vittkly Web SaaS (`@vittkly/web`) — Reglas de Desarrollo
 
-Esta es la plataforma web SaaS oficial de **Vittkly** para empresas de servicios en campo (despacho, cuadrillas, CRM, cotizaciones y facturación).
+Central web de administración de Vittkly (Next.js 16.4 App Router, React 19, Tailwind CSS v4, `@supabase/ssr`).
 
-## 1. Reglas Arquitectónicas Innegociables
-
-- **Thin Routing en `src/app/`:** Solo layouts, páginas delgadas y metadatos. La lógica de negocio reside en `src/features/`.
-- **Patrón Repositorio en Supabase SSR:** Prohibido importar `@/lib/supabase/*` en componentes de presentación o rutas. Todo acceso a datos pasa por `src/features/[feature]/services/`.
-- **Tokens Inmutables de Marca:** Usar siempre tokens semánticos (`bg-surface`, `bg-surface-raised`, `text-ink`, `border-line`). `#3EC49B` (`kleanly`/`success`) está estrictamente reservado para estados completados o cobrados.
-- **RSC por Defecto:** Server Components por defecto; `'use client'` solo en hojas interactivas con estado o eventos.
-- **Seguridad RLS Multi-Tenant:** Toda consulta y mutación debe estar aislada por `org_id` y protegida por las políticas RLS y funciones `is_org_member()` / `is_org_admin()`.
-
-## 2. Comandos de Verificación
+## Comandos de Verificación (desde la raíz o en apps/web)
 
 ```bash
-npm run typecheck    # npx tsc --noEmit
-npm run lint         # npx eslint .
-npm run test         # npx vitest run
-npm run pre-flight   # typecheck + lint + test
+pnpm --filter @vittkly/web typecheck    # Verificación de TypeScript
+pnpm --filter @vittkly/web lint         # ESLint 9 Flat Config
+pnpm --filter @vittkly/web test         # Vitest unit tests
+pnpm --filter @vittkly/web test:e2e     # Playwright E2E tests
 ```
+
+## Reglas Específicas
+- Consumir siempre `@vittkly/shared` para esquemas de validación Zod y tipos de dominio.
+- Todo acceso a la base de datos se aísla en `src/features/<feature>/services/`.
+- `createAdminClient()` en `src/lib/supabase/admin.ts` está blindado por `import 'server-only'`.
