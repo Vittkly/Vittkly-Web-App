@@ -1,9 +1,18 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": ["CI", "NODE_ENV", "SUPABASE_PROJECT_ID"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SITE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "EXPO_PUBLIC_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
@@ -18,6 +27,9 @@
     },
     "test": {
       "dependsOn": ["^build"]
+    },
+    "check": {
+      "dependsOn": ["lint", "typecheck", "test"]
     }
   }
 }

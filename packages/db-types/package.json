@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@vittkly/config-typescript": "workspace:*",
     "typescript": "^5.8.2"
   }
 }

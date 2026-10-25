@@ -1,7 +1,0 @@
-.next
-node_modules
-dist
-build
-public/brand
-public/icons
-package-lock.json
