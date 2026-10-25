@@ -71,7 +71,7 @@ export const invitationService = {
 
     // Registrar intento en `invitation_attempts` si la tabla está accesible por política
     try {
-      await supabase.from('invitation_attempts').insert({
+      await (supabase as any).from('invitation_attempts').insert({
         attempted_code: formattedCode,
       });
     } catch {
@@ -79,7 +79,7 @@ export const invitationService = {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('invitations')
         .select(
           `
@@ -198,7 +198,7 @@ export const invitationService = {
 
     try {
       const { error } = await supabase.rpc('redeem_invitation_code', {
-        p_code: formattedCode,
+        _code: formattedCode,
       });
 
       if (error) {

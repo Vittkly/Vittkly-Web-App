@@ -1,21 +1,21 @@
+import { emailSchema, passwordSchema } from '@vittkly/shared';
+
 /**
- * Validador de correo electrónico según RFC estándar simple.
+ * Validador de correo electrónico respaldado por el esquema Zod compartido de Vittkly.
  */
 export function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  return emailSchema.safeParse(value).success;
 }
 
 /**
- * Validador estricto de contraseña:
+ * Validador estricto de contraseña respaldado por el esquema Zod compartido:
  * - Mínimo 8 caracteres
  * - Al menos una letra mayúscula
  * - Al menos un dígito numérico
  * - Al menos un carácter especial
  */
 export function isValidPassword(value: string): boolean {
-  return (
-    value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value)
-  );
+  return passwordSchema.safeParse(value).success;
 }
 
 export interface PasswordRulesValidation {

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@vittkly/db-types';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? '';
@@ -21,7 +22,7 @@ const resolvedUrl = supabaseUrl.startsWith('https://')
   : 'https://placeholder.supabase.co';
 const resolvedKey = supabaseAnonKey || 'placeholder-anon-key';
 
-export const supabase = createClient(resolvedUrl, resolvedKey, {
+export const supabase = createClient<Database>(resolvedUrl, resolvedKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

@@ -91,7 +91,7 @@ export const tenantRepository = {
 
     // 2. Fallback vía RPC `get_my_access()` del Core SaaS
     try {
-      const { data: accessData, error: accessError } = await supabase.rpc('get_my_access');
+      const { data: accessData, error: accessError } = await (supabase as any).rpc('get_my_access');
       if (!accessError && Array.isArray(accessData)) {
         const mapped = (accessData as RawRpcContextItem[])
           .map(mapRawContextToTenant)

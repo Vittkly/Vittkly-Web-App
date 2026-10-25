@@ -90,9 +90,9 @@ function readCloudPin(authUser: User): { pinHash: string | null; pinEnabled: boo
 
 async function fetchProfileRow(userId: string): Promise<DatabaseProfileRow | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('profiles')
-      .select('id, email, phone, first_name, last_name, full_name, avatar_url, updated_at')
+      .select('id, phone, first_name, last_name, full_name, avatar_url, updated_at')
       .eq('id', userId)
       .maybeSingle();
 
