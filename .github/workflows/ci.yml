@@ -47,7 +47,10 @@ jobs:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: |
-            ${ runner.os }}-turbo-
+            ${{ runner.os }}-turbo-
+
+      - name: Check Prettier Formatting
+        run: pnpm format:check
 
       - name: Run Monorepo Quality Gate (Check)
         run: pnpm check

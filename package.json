@@ -17,6 +17,7 @@
     "test": "turbo run test",
     "check": "turbo run check",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
     "sync:db-types": "npx supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > packages/db-types/src/database.types.ts",
     "prepare": "husky"
   },
