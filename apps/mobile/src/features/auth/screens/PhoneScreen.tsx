@@ -60,7 +60,7 @@ export function PhoneScreen() {
                 testID="phone-country-selector-btn"
                 accessibilityRole="button"
                 accessibilityLabel={`País ${selectedCountry.name} ${selectedCountry.dial}`}
-                onPress={() => setShowCountryPicker(prev => !prev)}
+                onPress={() => setShowCountryPicker((prev) => !prev)}
                 style={[
                   styles.dialButton,
                   {
@@ -80,7 +80,7 @@ export function PhoneScreen() {
                 testID="phone-number-input"
                 value={phoneNumber}
                 editable={!isSubmitting}
-                onChangeText={text => {
+                onChangeText={(text) => {
                   setPhoneNumber(text.replace(/[^\d\s-]/g, ''));
                   setError(null);
                 }}
@@ -107,7 +107,7 @@ export function PhoneScreen() {
 
             <CountryPicker
               selectedCountry={selectedCountry}
-              onSelectCountry={c => {
+              onSelectCountry={(c) => {
                 setSelectedCountry(c);
                 setShowCountryPicker(false);
               }}

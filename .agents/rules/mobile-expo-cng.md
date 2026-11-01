@@ -1,9 +1,9 @@
 ---
-description: Reglas de desarrollo para Expo SDK 57, React Native 0.86 y Expo Router en la App Móvil
-globs: ["apps/mobile/**"]
+description: Reglas de desarrollo para Expo SDK 58, React Native 0.88 y Expo Router en la App Móvil
+globs: ['apps/mobile/**']
 ---
 
-# Mobile Architecture: Expo SDK 57 & Continuous Native Generation
+# Mobile Architecture: Expo SDK 58 & Continuous Native Generation
 
 1. **Continuous Native Generation (CNG):**
    - No crear ni modificar carpetas `/ios` o `/android` manualmente. Toda configuración nativa se define en `app.json` o en config plugins.

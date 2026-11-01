@@ -857,20 +857,29 @@ export interface Database {
         Row: {
           usuario_id: string;
           rol: string;
+          activo: boolean;
           creado_en: string;
           creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
         };
         Insert: {
           usuario_id: string;
           rol: string;
+          activo?: boolean;
           creado_en?: string;
           creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
         };
         Update: {
           usuario_id?: string;
           rol?: string;
+          activo?: boolean;
           creado_en?: string;
           creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
         };
         Relationships: [];
       };
@@ -927,6 +936,14 @@ export interface Database {
       es_staff: {
         Args: { p_rol?: string | null };
         Returns: boolean;
+      };
+      canjear_invitacion: {
+        Args: { p_codigo: string };
+        Returns: string;
+      };
+      unir_invitaciones_pendientes: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
       };
     };
     Enums: {

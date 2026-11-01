@@ -12,11 +12,17 @@ import { TenantSelector } from '../components/TenantSelector';
 import { useAuth } from '../hooks/useAuth';
 import { secureStorageService } from '../services/secure-storage.service';
 import type { Tenant } from '../types/auth.types';
+import { useOrgStore } from '@/features/tenants';
 
 export function SelectTenantScreen() {
   const { colors, spacing, radius, typography, control } = useTheme();
-  const { isOffline, tenants, activeOrganizationId, lastActiveTenantId: contextLastActiveId, switchTenant } =
-    useAuth();
+  const {
+    isOffline,
+    tenants,
+    activeOrganizationId,
+    lastActiveTenantId: contextLastActiveId,
+    switchTenant,
+  } = useAuth();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isSwitchMode = params.mode === 'switch';
 
@@ -26,8 +32,11 @@ export function SelectTenantScreen() {
   // Criterio 1: Entrada directa si solo tiene 1 empresa
   useEffect(() => {
     if (tenants.length === 1 && tenants[0]) {
-      void switchTenant(tenants[0].id).then(() => {
-        router.replace('/');
+      void Promise.all([
+        switchTenant(tenants[0].id),
+        useOrgStore.getState().switchOrg(tenants[0].id),
+      ]).then(() => {
+        router.replace('/(tabs)/hoy');
       });
     }
   }, [tenants, switchTenant]);
@@ -35,7 +44,7 @@ export function SelectTenantScreen() {
   // Criterio 2: Consultar la última empresa recordada para destacarla
   useEffect(() => {
     if (!lastActiveId) {
-      void secureStorageService.getLastActiveTenantId().then(id => {
+      void secureStorageService.getLastActiveTenantId().then((id) => {
         if (id) setLastActiveId(id);
       });
     }
@@ -44,8 +53,8 @@ export function SelectTenantScreen() {
   const handleSelectTenant = async (tenant: Tenant) => {
     setIsSelecting(true);
     try {
-      await switchTenant(tenant.id);
-      router.replace('/');
+      await Promise.all([switchTenant(tenant.id), useOrgStore.getState().switchOrg(tenant.id)]);
+      router.replace('/(tabs)/hoy');
     } finally {
       setIsSelecting(false);
     }

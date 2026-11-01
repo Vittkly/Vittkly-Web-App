@@ -34,7 +34,7 @@ export function ForgotPasswordScreen() {
       {step === 'request' ? (
         <ForgotRequestStep
           method={method}
-          onSelectMethod={m => {
+          onSelectMethod={(m) => {
             setMethod(m);
             setError(null);
           }}
@@ -54,7 +54,7 @@ export function ForgotPasswordScreen() {
           onChangeOtpCode={setOtpCode}
           error={error}
           isSubmitting={isSubmitting}
-          onVerify={code => void handleVerifyCode(code)}
+          onVerify={(code) => void handleVerifyCode(code)}
           onResend={() => void handleSendCode()}
         />
       )}

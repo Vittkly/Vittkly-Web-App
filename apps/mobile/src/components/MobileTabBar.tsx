@@ -49,7 +49,6 @@ const ICON_MAP: Record<
 export const DEFAULT_TECHNICIAN_TABS: NavItem[] = [
   { label: 'Hoy', icon: 'home', active: true },
   { label: 'Agenda', icon: 'calendar' },
-  { label: 'Órdenes', icon: 'list' },
   { label: 'Perfil', icon: 'user' },
 ];
 
@@ -57,7 +56,7 @@ export const DEFAULT_TECHNICIAN_TABS: NavItem[] = [
  * Barra inferior de navegación de la app del técnico/supervisor.
  * - Cada pestaña mide al menos `control-lg` (48 px) de alto.
  * - Íconos de 24 px con etiqueta siempre visible.
- * - Pestañas del técnico por defecto: Hoy, Agenda, Órdenes, Perfil.
+ * - Pestañas base por defecto: Hoy, Agenda, Perfil.
  */
 export function MobileTabBar({
   items = DEFAULT_TECHNICIAN_TABS,

@@ -1,45 +1,43 @@
-import { ChevronsUpDown, X } from 'lucide-react-native';
+import { ChevronsUpDown } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from 'react-native';
+import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { useAuth } from '@/features/auth';
 import { getInitials } from '@/features/auth/utils/profile';
+import { OrgSwitchSheet, useOrgStore } from '@/features/tenants';
 import { useTheme } from '@/theme';
-
-import { BottomSheet } from './BottomSheet';
-import { TenantSelector } from '@/features/auth/components/TenantSelector';
-import type { Tenant } from '@/features/auth/types/auth.types';
 
 export interface CompanyCircleButtonProps {
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  showChevron?: boolean;
 }
 
 export function CompanyCircleButton({
   style,
   testID = 'company-circle-button',
+  showChevron = true,
 }: CompanyCircleButtonProps) {
-  const { colors, spacing, radius, typography, fontFamilies, control } = useTheme();
-  const { tenants, activeTenant, lastActiveTenantId, switchTenant } = useAuth();
+  const { colors, radius, typography, fontFamilies, control } = useTheme();
+  const { tenants, activeTenant } = useAuth();
+  const { activeOrg, organizations } = useOrgStore();
 
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastOpacity] = useState(() => new Animated.Value(0));
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const hasMultipleTenants = tenants.length > 1;
-  const companyName = activeTenant?.name || tenants[0]?.name || 'Vitta Kleanly';
-  const companyInitials = getInitials(companyName);
+  const totalOrgs = organizations.length > 0 ? organizations.length : tenants.length;
+  const hasMultipleTenants = totalOrgs > 1;
+
+  const currentOrgName =
+    activeOrg?.name ||
+    activeTenant?.name ||
+    organizations[0]?.name ||
+    tenants[0]?.name ||
+    'Vitta Kleanly';
+
+  const companyInitials = getInitials(currentOrgName);
 
   useEffect(() => {
     return () => {
@@ -53,7 +51,7 @@ export function CompanyCircleButton({
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
-    setToastMessage(`Perteneces únicamente a ${companyName}`);
+    setToastMessage(`Perteneces únicamente a ${currentOrgName}`);
     Animated.timing(toastOpacity, {
       toValue: 1,
       duration: 200,
@@ -79,20 +77,15 @@ export function CompanyCircleButton({
     }
   };
 
-  const handleSelectTenantFromSheet = async (tenant: Tenant) => {
-    setIsSheetVisible(false);
-    if (tenant.id !== activeTenant?.id) {
-      await switchTenant(tenant.id);
-    }
-  };
-
   return (
     <>
       <Pressable
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel={`Empresa activa: ${companyName}.${
-          hasMultipleTenants ? ' Toca para cambiar de empresa.' : ' Perteneces únicamente a esta empresa.'
+        accessibilityLabel={`Empresa activa: ${currentOrgName}.${
+          hasMultipleTenants
+            ? ' Toca para cambiar de empresa.'
+            : ' Perteneces únicamente a esta empresa.'
         }`}
         onPress={handlePress}
         style={({ pressed }) => [
@@ -122,7 +115,7 @@ export function CompanyCircleButton({
           {companyInitials}
         </Text>
 
-        {hasMultipleTenants ? (
+        {hasMultipleTenants && showChevron ? (
           <View
             testID="company-circle-badge-indicator"
             style={[
@@ -161,58 +154,8 @@ export function CompanyCircleButton({
         </Animated.View>
       ) : null}
 
-      {/* Modal BottomSheet interactivo para cambio rápido sin cerrar sesión */}
-      <Modal
-        visible={isSheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsSheetVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            testID="company-modal-backdrop"
-            style={styles.backdropPressable}
-            onPress={() => setIsSheetVisible(false)}
-          />
-
-          <BottomSheet style={styles.sheetContent}>
-            <View style={styles.sheetHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[typography.title2, { color: colors.ink }]}>Cambiar de empresa</Text>
-                <Text style={[typography.small, { color: colors.inkMuted }]}>
-                  Selecciona con cuál vas a trabajar ahora
-                </Text>
-              </View>
-
-              <Pressable
-                testID="company-sheet-close-btn"
-                accessibilityRole="button"
-                accessibilityLabel="Cerrar selector de empresa"
-                onPress={() => setIsSheetVisible(false)}
-                style={({ pressed }) => ({
-                  padding: spacing.space1,
-                  borderRadius: radius.pill,
-                  backgroundColor: pressed ? colors.surfaceSunken : 'transparent',
-                })}
-              >
-                <X size={22} color={colors.ink} />
-              </Pressable>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={{ gap: spacing.space3, paddingVertical: spacing.space2 }}
-              style={{ maxHeight: 320 }}
-            >
-              <TenantSelector
-                tenants={tenants}
-                selectedTenantId={activeTenant?.id}
-                lastActiveTenantId={lastActiveTenantId}
-                onSelectTenant={handleSelectTenantFromSheet}
-              />
-            </ScrollView>
-          </BottomSheet>
-        </View>
-      </Modal>
+      {/* BottomSheet modal interactivo para conmutar de empresa */}
+      <OrgSwitchSheet visible={isSheetVisible} onClose={() => setIsSheetVisible(false)} />
     </>
   );
 }
@@ -247,22 +190,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     maxWidth: 240,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(14, 42, 59, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  backdropPressable: {
-    flex: 1,
-  },
-  sheetContent: {
-    maxHeight: '80%',
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: 8,
   },
 });

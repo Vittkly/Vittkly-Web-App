@@ -39,13 +39,13 @@ export function usePinSetup() {
   const handleKeyPress = (digit: string) => {
     if (isSaving) return;
     setError(null);
-    setPinEntry(prev => (prev.length < PIN_LENGTH ? prev + digit : prev));
+    setPinEntry((prev) => (prev.length < PIN_LENGTH ? prev + digit : prev));
   };
 
   const handleDelete = () => {
     if (isSaving) return;
     setError(null);
-    setPinEntry(prev => (prev.length > 0 ? prev.slice(0, -1) : prev));
+    setPinEntry((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
   };
 
   const handleContinuePress = async () => {

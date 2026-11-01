@@ -39,7 +39,7 @@ export function useOtpCountdown(options: UseOtpCountdownOptions = {}): UseOtpCou
     }
 
     const intervalId = setInterval(() => {
-      setSecondsLeft(prev => {
+      setSecondsLeft((prev) => {
         if (prev <= 1) {
           setIsRunning(false);
           return 0;

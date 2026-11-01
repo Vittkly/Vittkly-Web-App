@@ -66,7 +66,7 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
       const restoredFailedAttempts = lockoutExpired ? 0 : bootstrap.pinFailedAttempts;
       const restoredLockedUntil = lockoutExpired ? null : bootstrap.pinLockedUntil;
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         status: nextStatus,
         isLoading: false,
@@ -96,7 +96,7 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
     if (!isMountedRef.current) {
       return;
     }
-    setState(prev => ({ ...prev, isLoading: true, status: 'loading' }));
+    setState((prev) => ({ ...prev, isLoading: true, status: 'loading' }));
     try {
       const [netState, bootstrap, sqliteSnapshot] = await Promise.all([
         NetInfo.fetch(),
@@ -108,7 +108,7 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
       }
     } catch {
       if (isMountedRef.current) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           status: 'unauthenticated',
           isLoading: false,
@@ -133,7 +133,7 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
       })
       .catch(() => {
         if (isMounted && isMountedRef.current) {
-          setState(prev => ({
+          setState((prev) => ({
             ...prev,
             status: 'unauthenticated',
             isLoading: false,
@@ -150,14 +150,14 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
   useEffect(() => {
     let isMounted = true;
 
-    const unsubscribe = NetInfo.addEventListener(netState => {
+    const unsubscribe = NetInfo.addEventListener((netState) => {
       if (!isMounted || !isMountedRef.current) {
         return;
       }
 
       const offline = isNetworkOffline(netState);
 
-      setState(prev => {
+      setState((prev) => {
         if (prev.isLoading || prev.isOffline === offline) {
           return prev;
         }

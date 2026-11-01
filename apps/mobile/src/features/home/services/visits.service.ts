@@ -79,7 +79,7 @@ export const visitsService = {
         .order('scheduled_date', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        return data.map(item => ({
+        return data.map((item) => ({
           code: item.code,
           title: item.title,
           status: item.status as WorkOrderStatus,

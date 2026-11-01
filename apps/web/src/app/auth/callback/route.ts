@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { safeRelativePath } from "@/lib/site-url";
 
 /**
  * Route Handler: /auth/callback
@@ -8,20 +9,18 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get('code');
-  const tokenHash = requestUrl.searchParams.get('token_hash');
-  const type = requestUrl.searchParams.get('type') as
-    | 'recovery'
-    | 'signup'
-    | 'invite'
-    | 'magiclink'
-    | 'email_change'
-    | null;
-  const rawNext = requestUrl.searchParams.get('next') || '/';
-
-  // Blindaje Anti Open-Redirect: solo permitir rutas relativas seguras
-  const next =
-    rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
+  const code = requestUrl.searchParams.get("code");
+  const tokenHash = requestUrl.searchParams.get("token_hash");
+  const rawType = requestUrl.searchParams.get("type");
+  const ALLOWED_TYPES = [
+    "recovery",
+    "signup",
+    "invite",
+    "magiclink",
+    "email_change",
+  ] as const;
+  const type = ALLOWED_TYPES.find((t) => t === rawType) ?? null;
+  const next = safeRelativePath(requestUrl.searchParams.get("next"));
 
   const supabase = await createClient();
 
@@ -42,6 +41,6 @@ export async function GET(request: NextRequest) {
 
   // Si falló el intercambio o expiró el token, redirigir al login con alerta
   return NextResponse.redirect(
-    new URL('/login?error=enlace_expirado', requestUrl.origin)
+    new URL("/login?error=enlace_expirado", requestUrl.origin),
   );
 }

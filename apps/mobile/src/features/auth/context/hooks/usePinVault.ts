@@ -60,7 +60,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
         return false;
       }
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         pin: {
           ...prev.pin,
@@ -80,7 +80,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
       await secureStorageService.savePinHash(pinHash);
       await secureStorageService.removePinAttempts();
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         pin: {
           ...prev.pin,
@@ -121,7 +121,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
 
       // Bloqueo temporal vigente: no se evalúa el PIN.
       if (attempts.lockedUntil !== null && now < attempts.lockedUntil) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           pin: {
             ...prev.pin,
@@ -138,7 +138,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
 
       if (storedHash === candidateHash) {
         await secureStorageService.removePinAttempts();
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           status: prev.isOffline ? 'offline_authenticated' : 'logged_in',
           isLoggedIn: true,
@@ -156,7 +156,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
       const lockedUntil = nextAttempts >= MAX_PIN_ATTEMPTS ? now + PIN_LOCKOUT_DURATION_MS : null;
       await secureStorageService.setPinAttempts({ failedAttempts: nextAttempts, lockedUntil });
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         pin: {
           ...prev.pin,
@@ -173,7 +173,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
 
   const unlockOfflineSession = useCallback(() => {
     void secureStorageService.removePinAttempts();
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       status: prev.isOffline ? 'offline_authenticated' : 'logged_in',
       isLoggedIn: true,
@@ -187,7 +187,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
   }, [setState]);
 
   const lockSession = useCallback(() => {
-    setState(prev => {
+    setState((prev) => {
       if (!prev.sessionToken || !prev.pin.isConfigured || prev.pin.isLocked) {
         return prev;
       }
@@ -200,7 +200,7 @@ export function usePinVault({ state, stateRef, setState }: UsePinVaultProps) {
 
   const resetPinLockout = useCallback(() => {
     void secureStorageService.removePinAttempts();
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       pin: { ...prev.pin, failedAttempts: 0, lockedUntil: null },
     }));

@@ -30,7 +30,7 @@ export function useInvitation(initialCode = ''): UseInvitationReturn {
     mutationFn: async (targetCode: string) => {
       return tenantService.validateInvitationCode(targetCode);
     },
-    onSuccess: result => {
+    onSuccess: (result) => {
       setValidationResult(result);
       if (!result.isValid) {
         setError(result.errorMessage ?? 'Código de invitación inválido.');
@@ -50,7 +50,7 @@ export function useInvitation(initialCode = ''): UseInvitationReturn {
     mutationFn: async (targetCode: string) => {
       return tenantService.redeemInvitationCode(targetCode);
     },
-    onSuccess: result => {
+    onSuccess: (result) => {
       setValidationResult(result);
       if (!result.isValid) {
         setError(result.errorMessage ?? 'No se pudo canjear el código de invitación.');

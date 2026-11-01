@@ -44,7 +44,7 @@ export function resolveActiveTenant(
     return null;
   }
   if (activeOrganizationId) {
-    const found = tenants.find(tenant => tenant.id === activeOrganizationId);
+    const found = tenants.find((tenant) => tenant.id === activeOrganizationId);
     if (found) {
       return found;
     }

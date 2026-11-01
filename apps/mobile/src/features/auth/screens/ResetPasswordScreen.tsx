@@ -57,9 +57,9 @@ export function ResetPasswordScreen() {
                 label="Nueva contraseña"
                 value={password}
                 editable={!isSubmitting}
-                onChangeText={text => {
+                onChangeText={(text) => {
                   setPassword(text);
-                  if (errors.p1) setErrors(prev => ({ ...prev, p1: undefined }));
+                  if (errors.p1) setErrors((prev) => ({ ...prev, p1: undefined }));
                 }}
                 placeholder="••••••••"
                 error={errors.p1}
@@ -77,9 +77,9 @@ export function ResetPasswordScreen() {
               value={confirmPassword}
               editable={!isSubmitting}
               secureTextEntry={!showPassword}
-              onChangeText={text => {
+              onChangeText={(text) => {
                 setConfirmPassword(text);
-                if (errors.p2) setErrors(prev => ({ ...prev, p2: undefined }));
+                if (errors.p2) setErrors((prev) => ({ ...prev, p2: undefined }));
               }}
               placeholder="••••••••"
               error={errors.p2}

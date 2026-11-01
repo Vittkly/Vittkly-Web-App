@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -7,18 +7,10 @@ import { useEffect } from 'react';
 
 import { fontAssets } from '@/assets';
 import { AuthProvider, InactivityLockGate } from '@/features/auth';
+import { queryClient } from '@/services/queryClient';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 60 * 1000,
-    },
-  },
-});
 
 export default function RootLayout() {
   const { isDark, colors } = useTheme();
@@ -67,6 +59,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
           </Stack>
         </ThemeProvider>
       </AuthProvider>

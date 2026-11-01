@@ -31,7 +31,7 @@ export function PasswordField({
       accessibilityRole="button"
       accessibilityLabel={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
       hitSlop={HIT_SLOP}
-      onPress={() => setIsPasswordVisible(prev => !prev)}
+      onPress={() => setIsPasswordVisible((prev) => !prev)}
       style={[styles.toggleBtn, { width: control.lg, height: control.lg }]}
     >
       {isPasswordVisible ? (

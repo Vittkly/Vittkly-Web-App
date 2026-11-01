@@ -54,7 +54,11 @@ export function TenantCard({
           minHeight: control.lg + spacing.space6,
           borderRadius: radius.md,
           padding: spacing.space4,
-          backgroundColor: isHighlighted ? colors.tenantAccentSoft : pressed ? colors.primarySoft : colors.surfaceRaised,
+          backgroundColor: isHighlighted
+            ? colors.tenantAccentSoft
+            : pressed
+              ? colors.primarySoft
+              : colors.surfaceRaised,
           borderColor: isHighlighted ? colors.tenantAccent : pressed ? colors.primary : colors.line,
           borderWidth: isHighlighted ? 2 : 1.5,
           gap: spacing.space3,
@@ -78,7 +82,10 @@ export function TenantCard({
         <Text
           style={[
             typography.bodyStrong,
-            { fontFamily: fontFamilies.bold, color: isHighlighted ? colors.onTenantAccent : colors.successInk },
+            {
+              fontFamily: fontFamilies.bold,
+              color: isHighlighted ? colors.onTenantAccent : colors.successInk,
+            },
           ]}
         >
           {companyInitials}
@@ -89,7 +96,11 @@ export function TenantCard({
         <View style={[styles.titleRow, { gap: spacing.space2 }]}>
           <Text
             testID={`tenant-card-name-${tenant.id}`}
-            style={[typography.bodyStrong, styles.companyName, { fontFamily: fontFamilies.bold, color: colors.ink }]}
+            style={[
+              typography.bodyStrong,
+              styles.companyName,
+              { fontFamily: fontFamilies.bold, color: colors.ink },
+            ]}
             numberOfLines={1}
           >
             {tenant.name}
@@ -97,7 +108,11 @@ export function TenantCard({
 
           {badgeLabel ? (
             <View
-              testID={isLastActive ? `tenant-card-last-active-badge-${tenant.id}` : `tenant-card-active-badge-${tenant.id}`}
+              testID={
+                isLastActive
+                  ? `tenant-card-last-active-badge-${tenant.id}`
+                  : `tenant-card-active-badge-${tenant.id}`
+              }
               style={[
                 styles.activeTenantBadge,
                 {

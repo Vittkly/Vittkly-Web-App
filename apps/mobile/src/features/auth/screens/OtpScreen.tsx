@@ -53,11 +53,11 @@ export function OtpScreen() {
           disabled={isVerifying}
           error={error}
           focusVariant="primary"
-          onChange={code => {
+          onChange={(code) => {
             setOtpCode(code);
             setError(null);
           }}
-          onCodeComplete={code => {
+          onCodeComplete={(code) => {
             setOtpCode(code);
             void handleVerifyOtp(code);
           }}

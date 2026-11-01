@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { useOrgStore } from '@/features/tenants';
 import { authService } from '../../services/auth.service';
 import { offlineSessionService } from '../../services/offline-session.service';
 import { secureStorageService } from '../../services/secure-storage.service';
@@ -47,7 +48,7 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
           : secureStorageService.removeActiveOrganizationId(),
       ]);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         status: prev.isOffline ? 'offline_authenticated' : 'logged_in',
         isLoading: false,
@@ -85,8 +86,18 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
         activeOrganizationId: activeOrgId,
       });
 
+      // Sincroniza con el store de Zustand de organizaciones
+      useOrgStore.getState().setOrganizations(tenants);
+      if (activeOrgId) {
+        const found = tenants.find((t) => t.id === activeOrgId) ?? null;
+        useOrgStore.getState().setActiveOrg(found);
+      }
       if (lastActiveId) {
-        setState(prev => ({ ...prev, lastActiveTenantId: lastActiveId }));
+        useOrgStore.getState().setLastOrgId(lastActiveId);
+      }
+
+      if (lastActiveId) {
+        setState((prev) => ({ ...prev, lastActiveTenantId: lastActiveId }));
       }
 
       const hasPin = await hydrateCloudPin(sessionResult.pinHash ?? null);
@@ -179,7 +190,7 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
       ]);
 
       // 2. Actualizar estado en AuthContext
-      setState(prev => {
+      setState((prev) => {
         const activeTenant = resolveActiveTenant(prev.tenants, organizationId);
         return {
           ...prev,
@@ -189,7 +200,10 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
         };
       });
 
-      // 3. Criterio 4: Aislamiento estricto de datos — purgar caché de consultas previas
+      // 3. Sincronizar Zustand store
+      await useOrgStore.getState().switchOrg(organizationId);
+
+      // 4. Criterio 4: Aislamiento estricto de datos — purgar caché de consultas previas
       queryClient.clear();
     },
     [queryClient, setState],
@@ -201,7 +215,7 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
     async (enabled: boolean, type?: BiometricType) => {
       await secureStorageService.setBiometricEnabled(enabled);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isBiometricEnabled: enabled,
         biometricType: type ?? prev.biometricType,
@@ -213,7 +227,9 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
   const signOut = useCallback(async () => {
     await authService.signOut();
 
-    setState(prev => ({
+    useOrgStore.getState().reset();
+
+    setState((prev) => ({
       ...initialAuthState,
       status: 'unauthenticated',
       isLoading: false,

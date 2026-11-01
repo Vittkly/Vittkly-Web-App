@@ -7,3 +7,4 @@ export * from './NumericKeypad';
 export * from './OptionCard';
 export * from './PasswordField';
 export * from './PinDots';
+export * from './ModulePlaceholderScreen';

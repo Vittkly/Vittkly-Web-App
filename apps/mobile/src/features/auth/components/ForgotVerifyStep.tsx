@@ -43,7 +43,7 @@ export function ForgotVerifyStep({
         error={error}
         disabled={isSubmitting}
         onChange={onChangeOtpCode}
-        onCodeComplete={code => {
+        onCodeComplete={(code) => {
           onChangeOtpCode(code);
           onVerify(code);
         }}

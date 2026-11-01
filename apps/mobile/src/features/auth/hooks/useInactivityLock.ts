@@ -21,14 +21,16 @@ export function useInactivityLock(): void {
   const { sessionToken, pin, lockSession } = useAuth();
   const isArmed = Boolean(sessionToken) && pin.isConfigured && !pin.isLocked;
 
-  const previousStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const previousStateRef = useRef<AppStateStatus | string | null | undefined>(
+    AppState.currentState,
+  );
 
   useEffect(() => {
     if (!isArmed) {
       return;
     }
 
-    const subscription = AppState.addEventListener('change', nextState => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
       const previousState = previousStateRef.current;
       previousStateRef.current = nextState;
 

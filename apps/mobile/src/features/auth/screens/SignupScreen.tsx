@@ -144,22 +144,23 @@ export function SignupScreen() {
         {step === 1 ? (
           <SignupAccountStep
             fullName={fullName}
-            onChangeFullName={name => {
+            onChangeFullName={(name) => {
               setFullName(name);
-              if (step1Errors.name) setStep1Errors(prev => ({ ...prev, name: undefined }));
+              if (step1Errors.name) setStep1Errors((prev) => ({ ...prev, name: undefined }));
             }}
             email={email}
-            onChangeEmail={val => {
+            onChangeEmail={(val) => {
               setEmail(val);
-              if (step1Errors.email) setStep1Errors(prev => ({ ...prev, email: undefined }));
+              if (step1Errors.email) setStep1Errors((prev) => ({ ...prev, email: undefined }));
             }}
             password={password}
-            onChangePassword={val => {
+            onChangePassword={(val) => {
               setPassword(val);
-              if (step1Errors.password) setStep1Errors(prev => ({ ...prev, password: undefined }));
+              if (step1Errors.password)
+                setStep1Errors((prev) => ({ ...prev, password: undefined }));
             }}
             showPassword={showPassword}
-            onToggleShowPassword={() => setShowPassword(p => !p)}
+            onToggleShowPassword={() => setShowPassword((p) => !p)}
             nameError={step1Errors.name}
             emailError={step1Errors.email}
             passwordError={step1Errors.password}

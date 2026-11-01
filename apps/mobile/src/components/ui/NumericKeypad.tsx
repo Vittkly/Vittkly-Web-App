@@ -105,7 +105,7 @@ export function NumericKeypad({
     <View style={[styles.grid, { rowGap: spacing.space3 }, style]}>
       {DIGIT_ROWS.map((row, rowIndex) => (
         <View key={rowIndex} style={[styles.gridRow, { columnGap: spacing.space6 }]}>
-          {row.map(digit => (
+          {row.map((digit) => (
             <Pressable
               key={digit}
               testID={`${testIDPrefix}-btn-${digit}`}

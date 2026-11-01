@@ -1,7 +1,6 @@
-import React from 'react';
-import Link from 'next/link';
-import { VittklyLogo } from '@/components/brand/VittklyLogo';
-import { CurrentYear } from '@/components/ui/CurrentYear';
+import React from "react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AuthBentoShowcase } from "@/features/auth/components/AuthBentoShowcase";
 
 export default function AuthLayout({
   children,
@@ -9,33 +8,109 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-[var(--tint)] flex min-h-dvh flex-col items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-      <div className="w-full max-w-[440px]">
-        {/* Encabezado con logotipo oficial */}
-        <div className="mb-6 flex flex-col items-center justify-center text-center">
-          <Link
-            href="/"
-            className="inline-flex transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--focus)]"
+    <div
+      id="empGate"
+      className="bg-surface text-ink min-h-dvh w-full transition-colors"
+    >
+      <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(420px,40%)_minmax(0,1fr)]">
+        {/* Columna Izquierda: Tarjeta de Acceso y Decoración de Marca */}
+        <section className="from-primary-soft/50 via-surface to-surface-sunken/40 relative flex flex-col items-center justify-center overflow-hidden bg-linear-to-br p-6 sm:p-8 lg:p-10">
+          {/* Fondo geométrico SVG y Orbs difuminados */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 overflow-hidden"
           >
-            <VittklyLogo variant="wordmark" height={38} priority />
-          </Link>
-          <span className="text-soft mt-2 text-xs font-semibold tracking-wider uppercase">
-            Central de Servicios Web
-          </span>
-        </div>
+            <div className="animate-lg-drift absolute -top-24 -left-20 h-96 w-96 rounded-full bg-[#2AA8DE] opacity-20 blur-3xl" />
+            <div className="animate-lg-drift-delayed absolute -right-20 -bottom-28 h-80 w-80 rounded-full bg-[#3EC49B] opacity-15 blur-3xl" />
+            <svg
+              viewBox="0 0 600 800"
+              preserveAspectRatio="xMidYMid slice"
+              focusable="false"
+              className="pointer-events-none absolute inset-0 h-full w-full opacity-60"
+            >
+              <defs>
+                <linearGradient id="lgS1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#2AA8DE" stopOpacity=".22" />
+                  <stop offset="1" stopColor="#2AA8DE" stopOpacity=".04" />
+                </linearGradient>
+                <linearGradient id="lgS2" x1="1" y1="1" x2="0" y2="0">
+                  <stop offset="0" stopColor="#3EC49B" stopOpacity=".24" />
+                  <stop offset="1" stopColor="#3EC49B" stopOpacity=".04" />
+                </linearGradient>
+              </defs>
+              <g>
+                <rect
+                  x="-90"
+                  y="-70"
+                  width="270"
+                  height="270"
+                  rx="64"
+                  transform="rotate(14 45 65)"
+                  fill="url(#lgS1)"
+                />
+              </g>
+              <g>
+                <rect
+                  x="420"
+                  y="610"
+                  width="260"
+                  height="260"
+                  rx="64"
+                  transform="rotate(-12 550 740)"
+                  fill="url(#lgS2)"
+                />
+              </g>
+              <g>
+                <circle
+                  cx="520"
+                  cy="120"
+                  r="46"
+                  fill="none"
+                  stroke="#2AA8DE"
+                  strokeOpacity=".28"
+                  strokeWidth="1.5"
+                />
+              </g>
+              <g fill="#157AA8" fillOpacity=".25" transform="translate(40 640)">
+                <circle cx="0" cy="0" r="2" />
+                <circle cx="0" cy="16" r="2" />
+                <circle cx="0" cy="32" r="2" />
+                <circle cx="0" cy="48" r="2" />
+                <circle cx="0" cy="64" r="2" />
+                <circle cx="16" cy="0" r="2" />
+                <circle cx="16" cy="16" r="2" />
+                <circle cx="16" cy="32" r="2" />
+                <circle cx="16" cy="48" r="2" />
+                <circle cx="16" cy="64" r="2" />
+                <circle cx="32" cy="0" r="2" />
+                <circle cx="32" cy="16" r="2" />
+                <circle cx="32" cy="32" r="2" />
+                <circle cx="32" cy="48" r="2" />
+                <circle cx="32" cy="64" r="2" />
+                <circle cx="48" cy="0" r="2" />
+                <circle cx="48" cy="16" r="2" />
+                <circle cx="48" cy="32" r="2" />
+                <circle cx="48" cy="48" r="2" />
+                <circle cx="48" cy="64" r="2" />
+              </g>
+            </svg>
+          </div>
 
-        {/* Tarjeta de autenticación principal */}
-        <div className="bg-surface-raised border-[var(--line)] shadow-1 sm:rounded-xl rounded-lg border p-6 sm:p-8">
-          {children}
-        </div>
+          {/* Theme Toggle flotante discreto */}
+          <div className="absolute top-4 right-4 z-20">
+            <ThemeToggle />
+          </div>
 
-        {/* Pie de página accesible */}
-        <footer className="text-soft mt-8 text-center text-xs">
-          <p>&copy; <CurrentYear /> Vittkly. Todos los derechos reservados.</p>
-          <p className="mt-1">
-            Plataforma segura con encriptación TLS y RLS estricto.
-          </p>
-        </footer>
+          {/* Contenedor del Card de Autenticación */}
+          <div className="relative z-10 my-auto flex w-full items-center justify-center">
+            {children}
+          </div>
+        </section>
+
+        {/* Columna Derecha: Showcase Bento Grid y Micro-Interacciones */}
+        <section className="bg-surface-sunken/40 border-line hidden items-center justify-center overflow-y-auto border-l p-6 lg:flex lg:p-8 xl:p-12">
+          <AuthBentoShowcase />
+        </section>
       </div>
     </div>
   );

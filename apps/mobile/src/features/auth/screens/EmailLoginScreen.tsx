@@ -56,10 +56,10 @@ export function EmailLoginScreen() {
             label="Correo electrónico"
             value={email}
             editable={!isSubmitting}
-            onChangeText={text => {
+            onChangeText={(text) => {
               setEmail(text);
               setAuthError(null);
-              if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined }));
+              if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
             }}
             placeholder="demo@vittkly.com"
             keyboardType="email-address"
@@ -76,10 +76,11 @@ export function EmailLoginScreen() {
             label="Contraseña"
             value={password}
             editable={!isSubmitting}
-            onChangeText={text => {
+            onChangeText={(text) => {
               setPassword(text);
               setAuthError(null);
-              if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined }));
+              if (fieldErrors.password)
+                setFieldErrors((prev) => ({ ...prev, password: undefined }));
             }}
             placeholder="••••••••"
             autoComplete="password"

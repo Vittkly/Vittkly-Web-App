@@ -50,7 +50,9 @@ export function DashboardHeader({ onSignOut, isLoggingOut = false }: DashboardHe
               justifyContent: 'center',
             })}
           >
-            <Text style={[typography.small, { color: colors.danger, fontWeight: fontWeights.bold }]}>
+            <Text
+              style={[typography.small, { color: colors.danger, fontWeight: fontWeights.bold }]}
+            >
               {isLoggingOut ? 'Saliendo...' : 'Cerrar'}
             </Text>
           </Pressable>
@@ -74,7 +76,12 @@ export function DashboardHeader({ onSignOut, isLoggingOut = false }: DashboardHe
                 },
               ]}
             >
-              <Text style={[typography.small, { color: colors.successInk, fontWeight: fontWeights.bold }]}>
+              <Text
+                style={[
+                  typography.small,
+                  { color: colors.successInk, fontWeight: fontWeights.bold },
+                ]}
+              >
                 {activeTenant.name} · {roleLabel}
               </Text>
             </View>

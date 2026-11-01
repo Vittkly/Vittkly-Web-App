@@ -1,7 +1,7 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 :root,
-[data-theme='light'] {
+[data-theme="light"] {
   --surface: #f3f8fa;
   --surface-raised: #ffffff;
   --surface-sunken: #eaf2f6;
@@ -55,7 +55,7 @@
 }
 
 .dark,
-[data-theme='dark'] {
+[data-theme="dark"] {
   color-scheme: dark;
   --surface: #0a1c27;
   --surface-raised: #10283a;
@@ -138,7 +138,7 @@
   --color-hero-to: var(--hero-to);
   --color-hero-ink: var(--hero-ink);
 
-  --font-sans: var(--font-manrope), 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-sans: var(--font-manrope), "Segoe UI", Roboto, Arial, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, Menlo, Consolas, monospace;
 
   --radius-sm: var(--radius-sm);
@@ -163,4 +163,67 @@ body {
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Animaciones del Showcase y Login Original */
+@keyframes lgDrift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(40px, 30px) scale(1.15);
+  }
+}
+
+@keyframes scIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scOut {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes scBar {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes scFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-lg-drift {
+  animation: lgDrift 16s ease-in-out infinite alternate;
+}
+
+.animate-lg-drift-delayed {
+  animation: lgDrift 16s ease-in-out -7s infinite alternate;
+}
+
+.animate-sc-in {
+  animation: scIn 0.45s ease forwards;
+}
+
+.animate-sc-bar {
+  animation: scBar 0.5s ease forwards;
+}
+
+.animate-sc-fill {
+  animation: scFill 5.5s linear forwards;
 }

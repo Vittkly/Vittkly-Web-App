@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import {
-  NativeSyntheticEvent,
   StyleProp,
   StyleSheet,
   TextInput,
-  TextInputKeyPressEventData,
+  type TextInputInstance,
+  type TextInputKeyPressEvent,
   View,
   ViewStyle,
 } from 'react-native';
@@ -39,7 +39,7 @@ export function OtpInput({
   style,
 }: OtpInputProps) {
   const { colors, spacing, radius, fontFamilies } = useTheme();
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const inputRefs = useRef<(TextInputInstance | null)[]>([]);
   const [internalDigits, setInternalDigits] = useState<string[]>(() => {
     const initial = defaultValue.replace(/\D/g, '').slice(0, length).split('');
     return Array.from({ length }, (_, idx) => initial[idx] ?? '');
@@ -55,7 +55,7 @@ export function OtpInput({
     }
     const code = nextDigits.join('');
     onChange?.(code);
-    if (code.length === length && nextDigits.every(d => d.length === 1)) {
+    if (code.length === length && nextDigits.every((d) => d.length === 1)) {
       onComplete?.(code);
     }
   };
@@ -85,7 +85,7 @@ export function OtpInput({
     }
   };
 
-  const handleKeyPress = (index: number, e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+  const handleKeyPress = (index: number, e: TextInputKeyPressEvent) => {
     if (e.nativeEvent.key === 'Backspace' && !digits[index] && index > 0) {
       const next = [...digits];
       next[index - 1] = '';
@@ -110,14 +110,14 @@ export function OtpInput({
         return (
           <TextInput
             key={i}
-            ref={el => {
+            ref={(el) => {
               inputRefs.current[i] = el;
             }}
             value={digits[i] ?? ''}
-            onChangeText={txt => handleChangeText(i, txt)}
-            onKeyPress={e => handleKeyPress(i, e)}
+            onChangeText={(txt) => handleChangeText(i, txt)}
+            onKeyPress={(e) => handleKeyPress(i, e)}
             onFocus={() => setFocusedIndex(i)}
-            onBlur={() => setFocusedIndex(prev => (prev === i ? null : prev))}
+            onBlur={() => setFocusedIndex((prev) => (prev === i ? null : prev))}
             keyboardType="number-pad"
             inputMode="numeric"
             textContentType={i === 0 ? 'oneTimeCode' : 'none'}

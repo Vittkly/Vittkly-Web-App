@@ -12,7 +12,7 @@ El monorepo está administrado con **pnpm Workspaces** y orquestado mediante **T
 vittkly-monorepo/
 ├── apps/
 │   ├── web/             # @vittkly/web: Central Web Administrativa (Next.js 16 App Router, React 19, Tailwind CSS v4)
-│   └── mobile/          # @vittkly/mobile: App Móvil para Técnicos de Campo (Expo SDK 57, React Native 0.86)
+│   └── mobile/          # @vittkly/mobile: App Móvil para Técnicos de Campo (Expo SDK 58, React Native 0.88)
 ├── packages/
 │   ├── db-types/        # @vittkly/db-types: Definición tipada TypeScript de Supabase Cloud
 │   ├── shared/          # @vittkly/shared: Esquemas de validación Zod, constantes y utilitarios puros

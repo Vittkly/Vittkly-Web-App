@@ -22,7 +22,7 @@ export function HomeScreen() {
   const [activeTab, setActiveTab] = useState('Hoy');
   const { isLoggingOut, handleSignOut } = useSignOutAction();
 
-  const tabs: NavItem[] = DEFAULT_TECHNICIAN_TABS.map(t => ({
+  const tabs: NavItem[] = DEFAULT_TECHNICIAN_TABS.map((t) => ({
     ...t,
     active: t.label === activeTab,
   }));
@@ -66,7 +66,7 @@ export function HomeScreen() {
         </View>
       </ScrollView>
 
-      <MobileTabBar items={tabs} onSelect={item => setActiveTab(item.label)} />
+      <MobileTabBar items={tabs} onSelect={(item) => setActiveTab(item.label)} />
     </SafeAreaView>
   );
 }

@@ -16,7 +16,7 @@ test.describe("Vittkly Web Smoke Tests", () => {
     page,
   }) => {
     await page.goto("/login");
-    await expect(page.getByLabel(/Correo Electrónico/i)).toBeVisible();
+    await expect(page.getByLabel(/Correo corporativo/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /Ingresar/i })).toBeVisible();
   });
 });

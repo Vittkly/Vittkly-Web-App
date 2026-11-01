@@ -4,9 +4,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type TextInputInstance,
+  type TextInputKeyPressEvent,
   View,
-  type NativeSyntheticEvent,
-  type TextInputKeyPressEventData,
   type ViewStyle,
 } from 'react-native';
 
@@ -55,7 +55,7 @@ export function OtpVerification({
   testID = 'otp-verification',
 }: OtpVerificationProps) {
   const { colors, spacing, radius, typography, control, fontFamilies } = useTheme();
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const inputRefs = useRef<(TextInputInstance | null)[]>([]);
 
   const [internalDigits, setInternalDigits] = useState<string[]>(() => {
     const initial = defaultValue.replace(/\D/g, '').slice(0, length).split('');
@@ -76,7 +76,7 @@ export function OtpVerification({
   const activeFocusColor = focusVariant === 'tenantAccent' ? colors.tenantAccent : colors.primary;
 
   useEffect(() => {
-    if (hasError && digits.every(d => d === '')) {
+    if (hasError && digits.every((d) => d === '')) {
       inputRefs.current[0]?.focus();
     }
   }, [hasError, digits]);
@@ -87,7 +87,7 @@ export function OtpVerification({
     }
     const code = nextDigits.join('');
     onChange?.(code);
-    if (code.length === length && nextDigits.every(digit => digit.length === 1)) {
+    if (code.length === length && nextDigits.every((digit) => digit.length === 1)) {
       onCodeComplete(code);
     }
   };
@@ -117,10 +117,7 @@ export function OtpVerification({
     }
   };
 
-  const handleKeyPress = (
-    index: number,
-    event: NativeSyntheticEvent<TextInputKeyPressEventData>,
-  ) => {
+  const handleKeyPress = (index: number, event: TextInputKeyPressEvent) => {
     if (disabled) return;
     if (event.nativeEvent.key === 'Backspace' && !digits[index] && index > 0) {
       const next = [...digits];
@@ -153,16 +150,16 @@ export function OtpVerification({
           return (
             <TextInput
               key={index}
-              ref={el => {
+              ref={(el) => {
                 inputRefs.current[index] = el;
               }}
               testID={`otp-input-${index}`}
               value={digits[index] ?? ''}
               editable={!disabled}
-              onChangeText={text => handleChangeText(index, text)}
-              onKeyPress={e => handleKeyPress(index, e)}
+              onChangeText={(text) => handleChangeText(index, text)}
+              onKeyPress={(e) => handleKeyPress(index, e)}
               onFocus={() => setFocusedIndex(index)}
-              onBlur={() => setFocusedIndex(prev => (prev === index ? null : prev))}
+              onBlur={() => setFocusedIndex((prev) => (prev === index ? null : prev))}
               keyboardType="number-pad"
               inputMode="numeric"
               textContentType={index === 0 ? 'oneTimeCode' : 'none'}

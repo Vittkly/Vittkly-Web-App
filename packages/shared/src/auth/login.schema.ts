@@ -100,7 +100,7 @@ export const registerSchema = z
       .optional()
       .refine(
         (val) => !val || /^(10|20)\d{9}$/.test(val),
-        'El RUC debe tener 11 dígitos e iniciar con 10 o 20'
+        'El RUC debe tener 11 dígitos e iniciar con 10 o 20',
       ),
     planCode: z.enum(['inicia', 'crece', 'empresa']).default('empresa'),
     email: z
@@ -122,3 +122,26 @@ export const registerSchema = z
   });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+/**
+ * Esquema de validación para canje de invitación o acceso de invitado / cliente (`VK-XXXX-XXXX`).
+ */
+export const guestAccessSchema = z.object({
+  fullName: z.string().trim().min(2, 'Ingresa tu nombre completo'),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'El correo electrónico es requerido')
+    .email('Ingresa un correo electrónico válido'),
+  password: z.string().min(6, 'Ingresa tu contraseña (mínimo 6 caracteres)'),
+  invitationCode: z
+    .string()
+    .trim()
+    .optional()
+    .refine(
+      (val) => !val || /^VK-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(val),
+      'El código de invitación debe tener el formato VK-XXXX-XXXX',
+    ),
+});
+
+export type GuestAccessInput = z.infer<typeof guestAccessSchema>;

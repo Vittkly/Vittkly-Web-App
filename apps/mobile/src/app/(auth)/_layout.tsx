@@ -26,6 +26,7 @@ export default function AuthGroupLayout() {
       <Stack.Screen name="biometrics" options={{ gestureEnabled: false }} />
       <Stack.Screen name="pin-lock" options={{ gestureEnabled: false }} />
       <Stack.Screen name="select-tenant" />
+      <Stack.Screen name="org-selector" />
     </Stack>
   );
 }

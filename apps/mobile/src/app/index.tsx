@@ -2,7 +2,6 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useAuthRouteGuard } from '@/features/auth';
-import { HomeScreen } from '@/features/home';
 import { useTheme } from '@/theme';
 
 export default function HomeGate() {
@@ -24,7 +23,7 @@ export default function HomeGate() {
     return <Redirect href={redirectTo} />;
   }
 
-  return <HomeScreen />;
+  return <Redirect href="/(tabs)/hoy" />;
 }
 
 const styles = StyleSheet.create({

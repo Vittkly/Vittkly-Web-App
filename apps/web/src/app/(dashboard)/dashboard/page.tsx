@@ -1,86 +1,61 @@
 import React from "react";
 import { redirect } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
+import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 import { getDashboardContext } from "@/features/dashboard/services/modules.service";
 import { DashboardHeader } from "@/features/dashboard/components/DashboardHeader";
-import { ContextSelectorBar } from "@/features/dashboard/components/ContextSelectorBar";
-import { ModulesListView } from "@/features/dashboard/components/ModulesListView";
-import { FeedbackBanner } from "@/components/ui/FeedbackBanner";
+import { DashboardBreadcrumbs } from "@/features/dashboard/components/DashboardBreadcrumbs";
 
-export const instant = false;
+export default async function DashboardHomePage() {
+  const { userId, active } = await resolveActiveOrganization();
+  if (!userId) redirect("/login");
+  if (!active) redirect("/select-org");
 
-interface DashboardPageProps {
-  searchParams: Promise<{
-    empresa?: string;
-    perfil?: string;
-    welcome?: string;
-  }>;
-}
-
-export default async function DashboardPage({
-  searchParams,
-}: DashboardPageProps) {
-  const params = await searchParams;
-  const context = await getDashboardContext(params.empresa, params.perfil);
-
-  if (!context) {
-    redirect("/login");
-  }
-
-  const isWelcome = params.welcome === "true";
+  const context = await getDashboardContext(active.id);
+  if (!context) redirect("/login");
 
   return (
-    <div className="bg-surface flex min-h-dvh flex-col transition-colors">
-      {/* Cabecera Principal */}
-      <DashboardHeader context={context} />
+    <div className="flex min-h-full flex-1 flex-col transition-colors">
+      {/* Cabecera del Dashboard matching artifact */}
+      <DashboardHeader
+        title="Inicio"
+        subtitle="Resumen del negocio: ventas, servicios, distritos y cobros"
+        moduleCode="INICIO-01"
+        userName={context.user.nombre}
+        userRole={context.activeProfile.nombre}
+      />
 
-      {/* Contenido Central */}
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* Banner de Bienvenida Post-Registro */}
-        {isWelcome && (
-          <FeedbackBanner
-            variant="success"
-            title="¡Bienvenido a Vittkly!"
-            message={
-              <span>
-                Tu organización{" "}
-                <strong>{context.activeOrganization.razonSocial}</strong> ha
-                sido creada exitosamente con el plan{" "}
-                <strong className="uppercase">
-                  {context.activePlan.nombre}
-                </strong>
-                . Tienes <strong>15 días de prueba</strong> con acceso a todos
-                los módulos incluidos en tu plan.
-              </span>
-            }
-          />
-        )}
-
-        {/* Barra de Selección de Contexto: Organización y Área/Perfil */}
-        <ContextSelectorBar context={context} />
-
-        {/* Lista Estructurada de Módulos (Solo Lista por Plan + Área + Permisos) */}
+      {/* Área del Lienzo Central (Estructura base / Cascarón Visual) */}
+      <div className="flex flex-1 flex-col gap-6 p-6 lg:p-8">
         <div className="flex flex-col gap-2">
-          <div className="flex flex-col gap-1 text-left">
-            <h2 className="text-ink text-lg font-bold tracking-tight sm:text-xl">
-              Módulos Habilitados de la Plataforma
+          <DashboardBreadcrumbs
+            items={[{ label: "Inicio", isCurrent: true }]}
+          />
+          <div className="flex items-center gap-3">
+            <h2 className="text-ink font-sans text-xl font-bold tracking-tight">
+              Panel Principal
             </h2>
-            <p className="text-soft text-xs sm:text-sm">
-              Listado filtrado automáticamente según tu{" "}
-              <strong className="text-ink">
-                Plan ({context.activePlan.nombre})
-              </strong>
-              , tu{" "}
-              <strong className="text-ink">
-                Área ({context.activeProfile.nombre})
-              </strong>{" "}
-              y tus <strong className="text-ink">Permisos de Acceso</strong>{" "}
-              (conforme a `seed.sql`).
-            </p>
+            <span className="border-line bg-surface-sunken text-ink-muted rounded-md border px-2.5 py-0.5 font-mono text-xs tabular-nums select-none">
+              INICIO-01
+            </span>
           </div>
-
-          <ModulesListView context={context} />
         </div>
-      </main>
+
+        {/* Contenedor minimalista en bg-surface-raised con borde 1px (border-line) */}
+        <div className="border-line bg-surface-raised flex min-h-[360px] flex-1 flex-col items-center justify-center rounded-2xl border p-8 text-center shadow-xs sm:p-16">
+          <div className="bg-success-soft text-success-ink border-success/20 mb-4 flex h-12 w-12 items-center justify-center rounded-xl border">
+            <CheckCircle2 className="text-success h-6 w-6" />
+          </div>
+          <h3 className="text-ink text-base font-bold">
+            Todo en orden &bull; Panel de Inicio
+          </h3>
+          <p className="text-ink-muted mt-1.5 max-w-md text-xs leading-relaxed">
+            Cascarón visual y estructura base completados. De acuerdo con las
+            directrices de alcance, el contenido funcional y la analítica de
+            cada módulo se desplegarán en las fases siguientes.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

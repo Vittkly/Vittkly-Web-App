@@ -71,7 +71,7 @@ export function ForgotRequestStep({
             },
           ]}
         >
-          {METHODS.map(tab => {
+          {METHODS.map((tab) => {
             const isActive = method === tab.key;
             return (
               <Pressable

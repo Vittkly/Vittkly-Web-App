@@ -37,7 +37,7 @@ export function CountryPicker({
         },
       ]}
     >
-      {COUNTRIES.map(c => (
+      {COUNTRIES.map((c) => (
         <Pressable
           key={c.code}
           testID={`phone-country-option-${c.code}`}

@@ -64,7 +64,7 @@ export function TenantSelector({
 
   return (
     <View testID={testID} style={[styles.listContainer, { gap: spacing.space3 }, style]}>
-      {tenants.map(tenant => (
+      {tenants.map((tenant) => (
         <TenantCard
           key={tenant.id}
           tenant={tenant}

@@ -31,7 +31,7 @@ export function TodayVisitsSection() {
           </Text>
         </View>
       ) : (
-        visits.map(visit => (
+        visits.map((visit) => (
           <WorkOrderCard
             key={visit.code}
             code={visit.code}

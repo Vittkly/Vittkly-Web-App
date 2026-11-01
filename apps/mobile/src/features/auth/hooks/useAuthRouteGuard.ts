@@ -14,7 +14,8 @@ export interface RouteGuardResult {
  * - `null` si el usuario tiene acceso permitido al contenido.
  */
 export function useAuthRouteGuard(): RouteGuardResult {
-  const { isLoading, isAuthenticated, status, pin, sessionToken } = useAuth();
+  const { isLoading, isAuthenticated, status, pin, sessionToken, tenants, activeOrganizationId } =
+    useAuth();
 
   if (isLoading || status === 'loading') {
     return { isLoading: true, redirectTo: null };
@@ -27,6 +28,11 @@ export function useAuthRouteGuard(): RouteGuardResult {
   const isAccessAllowed = isAuthenticated || (pin.isConfigured && !pin.isLocked);
   if (!isAccessAllowed && status === 'unauthenticated') {
     return { isLoading: false, redirectTo: '/(auth)/welcome' };
+  }
+
+  // Criterio 2: Si el usuario tiene múltiples empresas y aún no tiene una seleccionada
+  if (isAuthenticated && tenants.length > 1 && !activeOrganizationId) {
+    return { isLoading: false, redirectTo: '/(auth)/org-selector' };
   }
 
   return { isLoading: false, redirectTo: null };

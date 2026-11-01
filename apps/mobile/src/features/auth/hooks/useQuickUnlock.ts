@@ -149,7 +149,7 @@ export function useQuickUnlock({ onUnlocked }: UseQuickUnlockOptions): UseQuickU
   const handleDelete = useCallback(() => {
     if (isVerifying || isAuthenticating || isLockedOut) return;
     setLastAttemptFailed(false);
-    setDigits(prev => (prev.length > 0 ? prev.slice(0, -1) : prev));
+    setDigits((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
   }, [isAuthenticating, isLockedOut, isVerifying]);
 
   const handleBiometricPress = useCallback(() => {

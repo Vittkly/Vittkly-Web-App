@@ -10,7 +10,7 @@ Vittkly es un SaaS B2B multi-tenant para empresas de servicios y operaciones en 
 - **Orquestador:** Turborepo (`turbo.json`).
 - **Aplicaciones (`apps/`):**
   - `apps/web` (`@vittkly/web`): Central Web Administrativa. Next.js 16.4 (App Router con Server Components de React 19, Tailwind CSS v4, `@supabase/ssr`).
-  - `apps/mobile` (`@vittkly/mobile`): App Móvil para Técnicos de Campo. Expo SDK 57, React Native 0.86, Expo Router, `expo-sqlite`, `expo-secure-store`.
+  - `apps/mobile` (`@vittkly/mobile`): App Móvil para Técnicos de Campo. Expo SDK 58, React Native 0.88, Expo Router, `expo-sqlite`, `expo-secure-store`.
 - **Paquetes Compartidos (`packages/`):**
   - `packages/ui-tokens` (`@vittkly/ui-tokens`): Fuente única de verdad de colores, espaciados, radios, tipografía y logos del UI Kit.
   - `packages/db-types` (`@vittkly/db-types`): Tipos TypeScript generados desde Supabase Cloud (`Database`).
@@ -64,7 +64,7 @@ pnpm sync:db-types   # Regenera packages/db-types/src/database.types.ts desde Su
 
 - NO ejecutar comandos de migración destructivos (`supabase db reset`, `DROP TABLE`) contra bases de datos en la nube.
 - NO crear ni editar carpetas nativas `/ios` o `/android` en `apps/mobile` (usar Continuous Native Generation mediante `app.json`).
-- NO instalar paquetes en `apps/mobile` sin verificar compatibilidad con el SDK 57 de Expo (`npx expo-doctor`).
+- NO instalar paquetes en `apps/mobile` sin verificar compatibilidad con el SDK 58 de Expo (`npx expo-doctor`).
 - NO comitear archivos `.env` ni `.agents/mcp_config.json` con credenciales reales.
 
 ---

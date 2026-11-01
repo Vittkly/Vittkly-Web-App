@@ -119,7 +119,7 @@ export function usePinAuth(options: UsePinAuthOptions = {}): UsePinAuthReturn {
       if (!cleanDigit) return;
 
       setError(null);
-      setPin(prev => {
+      setPin((prev) => {
         if (prev.length >= length) {
           return prev;
         }
@@ -140,7 +140,7 @@ export function usePinAuth(options: UsePinAuthOptions = {}): UsePinAuthReturn {
   const handleDelete = useCallback(() => {
     if (isSubmitting) return;
     setError(null);
-    setPin(prev => (prev.length > 0 ? prev.slice(0, -1) : prev));
+    setPin((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
   }, [isSubmitting]);
 
   const handleClear = useCallback(() => {
