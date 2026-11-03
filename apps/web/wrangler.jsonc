@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vittkly-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-12-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "env": {
+    "staging": {
+      "routes": [{ "pattern": "pruebas.vittkly.com", "custom_domain": true }],
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "vittkly-web-staging" }],
+      "preview_urls": true
+    },
+    "production": {
+      "routes": [{ "pattern": "app.vittkly.com", "custom_domain": true }],
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "vittkly-web-production" }],
+      "preview_urls": false
+    }
+  }
+}

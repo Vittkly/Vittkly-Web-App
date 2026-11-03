@@ -29,6 +29,7 @@ playwright/.cache/
 
 # Heavy demo artifacts (option C)
 /docs/artifacts/Demo/completa/
+Central de Servicios Vitta Kleanly_files/
 
 # Generated native folders
 /apps/mobile/ios/
@@ -40,6 +41,11 @@ expo-env.d.ts
 
 # Vercel
 .vercel/
+
+# OpenNext / Cloudflare
+.open-next/
+.wrangler/
+.dev.vars
 
 # Environment variables
 .env*.local
