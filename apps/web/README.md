@@ -22,6 +22,7 @@ Desarrollada sobre **Next.js 16 (App Router)** con Server Components de **React 
 ## 📊 2. Estado Actual de la Base de Código vs. Roadmap
 
 ### ✅ Lo que ya está construido en el repositorio:
+
 1. **Infraestructura Supabase SSR (`src/lib/supabase/`):**
    - `client.ts`: Cliente de navegación para Client Components.
    - `server.ts`: Cliente seguro para Server Components y Server Actions con gestión de cookies.
@@ -38,6 +39,7 @@ Desarrollada sobre **Next.js 16 (App Router)** con Server Components de **React 
    - `VittklyLogo`: Logotipo institucional vectorizado.
 
 ### 🚧 Roadmap de Funcionalidades Pendientes (Próximos Sprints):
+
 - **`src/features/auth/`**: Pantallas de Login con magic link / contraseña, registro de empresa y recuperación.
 - **`src/features/dashboard/`**: Panel analítico general de la empresa con métricas de órdenes de trabajo.
 - **`src/features/work-orders/`**: Creación, programación y despacho de órdenes a técnicos en campo.
@@ -55,6 +57,7 @@ cp .env.example .env.local
 ```
 
 ### Variables Requeridas:
+
 ```env
 # URL de tu instancia en Supabase Cloud
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -68,6 +71,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-publishable-key
 ## 💻 4. Scripts y Flujo de Desarrollo
 
 Desde la raíz del monorepo:
+
 ```bash
 # Iniciar servidor de desarrollo en http://localhost:3000
 pnpm dev:web

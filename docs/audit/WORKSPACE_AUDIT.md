@@ -9,7 +9,7 @@
 
 El repositorio `vittkly-monorepo` une dos aplicaciones funcionales con trabajo valioso que debe preservarse: una Central Web en Next.js 16.4 (`@vittkly/web`) y una App Móvil offline-first en Expo SDK 57 (`@vittkly/mobile`), gestionadas con `pnpm@12.10.1` y Turborepo `2.5.0`. Sin embargo, la unión dejó **fuerte deuda estructural de "dos repositorios pegados"**: configuraciones triplicadas (`commitlint`, `lint-staged`, `prettier`, `.gitignore`), `husky` instalado tres veces, ausencia de `AGENTS.md` y `.agents/` en la raíz (lo que impide que Antigravity descubra las 11 skills y reglas encerradas dentro de `apps/*/.agents/`), un paquete interactivo legado de **27 MB** con binarios WASM en `docs/artifacts/Demo/completa/`, el archivo `apps/web/tsconfig.tsbuildinfo` (238 KB) versionado en Git, y **dos esquemas de base de datos coexistiendo** (modelo en inglés `organizations`/`memberships`/`profiles` en móvil vs. modelo en español `empresas`/`membresias`/`usuarios` en web y `seed.sql`) sin una única carpeta de migraciones SQL completas en `supabase/migrations/`.
 
-**Calificación Global del Workspace:** **2.9 / 5.0** *(Funcional en sus módulos individuales, pero con alto riesgo de deriva entre Web/Móvil y ceguera de contexto para agentes de IA).*
+**Calificación Global del Workspace:** **2.9 / 5.0** _(Funcional en sus módulos individuales, pero con alto riesgo de deriva entre Web/Móvil y ceguera de contexto para agentes de IA)._
 
 ---
 
@@ -72,22 +72,22 @@ vittkly-monorepo/
 
 ## 3. Tabla de Puntuación por Área (1 a 5)
 
-| # | Área Evaluada | Puntos (1-5) | Evidencia Principal (Rutas Verificadas) |
-| :-: | :--- | :-: | :--- |
-| 1 | **Raíz del monorepo** | **3.0 / 5** | Tiene [package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/package.json), [pnpm-workspace.yaml](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/pnpm-workspace.yaml), [turbo.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/turbo.json), [.npmrc](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/.npmrc) y un único [pnpm-lock.yaml](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/pnpm-lock.yaml). **Faltan** `README.md` raíz, `.nvmrc`, `.editorconfig` y `AGENTS.md` raíz. [.gitignore](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/.gitignore) raíz es incompleto (no ignora `*.tsbuildinfo`, `coverage/`, `playwright-report/`). |
-| 2 | **Apps (`apps/web`, `apps/mobile`)** | **3.5 / 5** | Nombres `@vittkly/web` y `@vittkly/mobile` bien definidos; [next.config.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/next.config.ts#L5) transpila `@vittkly/shared` y `@vittkly/db-types`; [metro.config.js](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/metro.config.js#L10-L16) configura `watchFolders` y `nodeModulesPaths`. Sin embargo, ambas apps conservan archivos de raíz propios (`.lintstagedrc.json`, `commitlint.config.*`, `.gitignore`, `husky` en `devDependencies`) y `apps/mobile/package.json` no tiene script `test` ni `build`. |
-| 3 | **Paquetes compartidos (`packages/*`)** | **2.5 / 5** | Existen [`@vittkly/db-types`](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/packages/db-types/package.json) y [`@vittkly/shared`](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/packages/shared/package.json). Pero `@vittkly/mobile` **no importa ninguno de los dos en su código fuente**: reimplementa validaciones en [validators.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/features/auth/utils/validators.ts) y tipos en [auth.types.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/features/auth/types/auth.types.ts). No existe paquete de tokens de diseño (`@vittkly/ui-tokens`). |
-| 4 | **Configuración compartida** | **2.0 / 5** | No existen paquetes `config-typescript`, `config-eslint` ni configuración Prettier unificada. Hay **2 archivos `.prettierrc` contradictorios**: [apps/web/.prettierrc](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/.prettierrc#L5) usa `"trailingComma": "es5"` mientras que [apps/mobile/.prettierrc](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/.prettierrc#L4) usa `"trailingComma": "all"` y `"arrowParens": "avoid"`. Hay **3 archivos `commitlint.config.*`** y **3 `.lintstagedrc.json`**. |
-| 5 | **Dependencias** | **2.5 / 5** | Divergencia riesgosa de versiones entre apps: `react`/`react-dom` es `19.3.0` en [apps/web/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/package.json#L27-L28) vs. `19.2.3` en [apps/mobile/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/package.json#L32-L33) (mientras mobile resuelve `@types/react@19.3.0` hoisteado de web). `typescript` es `^5.8.2` en raíz/packages, `^5` en web (resuelve `5.9.3`) y `~6.0.3` en mobile. `husky`, `lint-staged` y `@commitlint/*` están triplicados. No hay imports cruzados entre apps (positivo). |
-| 6 | **Turborepo** | **2.5 / 5** | [turbo.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/turbo.json) define `build`, `dev`, `lint`, `typecheck` y `test`, pero **no declara `env` ni `globalEnv`** (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EXPO_PUBLIC_SUPABASE_URL`), lo que en Turbo v2 invalida o contamina el caché de compilación entre entornos (Staging vs. Producción). Además, `lint` y `typecheck` dependen de `^build`, pero `@vittkly/db-types` no tiene script `build`. |
-| 7 | **Supabase** | **2.0 / 5** | Seguridad de `service_role` en web muy bien cuidada con `server-only` en [admin.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/lib/supabase/admin.ts#L1). Sin embargo: (1) [supabase/migrations/](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/supabase/migrations/.gitkeep) está vacío; (2) el `seed.sql` real (215 líneas) está metido en [apps/web/src/lib/supabase/seed.sql](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/lib/supabase/seed.sql) mientras [supabase/seed.sql](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/supabase/seed.sql) tiene 2 líneas; (3) **fractura de esquema**: Web consulta tablas en español (`usuarios`, `empresas`, `membresias`, `modulos`) y Mobile consulta tablas en inglés (`profiles`, `organizations`, `memberships`, `work_orders`) sin tipar `createClient<Database>` en [apps/mobile/src/services/supabase.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/services/supabase.ts#L24). |
-| 8 | **Variables de entorno** | **3.0 / 5** | Ningún `.env` ni `.env.local` está trackeado en Git (verificado con `git ls-files`). Prefijos `NEXT_PUBLIC_` y `EXPO_PUBLIC_` bien empleados. Problemas: coexisten `.env` y `.env.local` simultáneamente en cada app incluyendo `SUPABASE_PERSONAL_ACCESS_TOKEN`; falta `NEXT_PUBLIC_SITE_URL` en [apps/web/.env.example](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/.env.example); y en mobile `.env` define `EXPO_PUBLIC_SUPABASE_KEY` además de `EXPO_PUBLIC_SUPABASE_ANON_KEY`. |
-| 9 | **UI kit y diseño** | **3.0 / 5** | Excelente disciplina en componentes (cero colores HEX hardcodeados fuera de `Logo.tsx`, cumplimiento estricto de `#3EC49B`). Pero **no existe paquete compartido de tokens**: los colores, espaciados y tipografías están triplicados manualmente en [apps/web/src/theme/tokens.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/theme/tokens.ts), [apps/web/src/app/globals.css](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/app/globals.css) y [apps/mobile/src/theme/tokens.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/theme/tokens.ts). Los 5 SVGs de marca están duplicados byte por byte en `apps/web/public/brand/` y `apps/mobile/assets/logos/`. |
-| 10 | **Calidad y pruebas** | **2.5 / 5** | TypeScript `strict: true` activo en todos los paquetes y reglas ESLint arquitectónicas valiosas (`no-restricted-imports`, `max-lines`). Sin embargo, solo existe **1 archivo de test unitario** en todo el monorepo ([StatusBadge.test.tsx](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/components/ui/__tests__/StatusBadge.test.tsx)), la carpeta `./e2e` configurada en [playwright.config.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/playwright.config.ts#L4) **no existe**, y `apps/mobile` tiene **0 tests**. El hook [.husky/pre-commit](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/.husky/pre-commit) no ejecuta `lint-staged`. |
-| 11 | **CI/CD** | **1.0 / 5** | No existe la carpeta `.github/workflows/` ni ningún pipeline de integración continua en el repositorio. |
-| 12 | **Preparación para agentes de IA** | **2.5 / 5** | Existen buenas reglas y skills creadas originalmente por separado en `apps/web/.agents/` y `apps/mobile/.agents/`, pero **no existe `AGENTS.md` ni `.agents/` en la raíz del monorepo**. Como Antigravity descubre `.agents/` desde el directorio de trabajo hacia arriba hasta `.git`, al abrir el monorepo en la raíz **ninguna skill de `apps/*/.agents/` se carga automáticamente**. Además, varias reglas tienen comandos con `npm run` en vez de `pnpm` y rutas de tipos obsoletas. |
-| 13 | **Documentación** | **2.5 / 5** | Buena calidad técnica en los documentos existentes (ADRs, diseño, auditoría RLS), pero están fragmentados y duplicados entre `apps/web/docs/`, `apps/mobile/docs/` y `docs/`. [docs/README.md](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/docs/README.md#L15-L19) contiene enlaces con rutas locales absolutas (`/home/wilmerabanto/...`). Además, `docs/artifacts/Demo/completa/` contamina el repo con 27 MB de binarios y código monolítico. |
-| 14 | **Seguridad básica** | **4.0 / 5** | Excelente protección en `apps/web` (`server-only` en `admin.ts`, rate-limiting por RPC `ingreso_bloqueado_hasta`/`registrar_intento`, anti-enumeración de usuarios, cookies SSR, y PIN con `expo-secure-store` en móvil). Como puntos a corregir: [apps/mobile/.agents/mcp_config.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/.agents/mcp_config.json) está versionado en Git (aunque hoy contiene el placeholder `${SUPABASE_PERSONAL_ACCESS_TOKEN}`, en `apps/web/.gitignore` está explícitamente ignorado para evitar fugas de PATs reales) y falta forzar el genérico `<Database>` en el cliente móvil. |
+|  #  | Área Evaluada                           | Puntos (1-5) | Evidencia Principal (Rutas Verificadas)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| :-: | :-------------------------------------- | :----------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1  | **Raíz del monorepo**                   | **3.0 / 5**  | Tiene [package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/package.json), [pnpm-workspace.yaml](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/pnpm-workspace.yaml), [turbo.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/turbo.json), [.npmrc](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/.npmrc) y un único [pnpm-lock.yaml](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/pnpm-lock.yaml). **Faltan** `README.md` raíz, `.nvmrc`, `.editorconfig` y `AGENTS.md` raíz. [.gitignore](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/.gitignore) raíz es incompleto (no ignora `*.tsbuildinfo`, `coverage/`, `playwright-report/`).                                                                                                                                                                                                                                                                                                                            |
+|  2  | **Apps (`apps/web`, `apps/mobile`)**    | **3.5 / 5**  | Nombres `@vittkly/web` y `@vittkly/mobile` bien definidos; [next.config.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/next.config.ts#L5) transpila `@vittkly/shared` y `@vittkly/db-types`; [metro.config.js](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/metro.config.js#L10-L16) configura `watchFolders` y `nodeModulesPaths`. Sin embargo, ambas apps conservan archivos de raíz propios (`.lintstagedrc.json`, `commitlint.config.*`, `.gitignore`, `husky` en `devDependencies`) y `apps/mobile/package.json` no tiene script `test` ni `build`.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+|  3  | **Paquetes compartidos (`packages/*`)** | **2.5 / 5**  | Existen [`@vittkly/db-types`](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/packages/db-types/package.json) y [`@vittkly/shared`](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/packages/shared/package.json). Pero `@vittkly/mobile` **no importa ninguno de los dos en su código fuente**: reimplementa validaciones en [validators.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/features/auth/utils/validators.ts) y tipos en [auth.types.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/features/auth/types/auth.types.ts). No existe paquete de tokens de diseño (`@vittkly/ui-tokens`).                                                                                                                                                                                                                                                                                                                                                       |
+|  4  | **Configuración compartida**            | **2.0 / 5**  | No existen paquetes `config-typescript`, `config-eslint` ni configuración Prettier unificada. Hay **2 archivos `.prettierrc` contradictorios**: [apps/web/.prettierrc](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/.prettierrc#L5) usa `"trailingComma": "es5"` mientras que [apps/mobile/.prettierrc](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/.prettierrc#L4) usa `"trailingComma": "all"` y `"arrowParens": "avoid"`. Hay **3 archivos `commitlint.config.*`** y **3 `.lintstagedrc.json`**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+|  5  | **Dependencias**                        | **2.5 / 5**  | Divergencia riesgosa de versiones entre apps: `react`/`react-dom` es `19.3.0` en [apps/web/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/package.json#L27-L28) vs. `19.2.3` en [apps/mobile/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/package.json#L32-L33) (mientras mobile resuelve `@types/react@19.3.0` hoisteado de web). `typescript` es `^5.8.2` en raíz/packages, `^5` en web (resuelve `5.9.3`) y `~6.0.3` en mobile. `husky`, `lint-staged` y `@commitlint/*` están triplicados. No hay imports cruzados entre apps (positivo).                                                                                                                                                                                                                                                                                                                                                                                                            |
+|  6  | **Turborepo**                           | **2.5 / 5**  | [turbo.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/turbo.json) define `build`, `dev`, `lint`, `typecheck` y `test`, pero **no declara `env` ni `globalEnv`** (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EXPO_PUBLIC_SUPABASE_URL`), lo que en Turbo v2 invalida o contamina el caché de compilación entre entornos (Staging vs. Producción). Además, `lint` y `typecheck` dependen de `^build`, pero `@vittkly/db-types` no tiene script `build`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+|  7  | **Supabase**                            | **2.0 / 5**  | Seguridad de `service_role` en web muy bien cuidada con `server-only` en [admin.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/lib/supabase/admin.ts#L1). Sin embargo: (1) [supabase/migrations/](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/supabase/migrations/.gitkeep) está vacío; (2) el `seed.sql` real (215 líneas) está metido en [apps/web/src/lib/supabase/seed.sql](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/lib/supabase/seed.sql) mientras [supabase/seed.sql](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/supabase/seed.sql) tiene 2 líneas; (3) **fractura de esquema**: Web consulta tablas en español (`usuarios`, `empresas`, `membresias`, `modulos`) y Mobile consulta tablas en inglés (`profiles`, `organizations`, `memberships`, `work_orders`) sin tipar `createClient<Database>` en [apps/mobile/src/services/supabase.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/services/supabase.ts#L24). |
+|  8  | **Variables de entorno**                | **3.0 / 5**  | Ningún `.env` ni `.env.local` está trackeado en Git (verificado con `git ls-files`). Prefijos `NEXT_PUBLIC_` y `EXPO_PUBLIC_` bien empleados. Problemas: coexisten `.env` y `.env.local` simultáneamente en cada app incluyendo `SUPABASE_PERSONAL_ACCESS_TOKEN`; falta `NEXT_PUBLIC_SITE_URL` en [apps/web/.env.example](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/.env.example); y en mobile `.env` define `EXPO_PUBLIC_SUPABASE_KEY` además de `EXPO_PUBLIC_SUPABASE_ANON_KEY`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|  9  | **UI kit y diseño**                     | **3.0 / 5**  | Excelente disciplina en componentes (cero colores HEX hardcodeados fuera de `Logo.tsx`, cumplimiento estricto de `#3EC49B`). Pero **no existe paquete compartido de tokens**: los colores, espaciados y tipografías están triplicados manualmente en [apps/web/src/theme/tokens.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/theme/tokens.ts), [apps/web/src/app/globals.css](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/app/globals.css) y [apps/mobile/src/theme/tokens.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/theme/tokens.ts). Los 5 SVGs de marca están duplicados byte por byte en `apps/web/public/brand/` y `apps/mobile/assets/logos/`.                                                                                                                                                                                                                                                                                      |
+| 10  | **Calidad y pruebas**                   | **2.5 / 5**  | TypeScript `strict: true` activo en todos los paquetes y reglas ESLint arquitectónicas valiosas (`no-restricted-imports`, `max-lines`). Sin embargo, solo existe **1 archivo de test unitario** en todo el monorepo ([StatusBadge.test.tsx](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/components/ui/__tests__/StatusBadge.test.tsx)), la carpeta `./e2e` configurada en [playwright.config.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/playwright.config.ts#L4) **no existe**, y `apps/mobile` tiene **0 tests**. El hook [.husky/pre-commit](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/.husky/pre-commit) no ejecuta `lint-staged`.                                                                                                                                                                                                                                                                                                                           |
+| 11  | **CI/CD**                               | **1.0 / 5**  | No existe la carpeta `.github/workflows/` ni ningún pipeline de integración continua en el repositorio.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 12  | **Preparación para agentes de IA**      | **2.5 / 5**  | Existen buenas reglas y skills creadas originalmente por separado en `apps/web/.agents/` y `apps/mobile/.agents/`, pero **no existe `AGENTS.md` ni `.agents/` en la raíz del monorepo**. Como Antigravity descubre `.agents/` desde el directorio de trabajo hacia arriba hasta `.git`, al abrir el monorepo en la raíz **ninguna skill de `apps/*/.agents/` se carga automáticamente**. Además, varias reglas tienen comandos con `npm run` en vez de `pnpm` y rutas de tipos obsoletas.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 13  | **Documentación**                       | **2.5 / 5**  | Buena calidad técnica en los documentos existentes (ADRs, diseño, auditoría RLS), pero están fragmentados y duplicados entre `apps/web/docs/`, `apps/mobile/docs/` y `docs/`. [docs/README.md](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/docs/README.md#L15-L19) contiene enlaces con rutas locales absolutas (`/home/wilmerabanto/...`). Además, `docs/artifacts/Demo/completa/` contamina el repo con 27 MB de binarios y código monolítico.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 14  | **Seguridad básica**                    | **4.0 / 5**  | Excelente protección en `apps/web` (`server-only` en `admin.ts`, rate-limiting por RPC `ingreso_bloqueado_hasta`/`registrar_intento`, anti-enumeración de usuarios, cookies SSR, y PIN con `expo-secure-store` en móvil). Como puntos a corregir: [apps/mobile/.agents/mcp_config.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/.agents/mcp_config.json) está versionado en Git (aunque hoy contiene el placeholder `${SUPABASE_PERSONAL_ACCESS_TOKEN}`, en `apps/web/.gitignore` está explícitamente ignorado para evitar fugas de PATs reales) y falta forzar el genérico `<Database>` en el cliente móvil.                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ---
 
@@ -96,6 +96,7 @@ vittkly-monorepo/
 ### 🔴 Severidad Crítica
 
 #### **H-001: Ceguera de descubrimiento de `.agents/` y ausencia de `AGENTS.md` en la raíz del monorepo**
+
 - **Rutas afectadas y evidencia:**
   - Raíz del repositorio `/` (ausencia de `AGENTS.md` y `.agents/`).
   - [apps/web/AGENTS.md](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/AGENTS.md), [apps/mobile/AGENTS.md](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/AGENTS.md).
@@ -106,12 +107,13 @@ vittkly-monorepo/
   1. Crear `AGENTS.md` en la raíz con el mapa global del monorepo, comandos `pnpm`, arquitectura de paquetes y reglas innegociables (conservando los `AGENTS.md` locales de `apps/web` y `apps/mobile` solo para directivas específicas de Next.js 16 y Expo SDK 57).
   2. Consolidar `.agents/skills/`, `.agents/rules/` y `.agents/hooks.json` en la carpeta raíz `/.agents/`, unificando las skills duplicadas (`pre-flight`, `rls-migration-auditor`, `sync-db-types`) y renombrando con alcance claro las específicas (`vittkly-web-ui-builder`, `vittkly-mobile-ui-builder`, etc.).
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Bajo (no afecta el runtime de Next.js ni Expo).
-  - *Mitigación:* Verificar que `next dev` sigue encontrando su bloque `<!-- BEGIN:nextjs-agent-rules -->` en `apps/web/AGENTS.md`.
+  - _Riesgo:_ Bajo (no afecta el runtime de Next.js ni Expo).
+  - _Mitigación:_ Verificar que `next dev` sigue encontrando su bloque `<!-- BEGIN:nextjs-agent-rules -->` en `apps/web/AGENTS.md`.
 
 ---
 
 #### **H-002: Fractura del esquema de base de datos (Inglés vs. Español) y `supabase/migrations/` vacío**
+
 - **Rutas afectadas y evidencia:**
   - [supabase/migrations/.gitkeep](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/supabase/migrations/.gitkeep) (0 archivos `.sql` de migración).
   - [supabase/seed.sql](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/supabase/seed.sql) (2 líneas) vs. [apps/web/src/lib/supabase/seed.sql](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/lib/supabase/seed.sql) (215 líneas con el seed real de la historia VIT-29).
@@ -127,12 +129,13 @@ vittkly-monorepo/
   2. Incorporar en `supabase/migrations/` los scripts SQL base en orden cronológico (solo como control de versiones en el repositorio, sin ejecutarlos contra Supabase Cloud) y agregar `supabase/config.toml` de referencia.
   3. Documentar explícitamente en `AGENTS.md` y `docs/architecture/` cuál es el esquema canónico vigente (tablas en español `empresas`/`membresias`/`usuarios` + RPC `mi_contexto()`) y cuáles tablas en inglés están en transición o deprecadas.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Medio si se eliminaran tipos en inglés de `database.types.ts` mientras `apps/mobile` aún tiene fallbacks que los referencian.
-  - *Mitigación:* Mantener intacto `packages/db-types/src/database.types.ts` hasta que `apps/mobile` migre sus fallbacks, y solo mover `seed.sql`
+  - _Riesgo:_ Medio si se eliminaran tipos en inglés de `database.types.ts` mientras `apps/mobile` aún tiene fallbacks que los referencian.
+  - _Mitigación:_ Mantener intacto `packages/db-types/src/database.types.ts` hasta que `apps/mobile` migre sus fallbacks, y solo mover `seed.sql`
 
 ---
 
 #### **H-003: Artefactos pesados de demostración (27 MB, incluyendo binarios WASM) y `tsconfig.tsbuildinfo` versionados en Git**
+
 - **Rutas afectadas y evidencia:**
   - `docs/artifacts/Demo/completa/` (**27 MB** trackeados en Git: `tess/lang/eng-traineddata-gz.wasm` de 11 MB, ` index.html` de 7.1 MB con imágenes base64 incrustadas, `tesseract-core-*.wasm.js` de 7.6 MB).
   - [apps/web/tsconfig.tsbuildinfo](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/tsconfig.tsbuildinfo) (**238 KB** trackeado en Git porque `.gitignore` raíz no incluye `*.tsbuildinfo` y fue comiteado).
@@ -144,13 +147,14 @@ vittkly-monorepo/
   1. Añadir `*.tsbuildinfo`, `coverage/`, `test-results/`, `playwright-report/` al `.gitignore` raíz y ejecutar `git rm --cached apps/web/tsconfig.tsbuildinfo` y `git rm -r --cached .husky/_`.
   2. Con respecto a `docs/artifacts/Demo/completa/` (que sirve de referencia funcional según `docs/artifacts/doc_artifact.md`): consultar al usuario si desea excluir los binarios WASM (`tess/`) o mover la carpeta `Demo/completa/` fuera del alcance de indexación de código (por ejemplo, ignorada en `.prettierignore`, `.eslintignore` / `globalIgnores` y búsqueda de agentes, o archivada en un branch/release separado conservando únicamente `docs/artifacts/doc_artifact.md`).
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Bajo. `git rm --cached` en `tsconfig.tsbuildinfo` no borra código fuente. Para `docs/artifacts/Demo/completa/`, no se borrará nada sin autorización expresa del usuario.
+  - _Riesgo:_ Bajo. `git rm --cached` en `tsconfig.tsbuildinfo` no borra código fuente. Para `docs/artifacts/Demo/completa/`, no se borrará nada sin autorización expresa del usuario.
 
 ---
 
 ### 🟠 Severidad Alta
 
 #### **H-004: Divergencia de versiones de React (`19.3.0` vs `19.2.3`) y TypeScript (`5.9.3` vs `6.0.3`) entre Web y Mobile**
+
 - **Rutas afectadas y evidencia:**
   - [apps/web/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/package.json#L27-L53): `"react": "19.3.0"`, `"react-dom": "19.3.0"`, `"@types/react": "^19"`, `"typescript": "^5"`.
   - [apps/mobile/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/package.json#L32-L64): `"react": "19.2.3"`, `"react-dom": "19.2.3"`, sin `@types/react` propio, `"typescript": "~6.0.3"`.
@@ -161,12 +165,13 @@ vittkly-monorepo/
   1. Alinear `typescript` en una versión consistente en los paquetes compartidos y la raíz (o fijar `pnpm.overrides` / catálogo de `pnpm-workspace.yaml` si todas las herramientas soportan la misma versión).
   2. Declarar explícitamente `@types/react` en `apps/mobile/package.json` acorde al SDK 57 de Expo, y evaluar si `apps/web` puede fijar la misma versión de React compatible o aislar las dependencias de React si Expo SDK 57 exige estrictamente `19.2.3`.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Medio (Expo Doctor valida versiones exactas de `react` para el SDK 57).
-  - *Mitigación:* Respetar la versión que exige `npx expo-doctor` en `apps/mobile` (`19.2.3`) y usar `pnpm` catalog / overrides solo donde sea 100 % compatible con ambas apps.
+  - _Riesgo:_ Medio (Expo Doctor valida versiones exactas de `react` para el SDK 57).
+  - _Mitigación:_ Respetar la versión que exige `npx expo-doctor` en `apps/mobile` (`19.2.3`) y usar `pnpm` catalog / overrides solo donde sea 100 % compatible con ambas apps.
 
 ---
 
 #### **H-005: `apps/mobile` no consume `@vittkly/shared` ni `@vittkly/db-types` y duplica validaciones y tipos**
+
 - **Rutas afectadas y evidencia:**
   - [apps/mobile/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/package.json#L11-L12) declara `@vittkly/db-types` y `@vittkly/shared`, pero `git grep "@vittkly/" apps/mobile/src/` devuelve **0 resultados**.
   - [apps/mobile/src/services/supabase.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/services/supabase.ts#L24): `export const supabase = createClient(resolvedUrl, resolvedKey, ...)` sin el genérico `<Database>`.
@@ -181,12 +186,13 @@ vittkly-monorepo/
   3. Re-exportar los tipos comunes (`MembershipRole`, `AccessScope`, `SubscriptionStatus`, `WorkOrderStatus`) desde `@vittkly/db-types` / `@vittkly/shared`.
   4. Corregir el script `sync:db-types` en `apps/mobile/package.json` y `apps/web/package.json` para que deleguen al script raíz.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Medio al añadir `<Database>` en `apps/mobile/src/services/supabase.ts` si alguna consulta existente en móvil tiene tipos incompatibles.
-  - *Mitigación:* Ejecutar `pnpm --filter @vittkly/mobile typecheck` inmediatamente después del cambio; mantener adaptadores en `validators.ts` con las firmas actuales.
+  - _Riesgo:_ Medio al añadir `<Database>` en `apps/mobile/src/services/supabase.ts` si alguna consulta existente en móvil tiene tipos incompatibles.
+  - _Mitigación:_ Ejecutar `pnpm --filter @vittkly/mobile typecheck` inmediatamente después del cambio; mantener adaptadores en `validators.ts` con las firmas actuales.
 
 ---
 
 #### **H-006: Triplicación del UI Kit (Tokens y Logos) sin paquete central `@vittkly/ui-tokens`**
+
 - **Rutas afectadas y evidencia:**
   - [apps/web/src/theme/tokens.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/theme/tokens.ts) (187 líneas, espaciados en `'4px'`).
   - [apps/web/src/app/globals.css](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/app/globals.css) (166 líneas, variables CSS `--surface`, `--ink`, etc.).
@@ -200,12 +206,13 @@ vittkly-monorepo/
   2. Adaptadores listos para Web (con unidades `'px'`) y para React Native (numéricos).
   3. En `apps/web/src/theme/tokens.ts` y `apps/mobile/src/theme/tokens.ts`, re-exportar desde `@vittkly/ui-tokens` para **no romper ningún import `@/theme` existente** en las apps.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Bajo si `apps/web/src/theme/tokens.ts` y `apps/mobile/src/theme/tokens.ts` se mantienen como fachadas (barrels) que re-exportan desde `@vittkly/ui-tokens` respetando los tipos exactos (`TextStyle`, `ViewStyle` en móvil).
-  - *Mitigación:* Añadir `@vittkly/ui-tokens` a `transpilePackages` en `apps/web/next.config.ts` y verificar con `typecheck` en ambas apps.
+  - _Riesgo:_ Bajo si `apps/web/src/theme/tokens.ts` y `apps/mobile/src/theme/tokens.ts` se mantienen como fachadas (barrels) que re-exportan desde `@vittkly/ui-tokens` respetando los tipos exactos (`TextStyle`, `ViewStyle` en móvil).
+  - _Mitigación:_ Añadir `@vittkly/ui-tokens` a `transpilePackages` en `apps/web/next.config.ts` y verificar con `typecheck` en ambas apps.
 
 ---
 
 #### **H-007: Configuración de `turbo.json` incompleta (sin variables de entorno ni tarea `check` y con `dependsOn: ["^build"]` en paquetes sin `build`)**
+
 - **Rutas afectadas y evidencia:**
   - [turbo.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/turbo.json#L4-L22).
   - [packages/db-types/package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/packages/db-types/package.json#L11-L13) (solo tiene `"typecheck"`, no tiene `"build"`).
@@ -214,12 +221,13 @@ vittkly-monorepo/
 - **Corrección recomendada:**
   Actualizar `turbo.json` declarando `globalEnv` (`SUPABASE_PROJECT_ID`, `NODE_ENV`, `CI`) y `env` por tarea (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`), y añadir en el `package.json` raíz los scripts `"test": "turbo run test"` y `"check": "turbo run lint typecheck test"`.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Muy bajo.
-  - *Mitigación:* Probar `pnpm lint`, `pnpm typecheck` y `pnpm test` desde la raíz tras actualizar `turbo.json`.
+  - _Riesgo:_ Muy bajo.
+  - _Mitigación:_ Probar `pnpm lint`, `pnpm typecheck` y `pnpm test` desde la raíz tras actualizar `turbo.json`.
 
 ---
 
 #### **H-008: Ausencia total de CI/CD (`.github/workflows/`) y suite de pruebas insuficiente en Mobile y E2E**
+
 - **Rutas afectadas y evidencia:**
   - Ausencia de `.github/` en la raíz.
   - [apps/web/playwright.config.ts](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/playwright.config.ts#L4) apunta a `testDir: './e2e'`, directorio que no existe.
@@ -231,14 +239,15 @@ vittkly-monorepo/
   2. Crear el directorio `apps/web/e2e/` con un smoke test inicial de Playwright para login/registro.
   3. Configurar pruebas unitarias en `apps/mobile` (`jest-expo` + `@testing-library/react-native` o Vitest para lógica pura de servicios/utils).
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Bajo (aditivo).
-  - *Mitigación:* Empezar con tests unitarios de servicios/validadores y smoke test en CI.
+  - _Riesgo:_ Bajo (aditivo).
+  - _Mitigación:_ Empezar con tests unitarios de servicios/validadores y smoke test en CI.
 
 ---
 
 ### 🟡 Severidad Media
 
 #### **H-009: Triplicación de herramientas de git hooks y formateo (`husky`, `lint-staged`, `commitlint`, `prettier`) con reglas contradictorias**
+
 - **Rutas afectadas y evidencia:**
   - `commitlint`: [commitlint.config.mjs](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/commitlint.config.mjs) (raíz, acepta `VIT-XX` o Conventional Commits), [apps/web/commitlint.config.mjs](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/commitlint.config.mjs) (solo Conventional), [apps/mobile/commitlint.config.js](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/commitlint.config.js) (CommonJS, solo Conventional).
   - `lint-staged`: [.lintstagedrc.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/.lintstagedrc.json) (raíz, solo prettier), [apps/web/.lintstagedrc.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/.lintstagedrc.json) (eslint + prettier), [apps/mobile/.lintstagedrc.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/.lintstagedrc.json) (eslint + prettier).
@@ -251,12 +260,13 @@ vittkly-monorepo/
   2. Eliminar `apps/web/commitlint.config.mjs`, `apps/mobile/commitlint.config.js`, y las dependencias duplicadas de `husky` y `@commitlint/*` en `apps/web` y `apps/mobile`, manteniendo la configuración raíz (que soporta tanto `VIT-XX` como Conventional Commits).
   3. Actualizar `.husky/pre-commit` para que ejecute `pnpm lint-staged && pnpm turbo run typecheck`.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Bajo.
-  - *Mitigación:* Ejecutar `prettier --check` antes de aplicar un formateo masivo y hacerlo en un commit aislado de estilo (`style: unify prettier configuration`).
+  - _Riesgo:_ Bajo.
+  - _Mitigación:_ Ejecutar `prettier --check` antes de aplicar un formateo masivo y hacerlo en un commit aislado de estilo (`style: unify prettier configuration`).
 
 ---
 
 #### **H-010: Archivo `.agents/mcp_config.json` versionado en `apps/mobile` y coexistencia confusa de `.env` + `.env.local`**
+
 - **Rutas afectadas y evidencia:**
   - [apps/mobile/.agents/mcp_config.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/.agents/mcp_config.json) (trackeado en Git; verificado que hoy contiene el literal `"${SUPABASE_PERSONAL_ACCESS_TOKEN}"`, pero en [apps/web/.gitignore](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/.gitignore#L42) está ignorado porque los desarrolladores suelen pegar su PAT real ahí).
   - En disco coexisten simultáneamente `apps/web/.env` y `apps/web/.env.local`, y `apps/mobile/.env` y `apps/mobile/.env.local` (todos contienen además `SUPABASE_PERSONAL_ACCESS_TOKEN` y claves duplicadas como `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `EXPO_PUBLIC_SUPABASE_KEY`).
@@ -268,11 +278,12 @@ vittkly-monorepo/
   2. Documentar `NEXT_PUBLIC_SITE_URL` en `apps/web/.env.example` y crear `.env.example` en la raíz (para `SUPABASE_PROJECT_ID` usado por `sync:db-types`).
   3. Definir una convención clara de entornos (ej. `.env.local` para desarrollo/staging y variables de plataforma en CI/producción) con validación Zod al arranque (`src/env.ts`).
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Bajo (`git rm --cached` mantiene el archivo local en el disco del usuario sin borrarlo).
+  - _Riesgo:_ Bajo (`git rm --cached` mantiene el archivo local en el disco del usuario sin borrarlo).
 
 ---
 
 #### **H-011: Documentación fragmentada en 3 ubicaciones, duplicada byte a byte y con enlaces absolutos rotos**
+
 - **Rutas afectadas y evidencia:**
   - [apps/web/docs/security/auditoria_bd_supabase_rls.md](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/docs/security/auditoria_bd_supabase_rls.md) y [apps/mobile/docs/security/auditoria_bd_supabase_rls.md](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/docs/security/auditoria_bd_supabase_rls.md) son **100 % idénticos** (MD5 `e690626243930ca7e205836a1e7a476b`).
   - [docs/README.md](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/docs/README.md#L15-L19) usa URLs `file:///home/wilmerabanto/...` que solo funcionan en la máquina local actual y fallan en GitHub o en contenedores CI.
@@ -282,26 +293,28 @@ vittkly-monorepo/
 - **Corrección recomendada:**
   Unificar toda la documentación en la carpeta raíz `docs/` (`docs/architecture/adr/`, `docs/database/`, `docs/design/`, `docs/security/`, `docs/audit/`, `docs/ai/`) usando enlaces Markdown relativos, y crear un `README.md` raíz conciso.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Nulo para el código ejecutable. Actualizar las referencias en las reglas `.agents/rules/*.md` para que apunten a `docs/`.
+  - _Riesgo:_ Nulo para el código ejecutable. Actualizar las referencias en las reglas `.agents/rules/*.md` para que apunten a `docs/`.
 
 ---
 
 ### 🟢 Severidad Baja
 
 #### **H-012: Solapamiento de componentes UI en `apps/mobile/src/components/` vs `apps/mobile/src/components/ui/` y rutas alias redundantes**
+
 - **Rutas afectadas y evidencia:**
   - En `apps/mobile/src/components/` coexisten componentes en el primer nivel (`Button.tsx`, `Logo.tsx`, `OtpInput.tsx`, `PinPad.tsx`, `StatusBadge.tsx`, `WorkOrderCard.tsx`, `ConnectionBanner.tsx`, `MobileTabBar.tsx`) y una subcarpeta `ui/` (`AlertBanner.tsx`, `BackButton.tsx`, `BottomSheet.tsx`, `CompanyCircleButton.tsx`, `FormField.tsx`, `NumericKeypad.tsx`, `OptionCard.tsx`, `PasswordField.tsx`, `PinDots.tsx`), además de componentes específicos en `src/features/auth/components/PinPadLock.tsx` y `OtpVerification.tsx`.
-  - En `apps/mobile/src/app/` existen rutas alias de 1 línea como [dashboard.tsx](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/app/dashboard.tsx) (`export { default } from './index'`) y en `apps/web/src/app/(auth)/` coexisten `/register` y `/signup` ([signup/page.tsx](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/app/(auth)/signup/page.tsx) redirige a `/register`).
+  - En `apps/mobile/src/app/` existen rutas alias de 1 línea como [dashboard.tsx](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/mobile/src/app/dashboard.tsx) (`export { default } from './index'`) y en `apps/web/src/app/(auth)/` coexisten `/register` y `/signup` ([signup/page.tsx](<file:///home/wilmerabanto/Proyectos/vittkly-monorepo/apps/web/src/app/(auth)/signup/page.tsx>) redirige a `/register`).
 - **Por qué es un problema:**
   Un agente de IA puede confundirse entre `PinPad.tsx`, `NumericKeypad.tsx` y `PinPadLock.tsx` al modificar el teclado de PIN.
 - **Corrección recomendada:**
   Documentar en `docs/design/` qué componentes de `apps/mobile/src/components/` son primitivas del UI Kit general y cuáles de `src/components/ui/` son bloques de formularios/autenticación, sin eliminar los existentes para no romper pantallas en uso.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Nulo si se documenta y se organiza mediante exports limpios sin borrar archivos en uso.
+  - _Riesgo:_ Nulo si se documenta y se organiza mediante exports limpios sin borrar archivos en uso.
 
 ---
 
 #### **H-013: Falta de `.nvmrc`, `.editorconfig` y `engines` en el `package.json` raíz**
+
 - **Rutas afectadas y evidencia:**
   - Raíz del repositorio `/` y [package.json](file:///home/wilmerabanto/Proyectos/vittkly-monorepo/package.json).
 - **Por qué es un problema:**
@@ -309,7 +322,7 @@ vittkly-monorepo/
 - **Corrección recomendada:**
   Crear `.nvmrc` (`24`), `.editorconfig` y el campo `"engines": { "node": ">=22.0.0", "pnpm": ">=10.0.0" }` en el `package.json` raíz.
 - **Riesgo de la corrección y mitigación:**
-  - *Riesgo:* Nulo.
+  - _Riesgo:_ Nulo.
 
 ---
 
@@ -337,6 +350,7 @@ Es fundamental **NO reescribir ni destruir** los siguientes activos ya construid
 ## 6. Estructura Objetivo Adaptada a Este Repo
 
 ### Decisiones de Adaptación frente a la Estructura de Referencia
+
 1. **Mantener `@vittkly/db-types` e introducir `@vittkly/supabase` de forma incremental (o unificar con re-export):** `apps/web` ya importa `@vittkly/db-types`. Para no romper imports existentes, podemos mantener `@vittkly/db-types` (o convertirlo en re-export de `@vittkly/supabase`) mientras `@vittkly/supabase` aloja los tipos generados, helpers de validación de entorno y consultas/constantes compartidas de Supabase (manteniendo los clientes específicos de plataforma `@supabase/ssr` con `next/headers` en `apps/web` y `AsyncStorage`/`expo-sqlite` en `apps/mobile`, ya que mezclar `next/headers` con `react-native` en un mismo entrypoint rompe Metro Bundler).
 2. **Crear `packages/ui-tokens` (`@vittkly/ui-tokens`), pero NO crear `ui-web` ni `ui-native` todavía:** Solo hay 1 app web y 1 app móvil; los componentes UI (`apps/web/src/components/ui/` y `apps/mobile/src/components/`) están bien acoplados a sus primitivas (`next/image` + Tailwind v4 vs. `react-native` `StyleSheet` + `react-native-svg`). Extraer `ui-web` y `ui-native` hoy añadiría fricción sin reutilización real entre múltiples apps del mismo tipo. En cambio, **`packages/ui-tokens` sí aporta valor inmediato** al unificar colores, espaciados, radios, tipografía y vectores SVG del logo.
 3. **Crear `packages/config-typescript` y `packages/config-eslint`:** Permite compartir las reglas base y los guardarraíles arquitectónicos sin duplicación.
@@ -393,31 +407,32 @@ vittkly-monorepo/
 
 ### Mapa de Migración de Rutas (`Ruta Actual → Ruta Nueva`)
 
-| Ruta Actual | Acción | Ruta Nueva / Destino | Motivo |
-| :--- | :---: | :--- | :--- |
-| `apps/web/src/lib/supabase/seed.sql` | **Mover** | `supabase/seed.sql` | El seed oficial de 215 líneas no debe vivir dentro de `apps/web/src/lib/` |
-| `apps/web/tsconfig.tsbuildinfo` | **Destrackear** (`git rm --cached`) | *(Ignorado en `.gitignore`)* | Archivo de caché de compilación de TypeScript |
-| `.husky/_/*` | **Destrackear** (`git rm -r --cached`) | *(Auto-generado por `husky`)* | Archivos internos de Husky v9 |
-| `apps/mobile/.agents/mcp_config.json` | **Destrackear** (`git rm --cached`) | `.agents/mcp_config.example.json` | Evitar versionar tokens PAT de Supabase en Git |
-| `apps/web/.agents/rules/*` + `apps/mobile/.agents/rules/*` | **Consolidar / Mover** | `.agents/rules/{global,web,mobile,supabase,design}.md` | Permitir descubrimiento automático desde la raíz del monorepo |
-| `apps/web/.agents/skills/*` + `apps/mobile/.agents/skills/*` | **Consolidar / Mover** | `.agents/skills/*` | Descubrimiento automático de skills en Antigravity al abrir la raíz |
-| `apps/web/.agents/hooks.json` + `apps/mobile/.agents/hooks.json` | **Consolidar / Mover** | `.agents/hooks.json` | Hook unificado en la raíz del workspace |
-| `apps/web/docs/adr/*` + `apps/mobile/docs/adr/*` | **Mover** | `docs/architecture/adr/*` | Centralizar ADRs en `docs/architecture/` |
-| `apps/web/docs/database/propuesta_010_operaciones_campo.md` | **Mover** | `docs/database/propuesta_010_operaciones_campo.md` | Centralizar documentación de BD |
-| `apps/web/docs/design-system/*` + `apps/mobile/docs/design-system/*` | **Mover** | `docs/design/{sistema-diseno-web.md,sistema-diseno-mobile.md}` | Centralizar guías del UI Kit en `docs/design/` |
-| `apps/web/docs/security/auditoria_bd_supabase_rls.md` + copia en `mobile` | **Unificar / Mover** | `docs/security/auditoria_bd_supabase_rls.md` | Eliminar copia duplicada idéntica (mismo MD5) |
-| `docs/artifacts/doc_artifact.md` | **Mover** | `docs/architecture/ingenieria-inversa-demo.md` | Conservar el análisis arquitectónico en lugar predecible |
-| `apps/web/commitlint.config.mjs` y `apps/mobile/commitlint.config.js` | **Eliminar** | `commitlint.config.mjs` (raíz) | Redundantes con el `commitlint.config.mjs` de la raíz |
-| `apps/web/.lintstagedrc.json` y `apps/mobile/.lintstagedrc.json` | **Consolidar** | `.lintstagedrc.json` (raíz) | Unificar pre-commit en la raíz |
-| `apps/web/.prettierrc` y `apps/mobile/.prettierrc` | **Consolidar** | `.prettierrc` y `.prettierignore` (raíz) | Resolver conflicto `trailingComma: es5` vs `all` |
-| `apps/web/src/theme/tokens.ts` + `apps/mobile/src/theme/tokens.ts` | **Extraer base + Re-exportar** | `packages/ui-tokens/src/*` (manteniendo fachadas en `src/theme/tokens.ts`) | Fuente única de verdad sin romper imports `@/theme` |
-| `apps/mobile/src/features/auth/utils/validators.ts` | **Delegar a shared** | Consume `packages/shared/src/*` (manteniendo fachada local) | Eliminar duplicación de regex y validadores con Web |
+| Ruta Actual                                                               |                 Acción                 | Ruta Nueva / Destino                                                       | Motivo                                                                    |
+| :------------------------------------------------------------------------ | :------------------------------------: | :------------------------------------------------------------------------- | :------------------------------------------------------------------------ |
+| `apps/web/src/lib/supabase/seed.sql`                                      |               **Mover**                | `supabase/seed.sql`                                                        | El seed oficial de 215 líneas no debe vivir dentro de `apps/web/src/lib/` |
+| `apps/web/tsconfig.tsbuildinfo`                                           |  **Destrackear** (`git rm --cached`)   | _(Ignorado en `.gitignore`)_                                               | Archivo de caché de compilación de TypeScript                             |
+| `.husky/_/*`                                                              | **Destrackear** (`git rm -r --cached`) | _(Auto-generado por `husky`)_                                              | Archivos internos de Husky v9                                             |
+| `apps/mobile/.agents/mcp_config.json`                                     |  **Destrackear** (`git rm --cached`)   | `.agents/mcp_config.example.json`                                          | Evitar versionar tokens PAT de Supabase en Git                            |
+| `apps/web/.agents/rules/*` + `apps/mobile/.agents/rules/*`                |         **Consolidar / Mover**         | `.agents/rules/{global,web,mobile,supabase,design}.md`                     | Permitir descubrimiento automático desde la raíz del monorepo             |
+| `apps/web/.agents/skills/*` + `apps/mobile/.agents/skills/*`              |         **Consolidar / Mover**         | `.agents/skills/*`                                                         | Descubrimiento automático de skills en Antigravity al abrir la raíz       |
+| `apps/web/.agents/hooks.json` + `apps/mobile/.agents/hooks.json`          |         **Consolidar / Mover**         | `.agents/hooks.json`                                                       | Hook unificado en la raíz del workspace                                   |
+| `apps/web/docs/adr/*` + `apps/mobile/docs/adr/*`                          |               **Mover**                | `docs/architecture/adr/*`                                                  | Centralizar ADRs en `docs/architecture/`                                  |
+| `apps/web/docs/database/propuesta_010_operaciones_campo.md`               |               **Mover**                | `docs/database/propuesta_010_operaciones_campo.md`                         | Centralizar documentación de BD                                           |
+| `apps/web/docs/design-system/*` + `apps/mobile/docs/design-system/*`      |               **Mover**                | `docs/design/{sistema-diseno-web.md,sistema-diseno-mobile.md}`             | Centralizar guías del UI Kit en `docs/design/`                            |
+| `apps/web/docs/security/auditoria_bd_supabase_rls.md` + copia en `mobile` |          **Unificar / Mover**          | `docs/security/auditoria_bd_supabase_rls.md`                               | Eliminar copia duplicada idéntica (mismo MD5)                             |
+| `docs/artifacts/doc_artifact.md`                                          |               **Mover**                | `docs/architecture/ingenieria-inversa-demo.md`                             | Conservar el análisis arquitectónico en lugar predecible                  |
+| `apps/web/commitlint.config.mjs` y `apps/mobile/commitlint.config.js`     |              **Eliminar**              | `commitlint.config.mjs` (raíz)                                             | Redundantes con el `commitlint.config.mjs` de la raíz                     |
+| `apps/web/.lintstagedrc.json` y `apps/mobile/.lintstagedrc.json`          |             **Consolidar**             | `.lintstagedrc.json` (raíz)                                                | Unificar pre-commit en la raíz                                            |
+| `apps/web/.prettierrc` y `apps/mobile/.prettierrc`                        |             **Consolidar**             | `.prettierrc` y `.prettierignore` (raíz)                                   | Resolver conflicto `trailingComma: es5` vs `all`                          |
+| `apps/web/src/theme/tokens.ts` + `apps/mobile/src/theme/tokens.ts`        |     **Extraer base + Re-exportar**     | `packages/ui-tokens/src/*` (manteniendo fachadas en `src/theme/tokens.ts`) | Fuente única de verdad sin romper imports `@/theme`                       |
+| `apps/mobile/src/features/auth/utils/validators.ts`                       |          **Delegar a shared**          | Consume `packages/shared/src/*` (manteniendo fachada local)                | Eliminar duplicación de regex y validadores con Web                       |
 
 ---
 
 ## 7. Plan de Migración por Etapas (De Menor a Mayor Riesgo)
 
 Todas las etapas de la Fase 2 se ejecutarán sobre una rama dedicada:
+
 ```bash
 git checkout -b chore/workspace-restructure
 ```
@@ -425,6 +440,7 @@ git checkout -b chore/workspace-restructure
 ---
 
 ### Etapa 1: Higiene de Git, Raíz del Monorepo y Variables de Entorno (Riesgo: 🟢 Muy Bajo)
+
 - **Objetivo:** Limpiar archivos trackeados por error en Git, completar archivos estándar de raíz (`.gitignore`, `.nvmrc`, `.editorconfig`, `README.md`, `.env.example`) y asegurar que ningún `mcp_config.json` quede expuesto, sin tocar código de `apps/` ni `packages/`.
 - **Pasos:**
   1. Crear `docs/audit/WORKSPACE_AUDIT.md` con este informe.
@@ -444,6 +460,7 @@ git checkout -b chore/workspace-restructure
 ---
 
 ### Etapa 2: Consolidación de Documentación, Supabase `seed.sql` y Contexto de Agentes IA en Raíz (Riesgo: 🟢 Bajo)
+
 - **Objetivo:** Hacer que Antigravity y cualquier agente de IA descubran automáticamente las reglas, skills y arquitectura desde la raíz del monorepo, y unificar la documentación y el `seed.sql` de Supabase.
 - **Pasos:**
   1. Mover `apps/web/src/lib/supabase/seed.sql` a `supabase/seed.sql` y añadir `supabase/config.toml` informativo.
@@ -463,6 +480,7 @@ git checkout -b chore/workspace-restructure
 ---
 
 ### Etapa 3: Unificación de Tooling Raíz (`turbo.json`, Prettier, Commitlint, Lint-Staged) y Configuración Compartida (Riesgo: 🟡 Medio-Bajo)
+
 - **Objetivo:** Eliminar la triplicación de `commitlint`, `lint-staged`, `prettier` y `husky`, configurar correctamente las variables de entorno en `turbo.json`, y crear `packages/config-typescript` y `packages/config-eslint`.
 - **Pasos:**
   1. Actualizar `turbo.json` añadiendo `globalEnv`, `env` por tarea, y agregar los scripts `test` y `check` en el `package.json` raíz.
@@ -482,6 +500,7 @@ git checkout -b chore/workspace-restructure
 ---
 
 ### Etapa 4: Extracción de `packages/ui-tokens` y Adopción de `@vittkly/shared` / `@vittkly/db-types` en Mobile (Riesgo: 🟡 Medio)
+
 - **Objetivo:** Establecer una única fuente de verdad para los tokens del UI Kit (`@vittkly/ui-tokens`) y conectar `apps/mobile` a `@vittkly/shared` y `@vittkly/db-types` sin romper ningún import existente en las pantallas.
 - **Pasos:**
   1. Crear `packages/ui-tokens` (`@vittkly/ui-tokens`) con la paleta `colors` (`light`/`dark`), escalas base (`spacing`, `radius`, `control`, `opacity`, `duration`, `borderWidth`, `fontWeights`), y geometrías SVG de marca.
@@ -502,6 +521,7 @@ git checkout -b chore/workspace-restructure
 ---
 
 ### Etapa 5: Guardarraíles de CI/CD y Base de Pruebas Automatizadas (Riesgo: 🟢 Bajo)
+
 - **Objetivo:** Añadir el workflow de GitHub Actions (`.github/workflows/ci.yml`), crear la carpeta `apps/web/e2e/` para Playwright y añadir tests unitarios para `@vittkly/shared` y servicios críticos.
 - **Pasos:**
   1. Crear `.github/workflows/ci.yml` con jobs de `lint`, `typecheck`, `test` y `build`.
@@ -527,6 +547,7 @@ git checkout -b chore/workspace-restructure
 Vittkly es un SaaS B2B multi-tenant para empresas de servicios y operaciones de campo (mantenimiento, limpieza, climatización, saneamiento).
 
 ## 1. Stack y Estructura del Monorepo
+
 - **Gestor de paquetes:** `pnpm@12.10.1` (PROHIBIDO usar `npm install` o `yarn`).
 - **Orquestador:** Turborepo (`turbo.json`).
 - **Aplicaciones (`apps/`):**
@@ -539,6 +560,7 @@ Vittkly es un SaaS B2B multi-tenant para empresas de servicios y operaciones de 
 - **Base de Datos (`supabase/`):** Supabase Cloud (sin Docker local). Dos proyectos en la nube: Staging/Test y Producción, separados exclusivamente por variables de entorno.
 
 ## 2. Comandos Clave (Ejecutar desde la raíz)
+
 - `pnpm dev`: Levanta los entornos de desarrollo.
 - `pnpm dev:web` / `pnpm dev:mobile`: Levanta solo Web o solo Mobile.
 - `pnpm lint`: Ejecuta ESLint en todos los workspaces.
@@ -549,6 +571,7 @@ Vittkly es un SaaS B2B multi-tenant para empresas de servicios y operaciones de 
 - `pnpm sync:db-types`: Regenera `packages/db-types/src/database.types.ts` desde Supabase Cloud.
 
 ## 3. Reglas Arquitectónicas Innegociables
+
 1. **Fronteras del Monorepo:** `apps/web` y `apps/mobile` NUNCA se importan entre sí. Todo código compartido vive en `packages/*`.
 2. **Thin Routing:** `src/app/` (tanto en Next.js como en Expo Router) solo contiene rutas delgadas y layouts (< 80 líneas). Toda la lógica de dominio vive en `src/features/<feature>/`.
 3. **Patrón Repositorio en Supabase:** Prohibido importar clientes de Supabase en `src/app/**` o `src/components/**` (bloqueado por ESLint). Todo acceso a datos va en `src/features/<feature>/services/`.
@@ -561,16 +584,19 @@ Vittkly es un SaaS B2B multi-tenant para empresas de servicios y operaciones de 
    - En móvil, todo control táctil interactivo mide mínimo `48px` (`control.lg`).
 
 ## 4. Qué NO Hacer (Prohibiciones para Agentes)
+
 - NO ejecutar comandos de migración destructivos (`supabase db reset`, `DROP TABLE`) ni conectarse a la base de datos de producción.
 - NO crear ni editar carpetas nativas `/ios` o `/android` en `apps/mobile` (se usa Continuous Native Generation vía `app.json`).
 - NO instalar paquetes en `apps/mobile` sin verificar compatibilidad con Expo SDK 57 (`npx expo-doctor`).
 - NO leer ni indexar `docs/artifacts/Demo/completa/` salvo que el usuario lo pida explícitamente.
 
 ## 5. Definición de "Terminado" (Definition of Done)
+
 Ninguna tarea está terminada hasta que `pnpm lint`, `pnpm typecheck` y `pnpm test` pasen con 0 errores desde la raíz del monorepo.
 ```
 
 ### 8.2. Organización de Reglas por Área en `/.agents/rules/`
+
 - `.agents/rules/monorepo-boundaries.md`: Reglas de workspaces, prohibición de imports entre apps y uso de `pnpm`.
 - `.agents/rules/web-nextjs-ssr.md` (glob: `apps/web/**`): RSC por defecto, Server Actions validadas con Zod de `@vittkly/shared`, patrón repositorio SSR y `server-only`.
 - `.agents/rules/mobile-expo-cng.md` (glob: `apps/mobile/**`): Expo Router delgado (`max-lines: 80`), CNG (`app.json`), ergonomía de calle (`48px`, `17px bodyLg`), offline-first con `expo-sqlite` y `expo-secure-store`.
@@ -578,6 +604,7 @@ Ninguna tarea está terminada hasta que `pnpm lint`, `pnpm typecheck` y `pnpm te
 - `.agents/rules/design-tokens-strict.md` (glob: `**/*.tsx`, `**/theme/**`): Uso obligatorio de `@vittkly/ui-tokens`, restricción de `#3EC49B` y números tabulares (`tabular-nums`) para montos y códigos `OT-XXXX`.
 
 ### 8.3. Estrategia de Pruebas Automatizadas y Monitoreo de Errores
+
 1. **Unitarias (`Vitest`):** En `packages/shared` (100 % de los esquemas Zod y validadores) y en `apps/web` / `apps/mobile` para funciones puras de negocio y mapeadores de datos (`mapRawContextToTenant`, `evaluatePasswordStrength`, cálculo de bloqueos).
 2. **Componentes (`@testing-library/react` en Web y `@testing-library/react-native` en Mobile):** Pruebas de renderizado, estados de error y accesibilidad en los componentes de `src/components/ui/` (ampliando el test actual de `StatusBadge.test.tsx` a `Button`, `PasswordField`, `PinPad`).
 3. **Integración contra Supabase Staging/Test:** Pruebas de repositorios y políticas RLS conectadas exclusivamente a las credenciales del proyecto Supabase secundario de pruebas (`SUPABASE_TEST_URL` / `SUPABASE_TEST_ANON_KEY`), **nunca** contra producción.
@@ -592,15 +619,15 @@ Ninguna tarea está terminada hasta que `pnpm lint`, `pnpm typecheck` y `pnpm te
 
 Todos los enlaces a continuación han sido verificados:
 
-| Recurso / Skill | URL Verificada | Qué problema previene en Agentes de IA | Parte del Repo donde aplica |
-| :--- | :--- | :--- | :--- |
-| **Supabase Official Agent Skills** (`supabase-postgres-best-practices`) | https://github.com/supabase/agent-skills | Previene que el agente escriba políticas RLS inseguras (sin `WITH CHECK` o lentas sin `select auth.uid()`), funciones `SECURITY DEFINER` sin `search_path` fijo o migraciones sin índices en llaves foráneas (`empresa_id`/`org_id`). | `supabase/`, `packages/db-types/`, servicios en `apps/*/src/**/services/` |
-| **Vercel Official Agent Skills** (`vercel-react-best-practices`) | https://github.com/vercel-labs/agent-skills | Previene cascadas de peticiones (`await` secuenciales en RSC), uso innecesario de `'use client'` en árboles grandes y errores de caché en Next.js App Router. | `apps/web/src/app/`, `apps/web/src/features/` |
-| **Expo LLMs Documentation Index (`llms.txt`)** | https://docs.expo.dev/llms.txt | Previene alucinaciones de APIs deprecadas de Expo (como `expo-av` o configuraciones antiguas de `expo-router`), guiando al agente al índice oficial optimizado para LLMs de Expo. | `apps/mobile/` |
-| **Expo Official Monorepo Guide** | https://docs.expo.dev/guides/monorepos/ | Previene configuraciones manuales obsoletas en `metro.config.js`, errores de resolución de symlinks con `pnpm` y fallos en builds remotos de EAS. | `apps/mobile/metro.config.js`, `pnpm-workspace.yaml`, `.npmrc` |
-| **Turborepo Structuring & Caching Guide** | https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository | Previene tareas raíz mal definidas, ciclos en `dependsOn` y fugas de variables de entorno en el caché de compilación (`env` / `globalEnv`). | `turbo.json`, `package.json` raíz, `packages/*` |
-| **Supabase Generating TypeScript Types & RLS Guide** | https://supabase.com/docs/guides/api/rest/generating-types y https://supabase.com/docs/guides/database/postgres/row-level-security | Previene discrepancias manuales en `database.types.ts` y consultas sin tipado estático en `@supabase/supabase-js`. | `packages/db-types/`, `apps/web/src/lib/supabase/`, `apps/mobile/src/services/supabase.ts` |
-| **Next.js Bundled Agent Docs** (`node_modules/next/dist/docs/`) | Verificado localmente en `apps/web/node_modules/next/dist/docs/` | Previene que el agente use patrones de Next.js 13/14 (como `cookies()` síncrono) en un proyecto Next.js 16.4 (`cookies()` y `headers()` asíncronos). | `apps/web/` |
+| Recurso / Skill                                                         | URL Verificada                                                                                                                     | Qué problema previene en Agentes de IA                                                                                                                                                                                                | Parte del Repo donde aplica                                                                |
+| :---------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------- |
+| **Supabase Official Agent Skills** (`supabase-postgres-best-practices`) | https://github.com/supabase/agent-skills                                                                                           | Previene que el agente escriba políticas RLS inseguras (sin `WITH CHECK` o lentas sin `select auth.uid()`), funciones `SECURITY DEFINER` sin `search_path` fijo o migraciones sin índices en llaves foráneas (`empresa_id`/`org_id`). | `supabase/`, `packages/db-types/`, servicios en `apps/*/src/**/services/`                  |
+| **Vercel Official Agent Skills** (`vercel-react-best-practices`)        | https://github.com/vercel-labs/agent-skills                                                                                        | Previene cascadas de peticiones (`await` secuenciales en RSC), uso innecesario de `'use client'` en árboles grandes y errores de caché en Next.js App Router.                                                                         | `apps/web/src/app/`, `apps/web/src/features/`                                              |
+| **Expo LLMs Documentation Index (`llms.txt`)**                          | https://docs.expo.dev/llms.txt                                                                                                     | Previene alucinaciones de APIs deprecadas de Expo (como `expo-av` o configuraciones antiguas de `expo-router`), guiando al agente al índice oficial optimizado para LLMs de Expo.                                                     | `apps/mobile/`                                                                             |
+| **Expo Official Monorepo Guide**                                        | https://docs.expo.dev/guides/monorepos/                                                                                            | Previene configuraciones manuales obsoletas en `metro.config.js`, errores de resolución de symlinks con `pnpm` y fallos en builds remotos de EAS.                                                                                     | `apps/mobile/metro.config.js`, `pnpm-workspace.yaml`, `.npmrc`                             |
+| **Turborepo Structuring & Caching Guide**                               | https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository                                                       | Previene tareas raíz mal definidas, ciclos en `dependsOn` y fugas de variables de entorno en el caché de compilación (`env` / `globalEnv`).                                                                                           | `turbo.json`, `package.json` raíz, `packages/*`                                            |
+| **Supabase Generating TypeScript Types & RLS Guide**                    | https://supabase.com/docs/guides/api/rest/generating-types y https://supabase.com/docs/guides/database/postgres/row-level-security | Previene discrepancias manuales en `database.types.ts` y consultas sin tipado estático en `@supabase/supabase-js`.                                                                                                                    | `packages/db-types/`, `apps/web/src/lib/supabase/`, `apps/mobile/src/services/supabase.ts` |
+| **Next.js Bundled Agent Docs** (`node_modules/next/dist/docs/`)         | Verificado localmente en `apps/web/node_modules/next/dist/docs/`                                                                   | Previene que el agente use patrones de Next.js 13/14 (como `cookies()` síncrono) en un proyecto Next.js 16.4 (`cookies()` y `headers()` asíncronos).                                                                                  | `apps/web/`                                                                                |
 
 ---
 
@@ -610,13 +637,13 @@ Antes de autorizar el inicio de la **Fase 2**, necesito tu decisión sobre estos
 
 1. **Esquema de Base de Datos Canónico (Español vs. Inglés):**
    En `packages/db-types/src/database.types.ts` coexisten dos modelos: el nuevo en español (`empresas`, `membresias`, `usuarios`, `perfiles`, `modulos`, usado por `apps/web` y `seed.sql`) y el anterior en inglés (`organizations`, `memberships`, `profiles`, `work_orders`, usado aún en fallbacks de `apps/mobile`).
-   - *¿Confirmas que el modelo en español (`empresas`/`membresias`/`usuarios` + RPC `mi_contexto()`) es el estándar definitivo hacia el cual debemos alinear progresivamente `apps/mobile`?*
+   - _¿Confirmas que el modelo en español (`empresas`/`membresias`/`usuarios` + RPC `mi_contexto()`) es el estándar definitivo hacia el cual debemos alinear progresivamente `apps/mobile`?_
 2. **Destino del paquete de demostración `docs/artifacts/Demo/completa/` (27 MB):**
    Actualmente hay 27 MB de código HTML/JS monolítico y binarios WASM de Tesseract OCR versionados en Git dentro de `docs/artifacts/Demo/completa/`, además del documento resumen `docs/artifacts/doc_artifact.md`.
-   - *¿Prefieres (A) mantener `docs/artifacts/Demo/completa/` en el repo pero aislado de ESLint/Prettier y de los agentes de IA, (B) eliminar solo los binarios pesados `tess/*.wasm*` (18.6 MB) conservando los `.js`/`.html` de referencia, o (C) sacar la carpeta `Demo/completa/` del branch principal conservando `doc_artifact.md`?*
+   - _¿Prefieres (A) mantener `docs/artifacts/Demo/completa/` en el repo pero aislado de ESLint/Prettier y de los agentes de IA, (B) eliminar solo los binarios pesados `tess/*.wasm*` (18.6 MB) conservando los `.js`/`.html` de referencia, o (C) sacar la carpeta `Demo/completa/` del branch principal conservando `doc_artifact.md`?_
 3. **Ubicación de los clientes de Supabase (`packages/supabase` vs. `packages/db-types`):**
    Dado que `apps/web` usa `@supabase/ssr` (dependiente de `next/headers` y `next/server`) y `apps/mobile` usa `@react-native-async-storage/async-storage`, unificar ambos clientes runtime en un mismo archivo rompe el bundler de React Native.
-   - *¿Estás de acuerdo con mantener los inicializadores runtime en cada app y usar `@vittkly/db-types` (o renombrarlo/aliarlo con `@vittkly/supabase`) exclusivamente para los tipos generados (`Database`), constantes y helpers agnósticos de plataforma?*
+   - _¿Estás de acuerdo con mantener los inicializadores runtime en cada app y usar `@vittkly/db-types` (o renombrarlo/aliarlo con `@vittkly/supabase`) exclusivamente para los tipos generados (`Database`), constantes y helpers agnósticos de plataforma?_
 4. **Convención de formato en Prettier (`trailingComma`):**
    `apps/web/.prettierrc` usa `"trailingComma": "es5"` y `apps/mobile/.prettierrc` usa `"trailingComma": "all"`.
-   - *Al unificar `.prettierrc` en la raíz en la Etapa 3, ¿prefieres estandarizar en `"all"` (valor por defecto de Prettier v3) o en `"es5"`?*
+   - _Al unificar `.prettierrc` en la raíz en la Etapa 3, ¿prefieres estandarizar en `"all"` (valor por defecto de Prettier v3) o en `"es5"`?_

@@ -1,1 +1,1 @@
-export * from '@vittkly/db-types';
+export * from "@vittkly/db-types";

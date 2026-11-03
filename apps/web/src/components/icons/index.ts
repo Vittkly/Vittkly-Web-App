@@ -1,1 +1,1 @@
-export * from './VittklyIcons';
+export * from "./VittklyIcons";

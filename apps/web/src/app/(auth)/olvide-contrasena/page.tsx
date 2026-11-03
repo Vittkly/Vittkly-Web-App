@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import React, { useActionState } from 'react';
-import Link from 'next/link';
-import { Mail, ArrowLeft, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
-import { forgotPasswordAction } from '@/features/auth/actions/auth.actions';
-import type { AuthActionState } from '@/features/auth/types/auth.types';
+import React, { useActionState } from "react";
+import Link from "next/link";
+import {
+  Mail,
+  ArrowLeft,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+} from "lucide-react";
+import { forgotPasswordAction } from "@/features/auth/actions/auth.actions";
+import type { AuthActionState } from "@/features/auth/types/auth.types";
 
 const initialState: AuthActionState = {
   error: null,
@@ -15,7 +21,7 @@ const initialState: AuthActionState = {
 export default function OlvideContrasenaPage() {
   const [state, formAction, isPending] = useActionState(
     forgotPasswordAction,
-    initialState
+    initialState,
   );
 
   return (
@@ -25,7 +31,8 @@ export default function OlvideContrasenaPage() {
           Recuperar Contraseña
         </h1>
         <p className="text-soft text-sm">
-          Ingresa tu correo electrónico registrado y te enviaremos las instrucciones de restablecimiento.
+          Ingresa tu correo electrónico registrado y te enviaremos las
+          instrucciones de restablecimiento.
         </p>
       </div>
 
@@ -35,10 +42,11 @@ export default function OlvideContrasenaPage() {
           <div className="border-success/30 bg-success-soft text-success-ink flex w-full items-start gap-3 rounded-lg border p-4 text-sm font-medium">
             <CheckCircle2 className="text-success mt-0.5 h-5 w-5 shrink-0" />
             <div className="flex flex-col gap-1">
-              <span className="font-bold text-ink">Instrucciones enviadas</span>
+              <span className="text-ink font-bold">Instrucciones enviadas</span>
               <span>{state.message}</span>
               <span className="text-soft mt-1 text-xs">
-                Revisa tu bandeja de entrada y la carpeta de spam o correo no deseado.
+                Revisa tu bandeja de entrada y la carpeta de spam o correo no
+                deseado.
               </span>
             </div>
           </div>
@@ -88,7 +96,7 @@ export default function OlvideContrasenaPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full select-none items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? (
               <>

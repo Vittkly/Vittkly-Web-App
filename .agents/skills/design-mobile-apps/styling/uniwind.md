@@ -7,8 +7,8 @@ Uniwind consumes Tailwind v4, so the mockup's classes carry over unchanged. Reac
 Uniwind resolves theme colors from `global.css`. Read the project's existing `global.css` and follow the structure already there. Sleek's own React Native export writes this shape, which is worth confirming against the current docs before relying on it:
 
 ```css
-@import "tailwindcss";
-@import "uniwind";
+@import 'tailwindcss';
+@import 'uniwind';
 
 @layer theme {
   :root {
@@ -31,8 +31,8 @@ Port the project's `:root` tokens into `--color-*` names in whatever shape that 
 Components from other libraries — `SafeAreaView` from `react-native-safe-area-context`, for instance — accept `className` once wrapped. Wrap each one once, in its own file, and import the wrapped version everywhere:
 
 ```tsx
-import { SafeAreaView } from "react-native-safe-area-context";
-import { withUniwind } from "uniwind";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { withUniwind } from 'uniwind';
 
 export const StyledSafeAreaView = withUniwind(SafeAreaView);
 ```

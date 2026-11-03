@@ -1,5 +1,5 @@
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '@/types/database.types';
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database.types";
 
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -7,7 +7,7 @@ export function createClient() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      '[Vittkly] Variables de entorno NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY no configuradas.'
+      "[Vittkly] Variables de entorno NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY no configuradas.",
     );
   }
 

@@ -1,6 +1,6 @@
 ---
 description: Reglas de seguridad RLS, aislamiento multi-tenant y migraciones SQL en Supabase Cloud
-globs: ["supabase/**/*.sql", "**/supabase/**", "**/services/**"]
+globs: ['supabase/**/*.sql', '**/supabase/**', '**/services/**']
 ---
 
 # Supabase Multi-Tenant RLS & Security Policy

@@ -148,15 +148,15 @@ idempotency-key: <optional, max 255 chars>
 }
 ```
 
-| Field                    | Required | Notes                                                                                    |
-| ------------------------ | -------- | ---------------------------------------------------------------------------------------- |
-| `message.text`           | Yes      | 1+ chars, trimmed                                                                        |
-| `source`                 | Treat as required | Slug of the tool sending the request (see [step 2 of Designing](designing.md#2-send-a-chat-message)) |
-| `imageUrls`              | No       | HTTPS URLs only; included as visual context. Sleek's servers fetch these URLs, so pass ones you're willing to have Sleek read |
-| `target.screenId`        | No       | Edit a specific screen using a non-null `screenId` from run operations or the components list, not `componentId`; omit to let AI decide |
-| `referenceId`            | No       | Seed the design style from a reference (see [References](#references)); invalid id → `400` |
-| `?wait=true/false`       | No       | Sync wait mode (default: false)                                                          |
-| `idempotency-key` header | No       | Replay-safe re-sends                                                                     |
+| Field                    | Required          | Notes                                                                                                                                   |
+| ------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `message.text`           | Yes               | 1+ chars, trimmed                                                                                                                       |
+| `source`                 | Treat as required | Slug of the tool sending the request (see [step 2 of Designing](designing.md#2-send-a-chat-message))                                    |
+| `imageUrls`              | No                | HTTPS URLs only; included as visual context. Sleek's servers fetch these URLs, so pass ones you're willing to have Sleek read           |
+| `target.screenId`        | No                | Edit a specific screen using a non-null `screenId` from run operations or the components list, not `componentId`; omit to let AI decide |
+| `referenceId`            | No                | Seed the design style from a reference (see [References](#references)); invalid id → `400`                                              |
+| `?wait=true/false`       | No                | Sync wait mode (default: false)                                                                                                         |
+| `idempotency-key` header | No                | Replay-safe re-sends                                                                                                                    |
 
 ### Response: async (default, `wait=false`)
 
@@ -266,22 +266,22 @@ Content-Type: application/json
 
 `componentIds` takes `componentId` values, which the `screenId` from a chat operation is not.
 
-| Field                       | Default       | Notes                                                                                                                                      |
-| --------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `format`                    | `png`         | `png` or `webp`                                                                                                                            |
-| `scale`                     | `2`           | 1–3 (device pixel ratio)                                                                                                                   |
-| `gap`                       | `40`          | Pixels between components                                                                                                                  |
-| `padding`                   | `40`          | Uniform padding on all sides                                                                                                               |
-| `paddingX`                  | _(optional)_  | Horizontal padding; overrides `padding` for left/right when provided                                                                       |
-| `paddingY`                  | _(optional)_  | Vertical padding; overrides `padding` for top/bottom when provided                                                                         |
-| `paddingTop`                | _(optional)_  | Top padding; overrides `paddingY` when provided                                                                                            |
-| `paddingRight`              | _(optional)_  | Right padding; overrides `paddingX` when provided                                                                                          |
-| `paddingBottom`             | _(optional)_  | Bottom padding; overrides `paddingY` when provided                                                                                         |
-| `paddingLeft`               | _(optional)_  | Left padding; overrides `paddingX` when provided                                                                                           |
-| `background`                | `transparent` | Any CSS color (hex, named, `transparent`)                                                                                                  |
-| `showDots`                  | `false`       | Overlay a dot grid on the background; light dots on dark backgrounds and dark dots on light ones. No effect when `background` is `transparent` |
-| `fullHeight`                | `false`       | Expand each frame to the height of its own content before capturing — this is what makes a review shot                                      |
-| `radius`                    | `48`          | Squircle corner radius per component in pixels (integer ≥ 0); pass `0` for sharp corners                                                   |
+| Field                       | Default       | Notes                                                                                                                                                     |
+| --------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`                    | `png`         | `png` or `webp`                                                                                                                                           |
+| `scale`                     | `2`           | 1–3 (device pixel ratio)                                                                                                                                  |
+| `gap`                       | `40`          | Pixels between components                                                                                                                                 |
+| `padding`                   | `40`          | Uniform padding on all sides                                                                                                                              |
+| `paddingX`                  | _(optional)_  | Horizontal padding; overrides `padding` for left/right when provided                                                                                      |
+| `paddingY`                  | _(optional)_  | Vertical padding; overrides `padding` for top/bottom when provided                                                                                        |
+| `paddingTop`                | _(optional)_  | Top padding; overrides `paddingY` when provided                                                                                                           |
+| `paddingRight`              | _(optional)_  | Right padding; overrides `paddingX` when provided                                                                                                         |
+| `paddingBottom`             | _(optional)_  | Bottom padding; overrides `paddingY` when provided                                                                                                        |
+| `paddingLeft`               | _(optional)_  | Left padding; overrides `paddingX` when provided                                                                                                          |
+| `background`                | `transparent` | Any CSS color (hex, named, `transparent`)                                                                                                                 |
+| `showDots`                  | `false`       | Overlay a dot grid on the background; light dots on dark backgrounds and dark dots on light ones. No effect when `background` is `transparent`            |
+| `fullHeight`                | `false`       | Expand each frame to the height of its own content before capturing — this is what makes a review shot                                                    |
+| `radius`                    | `48`          | Squircle corner radius per component in pixels (integer ≥ 0); pass `0` for sharp corners                                                                  |
 | `componentVersionOverrides` | _(optional)_  | Map of `componentId` → `versions[i].id` to render at a pinned version instead of `activeVersion` (see [Pinned versions](implementing.md#pinned-versions)) |
 | `themeVersionOverrides`     | _(optional)_  | Map of `themeId` → `versions[i].id` to render with a pinned theme version (see [Pinned versions](implementing.md#pinned-versions))                        |
 
@@ -311,15 +311,15 @@ Content-Type: application/json
 }
 ```
 
-| Field                       | Default    | Notes                                                          |
-| --------------------------- | ---------- | -------------------------------------------------------------- |
-| `componentIds`              | _required_ | 1–4 components                                                 |
-| `projectId`                 | _required_ | Project the components belong to                               |
-| `layout`                    | `stack`    | `stack` or `row`                                               |
-| `background`                | `midnight` | `midnight`, `ember`, `paper`, `violet`, `ocean`                |
-| `title`                     | _(optional)_ | Trimmed, max 80 chars                                        |
-| `componentVersionOverrides` | _(optional)_ | Same pinning semantics as screenshots                        |
-| `themeVersionOverrides`     | _(optional)_ | Same pinning semantics as screenshots                        |
+| Field                       | Default      | Notes                                           |
+| --------------------------- | ------------ | ----------------------------------------------- |
+| `componentIds`              | _required_   | 1–4 components                                  |
+| `projectId`                 | _required_   | Project the components belong to                |
+| `layout`                    | `stack`      | `stack` or `row`                                |
+| `background`                | `midnight`   | `midnight`, `ember`, `paper`, `violet`, `ocean` |
+| `title`                     | _(optional)_ | Trimmed, max 80 chars                           |
+| `componentVersionOverrides` | _(optional)_ | Same pinning semantics as screenshots           |
+| `themeVersionOverrides`     | _(optional)_ | Same pinning semantics as screenshots           |
 
 Response: raw binary `image/png`. Share cards and screenshots share one render budget — see the `429` row in [SKILL.md](SKILL.md#error-shapes).
 

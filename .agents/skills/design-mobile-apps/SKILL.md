@@ -94,25 +94,25 @@ Every row above is specified in full — request body, response shape, field def
 }
 ```
 
-| HTTP | Code                    | When                                                                     |
-| ---- | ----------------------- | ------------------------------------------------------------------------ |
-| 401  | `UNAUTHORIZED`          | Missing/invalid/expired API key                                          |
-| 403  | `FORBIDDEN`             | Valid key, wrong scope or plan                                           |
-| 404  | `NOT_FOUND`             | Resource doesn't exist                                                   |
-| 400  | `BAD_REQUEST`           | Validation failure                                                       |
-| 409  | `CONFLICT`              | Another run is active for this project                                   |
+| HTTP | Code                    | When                                                                                          |
+| ---- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| 401  | `UNAUTHORIZED`          | Missing/invalid/expired API key                                                               |
+| 403  | `FORBIDDEN`             | Valid key, wrong scope or plan                                                                |
+| 404  | `NOT_FOUND`             | Resource doesn't exist                                                                        |
+| 400  | `BAD_REQUEST`           | Validation failure                                                                            |
+| 409  | `CONFLICT`              | Another run is active for this project                                                        |
 | 429  | `TOO_MANY_REQUESTS`     | Render cap: 1000 screenshots + share cards per hour per org, counted on API-key requests only |
-| 500  | `INTERNAL_SERVER_ERROR` | Server error                                                             |
+| 500  | `INTERNAL_SERVER_ERROR` | Server error                                                                                  |
 
 `401`, `403` and `429` bodies may include `data.url`: a page where the user can fix the condition (create a key, upgrade the plan). Share it as-is.
 
 Chat run-level errors (inside `data.error`):
 
-| Code                              | Meaning                                                    |
-| --------------------------------- | ---------------------------------------------------------- |
-| `out_of_credits`                  | Organization has no credits left                           |
-| `execution_failed`                | AI execution error                                         |
-| `cancelled`                       | Run cancelled via the cancel endpoint                      |
-| `request_message_persist_failed`  | The run failed before reaching the AI; the message was never stored |
+| Code                             | Meaning                                                             |
+| -------------------------------- | ------------------------------------------------------------------- |
+| `out_of_credits`                 | Organization has no credits left                                    |
+| `execution_failed`               | AI execution error                                                  |
+| `cancelled`                      | Run cancelled via the cancel endpoint                               |
+| `request_message_persist_failed` | The run failed before reaching the AI; the message was never stored |
 
 For `out_of_credits`, relay `error.url` and wait for the user to resolve it. Follow [Safe retries](designing.md#2-send-a-chat-message) for replay versus a new attempt after either recoverable failure.

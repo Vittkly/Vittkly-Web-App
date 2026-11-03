@@ -22,6 +22,7 @@ pnpm --filter @vittkly/web test:e2e     # Playwright E2E tests
 ```
 
 ## Reglas Específicas
+
 - Consumir siempre `@vittkly/shared` para esquemas de validación Zod y tipos de dominio.
 - Todo acceso a la base de datos se aísla en `src/features/<feature>/services/`.
 - `createAdminClient()` en `src/lib/supabase/admin.ts` está blindado por `import 'server-only'`.

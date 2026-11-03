@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState, useActionState, useMemo } from 'react';
-import Link from 'next/link';
+import React, { useState, useActionState, useMemo } from "react";
+import Link from "next/link";
 import {
   Eye,
   EyeOff,
@@ -10,10 +10,10 @@ import {
   AlertCircle,
   Loader2,
   Lock,
-} from 'lucide-react';
-import { evaluatePasswordStrength } from '@vittkly/shared';
-import { resetPasswordAction } from '@/features/auth/actions/auth.actions';
-import type { AuthActionState } from '@/features/auth/types/auth.types';
+} from "lucide-react";
+import { evaluatePasswordStrength } from "@vittkly/shared";
+import { resetPasswordAction } from "@/features/auth/actions/auth.actions";
+import type { AuthActionState } from "@/features/auth/types/auth.types";
 
 const initialState: AuthActionState = {
   error: null,
@@ -24,16 +24,19 @@ const initialState: AuthActionState = {
 export default function RestablecerContrasenaPage() {
   const [state, formAction, isPending] = useActionState(
     resetPasswordAction,
-    initialState
+    initialState,
   );
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Evaluación interactiva en tiempo real de los 4 criterios de seguridad
-  const strength = useMemo(() => evaluatePasswordStrength(password), [password]);
+  const strength = useMemo(
+    () => evaluatePasswordStrength(password),
+    [password],
+  );
   const passwordsMatch = password.length > 0 && password === confirmPassword;
   const isFormValid = strength.isValid && passwordsMatch;
 
@@ -71,7 +74,7 @@ export default function RestablecerContrasenaPage() {
             <input
               id="password"
               name="password"
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               autoComplete="new-password"
               required
               disabled={isPending}
@@ -84,7 +87,9 @@ export default function RestablecerContrasenaPage() {
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              aria-label={
+                showPassword ? "Ocultar contraseña" : "Ver contraseña"
+              }
               className="text-soft hover:text-ink absolute right-3 inline-flex p-1 transition-colors focus-visible:outline-none"
             >
               {showPassword ? (
@@ -104,7 +109,9 @@ export default function RestablecerContrasenaPage() {
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             <div
               className={`flex items-center gap-1.5 transition-colors ${
-                strength.minLength ? 'text-success-ink font-medium' : 'text-soft'
+                strength.minLength
+                  ? "text-success-ink font-medium"
+                  : "text-soft"
               }`}
             >
               {strength.minLength ? (
@@ -117,7 +124,9 @@ export default function RestablecerContrasenaPage() {
 
             <div
               className={`flex items-center gap-1.5 transition-colors ${
-                strength.hasUppercase ? 'text-success-ink font-medium' : 'text-soft'
+                strength.hasUppercase
+                  ? "text-success-ink font-medium"
+                  : "text-soft"
               }`}
             >
               {strength.hasUppercase ? (
@@ -130,7 +139,9 @@ export default function RestablecerContrasenaPage() {
 
             <div
               className={`flex items-center gap-1.5 transition-colors ${
-                strength.hasNumber ? 'text-success-ink font-medium' : 'text-soft'
+                strength.hasNumber
+                  ? "text-success-ink font-medium"
+                  : "text-soft"
               }`}
             >
               {strength.hasNumber ? (
@@ -143,7 +154,9 @@ export default function RestablecerContrasenaPage() {
 
             <div
               className={`flex items-center gap-1.5 transition-colors ${
-                strength.hasSpecialChar ? 'text-success-ink font-medium' : 'text-soft'
+                strength.hasSpecialChar
+                  ? "text-success-ink font-medium"
+                  : "text-soft"
               }`}
             >
               {strength.hasSpecialChar ? (
@@ -168,7 +181,7 @@ export default function RestablecerContrasenaPage() {
             <input
               id="confirmPassword"
               name="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
+              type={showConfirmPassword ? "text" : "password"}
               autoComplete="new-password"
               required
               disabled={isPending}
@@ -177,8 +190,8 @@ export default function RestablecerContrasenaPage() {
               placeholder="••••••••"
               className={`border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border pr-11 pl-3.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${
                 confirmPassword.length > 0 && !passwordsMatch
-                  ? 'border-danger focus-visible:outline-danger'
-                  : ''
+                  ? "border-danger focus-visible:outline-danger"
+                  : ""
               }`}
             />
             <button
@@ -186,7 +199,7 @@ export default function RestablecerContrasenaPage() {
               tabIndex={-1}
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               aria-label={
-                showConfirmPassword ? 'Ocultar contraseña' : 'Ver contraseña'
+                showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"
               }
               className="text-soft hover:text-ink absolute right-3 inline-flex p-1 transition-colors focus-visible:outline-none"
             >
@@ -220,7 +233,7 @@ export default function RestablecerContrasenaPage() {
         <button
           type="submit"
           disabled={isPending || !isFormValid}
-          className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full select-none items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? (
             <>

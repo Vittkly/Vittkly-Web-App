@@ -1,6 +1,6 @@
 ---
 description: Reglas de arquitectura y fronteras de paquetes en el monorepo Turborepo + pnpm
-globs: ["**/*"]
+globs: ['**/*']
 ---
 
 # Monorepo Boundaries & Package Management

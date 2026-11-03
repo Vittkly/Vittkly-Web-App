@@ -1,6 +1,6 @@
 ---
 description: Reglas de arquitectura para Next.js 16 App Router y Supabase SSR en la Central Web
-globs: ["apps/web/**"]
+globs: ['apps/web/**']
 ---
 
 # Web Architecture: Next.js 16 & Supabase SSR

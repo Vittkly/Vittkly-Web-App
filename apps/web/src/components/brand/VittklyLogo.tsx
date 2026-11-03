@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
+import Image from "next/image";
 
-export type LogoVariant = 'wordmark' | 'monogram';
-export type LogoTone = 'color' | 'white' | 'tinta';
+export type LogoVariant = "wordmark" | "monogram";
+export type LogoTone = "color" | "white" | "tinta";
 
 export interface VittklyLogoProps {
   variant?: LogoVariant;
@@ -16,14 +16,14 @@ export interface VittklyLogoProps {
 
 const LOGO_SRC: Record<LogoVariant, Record<LogoTone, string>> = {
   wordmark: {
-    color: '/brand/vittkly-wordmark.svg',
-    white: '/brand/vittkly-wordmark-white.svg',
-    tinta: '/brand/vittkly-wordmark-tinta.svg',
+    color: "/brand/vittkly-wordmark.svg",
+    white: "/brand/vittkly-wordmark-white.svg",
+    tinta: "/brand/vittkly-wordmark-tinta.svg",
   },
   monogram: {
-    color: '/brand/vittkly-monograma.svg',
-    white: '/brand/vittkly-monograma-white.svg',
-    tinta: '/brand/vittkly-monograma.svg',
+    color: "/brand/vittkly-monograma.svg",
+    white: "/brand/vittkly-monograma-white.svg",
+    tinta: "/brand/vittkly-monograma.svg",
   },
 };
 
@@ -36,11 +36,11 @@ const ASPECT_RATIOS: Record<LogoVariant, number> = {
 };
 
 export function VittklyLogo({
-  variant = 'wordmark',
-  tone = 'color',
+  variant = "wordmark",
+  tone = "color",
   height = 36,
-  className = '',
-  alt = 'Vittkly',
+  className = "",
+  alt = "Vittkly",
   priority = false,
 }: VittklyLogoProps) {
   const src = LOGO_SRC[variant][tone] || LOGO_SRC.wordmark.color;

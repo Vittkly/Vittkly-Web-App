@@ -109,10 +109,10 @@ Sleek renders web HTML with Tailwind v4 classes (the document loads `@tailwindcs
 
 **Styling.** Use the user's requested styling system, otherwise preserve the system used by the feature being edited. Dependencies and source files provide evidence; read the corresponding reference:
 
-| Evidence                                      | Read                                           |
-| --------------------------------------------- | ---------------------------------------------- |
-| Nativewind classes in the feature, or Nativewind requested | [styling/nativewind.md](styling/nativewind.md) |
-| Uniwind classes in the feature, or Uniwind requested | [styling/uniwind.md](styling/uniwind.md) |
+| Evidence                                                                      | Read                                           |
+| ----------------------------------------------------------------------------- | ---------------------------------------------- |
+| Nativewind classes in the feature, or Nativewind requested                    | [styling/nativewind.md](styling/nativewind.md) |
+| Uniwind classes in the feature, or Uniwind requested                          | [styling/uniwind.md](styling/uniwind.md)       |
 | `StyleSheet.create` in the feature, or a new app without a library preference | [styling/stylesheet.md](styling/stylesheet.md) |
 
 Each file carries its own token conversion, class syntax and configuration. For a repo with no styling library and a user with no preference, use StyleSheet: it needs no build configuration, so it cannot be misconfigured into silently doing nothing.

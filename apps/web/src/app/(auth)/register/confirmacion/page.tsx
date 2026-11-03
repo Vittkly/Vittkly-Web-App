@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import React, { Suspense } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { MailCheck, ArrowRight, Building, CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import React, { Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { MailCheck, ArrowRight, Building, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 function ConfirmacionContent() {
   const searchParams = useSearchParams();
-  const email = searchParams.get('email') || 'tu correo';
-  const company = searchParams.get('company') || 'tu empresa';
-  const plan = searchParams.get('plan') || 'empresa';
+  const email = searchParams.get("email") || "tu correo";
+  const company = searchParams.get("company") || "tu empresa";
+  const plan = searchParams.get("plan") || "empresa";
 
   return (
     <div className="flex flex-col items-center gap-6 text-center">
@@ -25,32 +25,36 @@ function ConfirmacionContent() {
         <p className="text-soft text-sm">
           Hemos enviado un enlace de confirmación a:
         </p>
-        <span className="font-mono text-sm font-bold text-ink">{email}</span>
+        <span className="text-ink font-mono text-sm font-bold">{email}</span>
       </div>
 
       <div className="border-line bg-surface-sunken/60 flex w-full flex-col gap-2.5 rounded-lg border p-4 text-left text-xs">
-        <div className="flex items-center gap-2 font-semibold text-ink">
-          <Building className="h-4 w-4 text-primary" />
+        <div className="text-ink flex items-center gap-2 font-semibold">
+          <Building className="text-primary h-4 w-4" />
           <span>Datos de tu organización preparados:</span>
         </div>
-        <div className="flex flex-col gap-1 text-soft">
+        <div className="text-soft flex flex-col gap-1">
           <span>
-            &bull; Empresa:{' '}
+            &bull; Empresa:{" "}
             <strong className="text-ink font-semibold">{company}</strong>
           </span>
           <span>
-            &bull; Plan inicial asignado:{' '}
-            <strong className="text-primary-ink font-semibold uppercase">{plan}</strong>{' '}
+            &bull; Plan inicial asignado:{" "}
+            <strong className="text-primary-ink font-semibold uppercase">
+              {plan}
+            </strong>{" "}
             (15 días de prueba)
           </span>
           <span>
-            &bull; Tu rol asignado:{' '}
-            <strong className="text-ink font-semibold">Administrador Propietario</strong>
+            &bull; Tu rol asignado:{" "}
+            <strong className="text-ink font-semibold">
+              Administrador Propietario
+            </strong>
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 text-soft text-xs">
+      <div className="text-soft flex flex-col gap-2 text-xs">
         <div className="flex items-start gap-2 text-left">
           <CheckCircle2 className="text-success mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
@@ -82,7 +86,7 @@ export default function ConfirmacionPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[320px] items-center justify-center">
-          <div className="bg-line/60 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="bg-line/60 border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
         </div>
       }
     >

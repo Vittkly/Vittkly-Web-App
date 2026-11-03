@@ -1,6 +1,6 @@
 ---
 description: Reglas del Sistema de Diseño Oficial de Vittkly (Tokens Inmutables y Cero Colores Sueltos)
-globs: ["**/*.tsx", "**/theme/**", "**/components/**"]
+globs: ['**/*.tsx', '**/theme/**', '**/components/**']
 ---
 
 # Strict Brand Tokens & Design System

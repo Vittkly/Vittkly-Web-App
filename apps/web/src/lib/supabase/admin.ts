@@ -1,6 +1,6 @@
-import 'server-only';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database.types';
+import "server-only";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 /**
  * Cliente administrativo de Supabase con privilegios `service_role`.
@@ -17,13 +17,13 @@ export function createAdminClient() {
 
   if (!supabaseUrl) {
     throw new Error(
-      '[Vittkly AppSec] Variable de entorno NEXT_PUBLIC_SUPABASE_URL no configurada.'
+      "[Vittkly AppSec] Variable de entorno NEXT_PUBLIC_SUPABASE_URL no configurada.",
     );
   }
 
   if (!serviceRoleKey) {
     throw new Error(
-      '[Vittkly AppSec] Variable de entorno SUPABASE_SERVICE_ROLE_KEY no configurada. Este valor es obligatorio para operaciones administrativas del servidor.'
+      "[Vittkly AppSec] Variable de entorno SUPABASE_SERVICE_ROLE_KEY no configurada. Este valor es obligatorio para operaciones administrativas del servidor.",
     );
   }
 

@@ -8,6 +8,7 @@ description: Procedimiento para implementar flujos de datos completos con Tipos 
 Esta skill define el estándar para agregar nuevas entidades, operaciones CRUD o consultas en Vittkly-App utilizando Supabase.
 
 ## Reglas Clave
+
 1. **Separación de Capas:**
    - La base de datos se refleja en `src/types/database.types.ts`.
    - Las operaciones de red y consultas a tablas residen en `src/services/<entity>.service.ts` o `src/repositories/<entity>.repository.ts`.
@@ -17,7 +18,9 @@ Esta skill define el estándar para agregar nuevas entidades, operaciones CRUD o
 ## Flujo de Trabajo
 
 ### Paso 1: Tipos de Dominio
+
 Extraer o definir las interfaces a partir de los tipos generados de Supabase:
+
 ```typescript
 import { Database } from '@/types/database.types';
 
@@ -27,7 +30,9 @@ export type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 ```
 
 ### Paso 2: Repositorio / Servicio
+
 Crear el archivo en `src/services/<entity>.service.ts`:
+
 ```typescript
 import { supabase } from './supabase';
 import { TaskRow, TaskInsert } from '@/types/task.types';
@@ -46,11 +51,7 @@ export const taskService = {
   },
 
   async create(task: TaskInsert): Promise<TaskRow> {
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert(task)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('tasks').insert(task).select().single();
 
     if (error) {
       throw new Error(`Error creating task: ${error.message}`);
@@ -61,7 +62,9 @@ export const taskService = {
 ```
 
 ### Paso 3: Custom Hook
+
 Crear el hook en `src/hooks/use<Entity>.ts`:
+
 ```typescript
 import { useState, useEffect, useCallback } from 'react';
 import { taskService } from '@/services/task.service';
@@ -94,6 +97,7 @@ export function useTasks() {
 ```
 
 ### Paso 4: Consumo en la Pantalla (`src/app/`)
+
 ```tsx
 import { useTasks } from '@/hooks/useTasks';
 // Renderizar lógica delegada sin tocar Supabase directamente
