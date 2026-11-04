@@ -7,7 +7,7 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "env": {
     "staging": {
-      "routes": [{ "pattern": "pruebas.vittkly.com", "custom_domain": true }],
+      "routes": [{ "pattern": "staging.vittkly.com", "custom_domain": true }],
       "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "vittkly-web-staging" }],
       "preview_urls": true
     },
