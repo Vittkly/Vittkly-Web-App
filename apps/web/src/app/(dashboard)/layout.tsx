@@ -4,8 +4,6 @@ import { getDashboardContext } from "@/features/dashboard/services/modules.servi
 import { ModulesSidebar } from "@/features/dashboard/components/ModulesSidebar";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 
-export const instant = false;
-
 export default async function TenantDashboardLayout({
   children,
 }: {

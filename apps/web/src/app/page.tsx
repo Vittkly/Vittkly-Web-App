@@ -9,8 +9,6 @@ import { CurrentYear } from "@/components/ui/CurrentYear";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ArrowRight, ShieldCheck, Layers, Building } from "lucide-react";
 
-export const instant = false;
-
 export default async function Home() {
   const user = await getCurrentUser();
 

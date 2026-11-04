@@ -4,8 +4,6 @@ import { getStaffDashboardContext } from "@/features/dashboard/services/modules.
 import { StaffDashboardHeader } from "@/features/dashboard/components/StaffDashboardHeader";
 import { ModulesSidebar } from "@/features/dashboard/components/ModulesSidebar";
 
-export const instant = false;
-
 export default async function StaffPortalLayout({
   children,
 }: {

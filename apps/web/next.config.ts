@@ -24,8 +24,8 @@ const nextConfig: NextConfig = {
     "@vittkly/db-types",
     "@vittkly/ui-tokens",
   ],
-  cacheComponents: true,
-  partialPrefetching: true,
+  cacheComponents: false,
+  partialPrefetching: false,
   turbopack: {
     rules: {
       "*.css": {
