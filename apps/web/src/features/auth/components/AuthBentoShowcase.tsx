@@ -103,15 +103,15 @@ export function AuthBentoShowcase() {
   return (
     <div className="grid w-full max-w-[1080px] grid-cols-1 gap-3.5 select-none md:grid-cols-6">
       {/* 1. Tarjeta Showcase Heroica */}
-      <div className="shadow-2 relative col-span-1 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-[20px] bg-linear-to-br from-[#0E2A3B] via-[#12475F] to-[#157AA8] p-5 text-white sm:p-7 md:col-span-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <div className="shadow-2 from-hero-from to-primary relative col-span-1 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-[20px] bg-linear-to-br via-[#12475F] p-5 text-white sm:p-7 md:col-span-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         {/* Glow orbs animados */}
         <div
           aria-hidden="true"
-          className="animate-lg-drift pointer-events-none absolute -top-20 -right-12 h-64 w-64 rounded-full bg-[#2AA8DE] opacity-40 blur-3xl"
+          className="animate-lg-drift bg-vitta pointer-events-none absolute -top-20 -right-12 h-64 w-64 rounded-full opacity-40 blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="animate-lg-drift-delayed pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-[#3EC49B] opacity-35 blur-3xl"
+          className="animate-lg-drift-delayed bg-kleanly pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full opacity-35 blur-3xl"
         />
 
         {/* Columna Izquierda: Información y Selector de Tabs */}
@@ -158,7 +158,7 @@ export function AuthBentoShowcase() {
                   {isSelected && (
                     <span
                       aria-hidden="true"
-                      className="animate-sc-fill absolute bottom-0 left-0 h-[3px] w-full bg-[#3EC49B]"
+                      className="animate-sc-fill bg-kleanly absolute bottom-0 left-0 h-[3px] w-full"
                     />
                   )}
                 </button>
@@ -207,12 +207,12 @@ export function AuthBentoShowcase() {
                 </div>
                 <div className="flex items-center justify-between pt-2 text-sm font-extrabold text-[#0E2A3B]">
                   <span>Total cotizado</span>
-                  <b className="font-mono text-base text-[#157AA8] tabular-nums">
+                  <b className="text-primary-ink font-mono text-base tabular-nums">
                     S/ <AnimatedTotal target={270} />
                   </b>
                 </div>
-                <div className="mt-1 inline-flex items-center gap-1.5 self-start rounded-full bg-[#E2F6EF] px-2.5 py-1 text-[0.68rem] font-bold text-[#146F55]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#3EC49B]" />
+                <div className="bg-success-soft text-success-ink mt-1 inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[0.68rem] font-bold">
+                  <span className="bg-kleanly h-1.5 w-1.5 rounded-full" />
                   Enviada por WhatsApp
                 </div>
               </div>
@@ -230,7 +230,7 @@ export function AuthBentoShowcase() {
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 p-3 sm:p-4">
-                <div className="flex flex-col gap-1 rounded-lg bg-[#157AA8] p-2.5 text-white">
+                <div className="bg-primary flex flex-col gap-1 rounded-lg p-2.5 text-white">
                   <span className="font-mono text-[0.65rem] font-bold tracking-wider uppercase opacity-90">
                     LUN · OT-1042
                   </span>
@@ -274,15 +274,15 @@ export function AuthBentoShowcase() {
               <div className="flex flex-col gap-2.5 p-3 sm:p-4">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-[#52626D]">Monto cobrado:</span>
-                  <b className="font-mono text-base text-[#157AA8] tabular-nums">
+                  <b className="text-primary-ink font-mono text-base tabular-nums">
                     S/ 270.00
                   </b>
                 </div>
-                <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#E2F6EF] px-3 py-1 text-xs font-bold text-[#146F55]">
-                  <span className="h-2 w-2 rounded-full bg-[#3EC49B]" />
+                <div className="bg-success-soft text-success-ink inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-xs font-bold">
+                  <span className="bg-kleanly h-2 w-2 rounded-full" />
                   Pagada (Yape / Transferencia)
                 </div>
-                <div className="rounded-xl border border-[#3EC49B]/30 bg-[#DCF8E7] p-2.5 text-xs leading-relaxed text-[#14402B]">
+                <div className="border-kleanly/30 rounded-xl border bg-[#DCF8E7] p-2.5 text-xs leading-relaxed text-[#14402B]">
                   <b className="mb-0.5 block font-semibold">
                     Mensaje automático de confirmación:
                   </b>

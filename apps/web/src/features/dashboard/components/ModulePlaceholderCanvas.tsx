@@ -14,6 +14,8 @@ export interface ModulePlaceholderCanvasProps {
   stageNumber?: number;
   backHref?: string;
   breadcrumbs?: BreadcrumbItem[];
+  /** El título y código ya los muestra DashboardHeader; evita duplicarlos. */
+  hideTitle?: boolean;
 }
 
 export function ModulePlaceholderCanvas({
@@ -22,6 +24,7 @@ export function ModulePlaceholderCanvas({
   groupName,
   backHref = "/dashboard",
   breadcrumbs,
+  hideTitle = false,
 }: ModulePlaceholderCanvasProps) {
   const dynamicBreadcrumbs: BreadcrumbItem[] = breadcrumbs || [
     { label: "Inicio", href: backHref },
@@ -34,14 +37,16 @@ export function ModulePlaceholderCanvas({
       {/* Cabecera con Breadcrumb dinámico */}
       <div className="flex flex-col gap-2.5">
         <DashboardBreadcrumbs items={dynamicBreadcrumbs} />
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-ink font-sans text-2xl font-bold tracking-tight">
-            {moduleName}
-          </h1>
-          <span className="border-line bg-surface-sunken text-ink-muted rounded-md border px-2.5 py-0.5 font-mono text-xs tabular-nums select-none">
-            {moduleCode}
-          </span>
-        </div>
+        {!hideTitle && (
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-ink font-sans text-2xl font-bold tracking-tight">
+              {moduleName}
+            </h1>
+            <span className="border-line bg-surface-sunken text-ink-muted rounded-md border px-2.5 py-0.5 font-mono text-xs tabular-nums select-none">
+              {moduleCode}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Un único contenedor central en bg-surface-raised con borde de 1px (border-line) */}
@@ -51,10 +56,6 @@ export function ModulePlaceholderCanvas({
         </div>
         <p className="text-ink text-sm font-semibold">
           Módulo en preparación &bull; Próximamente disponible
-        </p>
-        <p className="text-ink-muted mt-1.5 max-w-sm text-xs">
-          Este submódulo está planificado en la arquitectura de operaciones de
-          Vittkly.
         </p>
       </div>
     </div>

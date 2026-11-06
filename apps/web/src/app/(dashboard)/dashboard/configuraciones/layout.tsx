@@ -21,14 +21,17 @@ export default async function SettingsLayout({
     <div className="flex min-h-full flex-1 flex-col transition-colors">
       {/* Cabecera Principal de Configuraciones */}
       <DashboardHeader
-        title="Configuración"
-        subtitle="Administra los parámetros de tu empresa, colaboradores, roles y operaciones"
+        title="Configuraciones"
+        subtitle="Parámetros de cada módulo en un solo lugar"
         moduleCode="CFG-00"
         userName={context.user.nombre}
         userRole={context.activeProfile.nombre}
       />
 
-      {/* Disposición en Dos Columnas: Subnavegación lateral y Área de trabajo */}
+      {/* Disposición Adaptativa: 
+          - En escritorio (>= lg): Sidebar lateral izquierdo con categorías.
+          - En móvil (< lg): Barra horizontal deslizable sin scrollbar visible.
+      */}
       <div className="flex flex-1 flex-col lg:flex-row">
         <SettingsSecondaryNav />
         <main className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto">

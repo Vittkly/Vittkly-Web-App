@@ -109,7 +109,7 @@ export function UsersProfilesTable({
           className="shrink-0 self-start shadow-xs sm:self-auto"
         >
           <Plus className="h-4 w-4" />
-          <span>+ Agregar persona</span>
+          <span>Agregar persona</span>
         </Button>
       </div>
 
@@ -153,7 +153,7 @@ export function UsersProfilesTable({
           >
             <span>Todas</span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              ({counts.all})
+              [{counts.all}]
             </span>
           </button>
 
@@ -171,7 +171,7 @@ export function UsersProfilesTable({
               <span>Activas</span>
             </span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              ({counts.active})
+              [{counts.active}]
             </span>
           </button>
 
@@ -189,7 +189,7 @@ export function UsersProfilesTable({
               <span>Pendientes</span>
             </span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              ({counts.pending})
+              [{counts.pending}]
             </span>
           </button>
 
@@ -204,7 +204,7 @@ export function UsersProfilesTable({
           >
             <span>Suspendidas</span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              ({counts.suspended})
+              [{counts.suspended}]
             </span>
           </button>
         </div>

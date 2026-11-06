@@ -72,3 +72,14 @@ pnpm sync:db-types   # Regenera packages/db-types/src/database.types.ts desde Su
 ## 5. Definición de "Terminado" (Definition of Done)
 
 Ninguna tarea o refactorización se considera terminada hasta que `pnpm check` (`lint`, `typecheck`, `test`) se ejecute sin ningún error desde la raíz del monorepo.
+
+---
+
+## 6. Fidelidad al Artefacto del Cliente (OBLIGATORIO antes de cualquier cambio de UI)
+
+El cliente exige un diseño **idéntico a su artefacto** (`Central de Servicios Vitta Kleanly/index.html`, `vittkly-campo-app.html`) con sus mismos colores, tipografías y navegación. Lee y cumple `.agents/rules/design-fidelity-artifact.md`. Resumen:
+
+- Si no está en el artefacto, **no se crea**: ni pantallas, ni copys, ni métricas, ni avisos, ni datos de ejemplo, ni hero/bentos decorativos.
+- Los módulos sin implementar son cascarones: breadcrumb + una tarjeta _"Módulo en preparación • Próximamente disponible"_; título y código una sola vez.
+- Prohibido `alert()`, toasts de "próxima fase", contadores inventados y estado local que simule persistencia.
+- Ante cualquier duda de diseño: **pregunta al usuario**; no rellenes huecos por iniciativa propia.

@@ -104,7 +104,7 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
   return (
     <aside
       aria-label="Menú principal de la empresa"
-      className="side bg-surface-sunken/60 border-line relative z-20 flex w-full shrink-0 flex-col gap-2.5 border-b p-3 transition-colors sm:p-3.5 lg:min-h-dvh lg:w-64 lg:border-r lg:border-b-0"
+      className="side bg-surface-sunken/60 border-line relative z-20 hidden min-h-dvh shrink-0 flex-col gap-2.5 border-r p-3 transition-colors sm:p-3.5 lg:flex lg:w-64"
     >
       {/* 1. Selector de Empresa / Identidad (side-brand) */}
       <div className="flex flex-col gap-2 p-1">

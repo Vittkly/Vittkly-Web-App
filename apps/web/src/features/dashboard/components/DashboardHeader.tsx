@@ -21,6 +21,7 @@ export interface DashboardHeaderProps {
   userName?: string;
   userRole?: string;
   moduleCode?: string;
+  notificationCount?: number;
 }
 
 export function DashboardHeader({
@@ -29,10 +30,10 @@ export function DashboardHeader({
   userName = "Usuario",
   userRole = "Administrador",
   moduleCode,
+  notificationCount = 0,
 }: DashboardHeaderProps) {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAvisosPop, setShowAvisosPop] = useState(false);
-  const [hasNewQuoteNotice, setHasNewQuoteNotice] = useState(false);
 
   // Formato de fecha localizado en español (ej. "Viernes, 30 de octubre")
   const todayFormatted = new Intl.DateTimeFormat("es-PE", {
@@ -95,34 +96,22 @@ export function DashboardHeader({
             aria-label="Avisos"
           >
             <Bell className="h-4 w-4" />
-            <span className="bg-danger border-surface absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 px-1 text-[10px] font-extrabold text-white">
-              3
-            </span>
+            {notificationCount > 0 && (
+              <span className="bg-danger border-surface absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 px-1 text-[10px] font-extrabold text-white tabular-nums">
+                {notificationCount}
+              </span>
+            )}
           </button>
 
           {/* Popover de Avisos */}
           {showAvisosPop && (
             <div className="border-line bg-surface-raised shadow-2 animate-sc-in absolute top-12 right-0 z-50 flex w-80 flex-col gap-3 rounded-2xl border p-4">
               <div className="border-line flex items-center justify-between border-b pb-2">
-                <b className="text-ink text-xs font-bold">Avisos pendientes</b>
-                <span className="text-ink-muted font-mono text-[10px]">
-                  3 nuevos
-                </span>
+                <b className="text-ink text-xs font-bold">Avisos</b>
               </div>
-              <div className="flex flex-col gap-2 text-xs">
-                <div className="border-l-amber bg-warning-soft/40 border-line rounded-xl border border-l-4 p-2.5">
-                  <b className="text-ink block">Cotización por aprobar</b>
-                  <span className="text-ink-muted text-[11px]">
-                    COT-1048 requiere confirmación del cliente.
-                  </span>
-                </div>
-                <div className="border-l-success bg-success-soft/40 border-line rounded-xl border border-l-4 p-2.5">
-                  <b className="text-ink block">Servicio finalizado</b>
-                  <span className="text-ink-muted text-[11px]">
-                    OT-1042 fue completada en San Isidro.
-                  </span>
-                </div>
-              </div>
+              <p className="text-ink-muted py-2 text-center text-xs">
+                No tienes avisos pendientes.
+              </p>
               <button
                 type="button"
                 onClick={() => setShowAvisosPop(false)}
@@ -158,15 +147,14 @@ export function DashboardHeader({
         <ThemeToggle />
 
         {/* Botón Principal + Nueva cotización */}
-        <button
-          type="button"
-          onClick={() => setHasNewQuoteNotice(true)}
-          className="bg-primary text-on-primary hover:bg-primary-hover hidden h-9 cursor-pointer items-center gap-1.5 rounded-xl px-3.5 text-xs font-bold shadow-xs transition-colors sm:inline-flex"
+        <Link
+          href="/dashboard/nueva"
+          className="bg-primary text-on-primary hover:bg-primary-hover hidden h-9 items-center gap-1.5 rounded-xl px-3.5 text-xs font-bold shadow-xs transition-colors sm:inline-flex"
           id="pmNueva"
         >
           <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
           <span>Nueva cotización</span>
-        </button>
+        </Link>
 
         {/* Salir */}
         <form action={logoutAction}>
@@ -222,27 +210,6 @@ export function DashboardHeader({
               Cerrar
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Notificación al presionar Nueva Cotización */}
-      {hasNewQuoteNotice && (
-        <div className="bg-surface-raised border-line shadow-2 animate-sc-in fixed right-6 bottom-6 z-50 flex max-w-sm items-center gap-3 rounded-2xl border p-4">
-          <div className="bg-primary h-2 w-2 animate-ping rounded-full" />
-          <div className="flex flex-col">
-            <b className="text-ink text-xs">Módulo de Cotizaciones</b>
-            <span className="text-ink-muted text-[11px]">
-              El flujo de creación de cotizaciones se activará en la fase del
-              módulo comercial.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setHasNewQuoteNotice(false)}
-            className="text-ink-muted hover:text-ink p-1"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
     </header>
