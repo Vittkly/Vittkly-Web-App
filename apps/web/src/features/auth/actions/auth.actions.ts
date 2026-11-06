@@ -294,6 +294,10 @@ export async function registerAction(
         company_name: companyName,
         ruc: ruc || null,
         plan_code: planCode,
+        rubro: formData.get("rubro")?.toString().trim().slice(0, 80) || null,
+        ciudad: formData.get("ciudad")?.toString().trim().slice(0, 50) || null,
+        telefono_empresa:
+          formData.get("telefono")?.toString().trim().slice(0, 20) || null,
       },
     },
   });
