@@ -20,8 +20,8 @@ export default function AuthLayout({
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 overflow-hidden"
           >
-            <div className="animate-lg-drift absolute -top-24 -left-20 h-96 w-96 rounded-full bg-[#2AA8DE] opacity-20 blur-3xl" />
-            <div className="animate-lg-drift-delayed absolute -right-20 -bottom-28 h-80 w-80 rounded-full bg-[#3EC49B] opacity-15 blur-3xl" />
+            <div className="animate-lg-drift bg-vitta absolute -top-24 -left-20 h-96 w-96 rounded-full opacity-20 blur-3xl" />
+            <div className="animate-lg-drift-delayed bg-kleanly absolute -right-20 -bottom-28 h-80 w-80 rounded-full opacity-15 blur-3xl" />
             <svg
               viewBox="0 0 600 800"
               preserveAspectRatio="xMidYMid slice"
@@ -30,12 +30,20 @@ export default function AuthLayout({
             >
               <defs>
                 <linearGradient id="lgS1" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#2AA8DE" stopOpacity=".22" />
-                  <stop offset="1" stopColor="#2AA8DE" stopOpacity=".04" />
+                  <stop offset="0" stopColor="var(--vitta)" stopOpacity=".22" />
+                  <stop offset="1" stopColor="var(--vitta)" stopOpacity=".04" />
                 </linearGradient>
                 <linearGradient id="lgS2" x1="1" y1="1" x2="0" y2="0">
-                  <stop offset="0" stopColor="#3EC49B" stopOpacity=".24" />
-                  <stop offset="1" stopColor="#3EC49B" stopOpacity=".04" />
+                  <stop
+                    offset="0"
+                    stopColor="var(--kleanly)"
+                    stopOpacity=".24"
+                  />
+                  <stop
+                    offset="1"
+                    stopColor="var(--kleanly)"
+                    stopOpacity=".04"
+                  />
                 </linearGradient>
               </defs>
               <g>
@@ -66,12 +74,16 @@ export default function AuthLayout({
                   cy="120"
                   r="46"
                   fill="none"
-                  stroke="#2AA8DE"
+                  stroke="var(--vitta)"
                   strokeOpacity=".28"
                   strokeWidth="1.5"
                 />
               </g>
-              <g fill="#157AA8" fillOpacity=".25" transform="translate(40 640)">
+              <g
+                fill="var(--primary)"
+                fillOpacity=".25"
+                transform="translate(40 640)"
+              >
                 <circle cx="0" cy="0" r="2" />
                 <circle cx="0" cy="16" r="2" />
                 <circle cx="0" cy="32" r="2" />

@@ -13,6 +13,7 @@ export interface ModulePlaceholderCanvasProps {
   stageNumber?: number;
   backHref?: string;
   breadcrumbs?: unknown;
+  hideTitle?: boolean;
 }
 
 export function ModulePlaceholderCanvas({

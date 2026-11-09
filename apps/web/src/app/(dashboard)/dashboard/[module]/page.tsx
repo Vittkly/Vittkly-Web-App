@@ -214,6 +214,7 @@ export default async function DynamicModulePage({ params }: ModulePageProps) {
         groupName={moduleInfo.group}
         description={moduleInfo.subtitle}
         backHref="/dashboard"
+        hideTitle
       />
     </div>
   );

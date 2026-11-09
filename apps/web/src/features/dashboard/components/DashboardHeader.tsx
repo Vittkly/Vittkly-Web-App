@@ -17,6 +17,7 @@ export interface DashboardHeaderProps {
   userName?: string;
   userRole?: string;
   moduleCode?: string;
+  notificationCount?: number;
 }
 
 export function DashboardHeader({
