@@ -1,61 +1,64 @@
+"use client";
+
 import React from "react";
-import { Clock } from "lucide-react";
-import {
-  DashboardBreadcrumbs,
-  type BreadcrumbItem,
-} from "./DashboardBreadcrumbs";
+import Link from "next/link";
 
 export interface ModulePlaceholderCanvasProps {
   moduleName: string;
-  moduleCode: string;
+  moduleCode?: string;
   groupName?: string;
+  description?: string;
   permissionSummary?: string;
   modelType?: string;
   stageNumber?: number;
   backHref?: string;
-  breadcrumbs?: BreadcrumbItem[];
+  breadcrumbs?: unknown;
 }
 
 export function ModulePlaceholderCanvas({
   moduleName,
-  moduleCode,
-  groupName,
-  backHref = "/dashboard",
-  breadcrumbs,
+  description,
 }: ModulePlaceholderCanvasProps) {
-  const dynamicBreadcrumbs: BreadcrumbItem[] = breadcrumbs || [
-    { label: "Inicio", href: backHref },
-    ...(groupName ? [{ label: groupName }] : []),
-    { label: moduleName, isCurrent: true },
-  ];
-
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6 transition-colors lg:p-8">
-      {/* Cabecera con Breadcrumb dinámico */}
-      <div className="flex flex-col gap-2.5">
-        <DashboardBreadcrumbs items={dynamicBreadcrumbs} />
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-ink font-sans text-2xl font-bold tracking-tight">
-            {moduleName}
-          </h1>
-          <span className="border-line bg-surface-sunken text-ink-muted rounded-md border px-2.5 py-0.5 font-mono text-xs tabular-nums select-none">
-            {moduleCode}
-          </span>
-        </div>
-      </div>
+    <div className="flex max-w-5xl flex-1 flex-col gap-6 p-4 transition-colors sm:p-6 lg:p-8">
+      {/* Tarjeta idéntica a renderPronto del artefacto */}
+      <div className="border-line bg-surface-raised flex max-w-3xl flex-col gap-4 rounded-2xl border p-6 shadow-xs sm:p-8">
+        <div className="border-line flex flex-col gap-2 border-b pb-4">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-ink font-sans text-xl font-extrabold tracking-tight sm:text-2xl">
+              {moduleName}
+            </h2>
+            <span className="bg-primary-soft text-primary-ink border-primary/20 rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider uppercase">
+              Pronto
+            </span>
+          </div>
 
-      {/* Un único contenedor central en bg-surface-raised con borde de 1px (border-line) */}
-      <div className="border-line bg-surface-raised flex min-h-[380px] flex-1 flex-col items-center justify-center rounded-2xl border p-8 text-center shadow-xs sm:p-16">
-        <div className="bg-surface-sunken border-line text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-xl border">
-          <Clock className="h-5 w-5" />
+          <p className="text-ink-muted text-xs leading-relaxed sm:text-sm">
+            {description ||
+              "Servicios, parámetros y gestión operativa especializada para este módulo de la plataforma."}
+          </p>
         </div>
-        <p className="text-ink text-sm font-semibold">
-          Módulo en preparación &bull; Próximamente disponible
+
+        <p className="text-ink-muted text-xs leading-relaxed">
+          Este módulo está en el plan de desarrollo. Si tu empresa lo necesita,
+          cuéntanos cómo lo usarías: las ideas con más votos se construyen
+          primero.
         </p>
-        <p className="text-ink-muted mt-1.5 max-w-sm text-xs">
-          Este submódulo está planificado en la arquitectura de operaciones de
-          Vittkly.
-        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          <Link
+            href="/dashboard/comunidad"
+            className="bg-primary hover:bg-primary-hover text-on-primary rounded-xl px-4 py-2 text-xs font-bold shadow-xs transition-colors"
+          >
+            Sugerir cómo debería funcionar
+          </Link>
+          <Link
+            href="/dashboard/comunidad"
+            className="border-line bg-surface-sunken hover:bg-surface-raised text-ink rounded-xl border px-4 py-2 text-xs font-bold shadow-2xs transition-colors"
+          >
+            Ver ideas y votos
+          </Link>
+        </div>
       </div>
     </div>
   );

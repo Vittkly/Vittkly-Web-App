@@ -2,6 +2,7 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { getDashboardContext } from "@/features/dashboard/services/modules.service";
 import { ModulesSidebar } from "@/features/dashboard/components/ModulesSidebar";
+import { WebMobileTabBar } from "@/features/dashboard/components/WebMobileTabBar";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 
 export default async function TenantDashboardLayout({
@@ -32,9 +33,12 @@ export default async function TenantDashboardLayout({
         activeProfile={context.activeProfile}
       />
 
-      <main className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <main className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto pb-20 lg:pb-0">
         {children}
       </main>
+
+      {/* Barra de navegación inferior móvil (< lg) con backdrop blur */}
+      <WebMobileTabBar />
     </div>
   );
 }

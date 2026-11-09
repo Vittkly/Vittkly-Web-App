@@ -204,7 +204,6 @@ export default async function DynamicModulePage({ params }: ModulePageProps) {
       <DashboardHeader
         title={moduleInfo.name}
         subtitle={moduleInfo.subtitle}
-        moduleCode={moduleInfo.code}
         userName={context.user.nombre}
         userRole={context.activeProfile.nombre}
       />
@@ -212,8 +211,8 @@ export default async function DynamicModulePage({ params }: ModulePageProps) {
       {/* Cascarón del Módulo (Lienzo Central) */}
       <ModulePlaceholderCanvas
         moduleName={moduleInfo.name}
-        moduleCode={moduleInfo.code}
         groupName={moduleInfo.group}
+        description={moduleInfo.subtitle}
         backHref="/dashboard"
       />
     </div>

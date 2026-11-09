@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { VittklyLogo } from "@/components/brand/VittklyLogo";
+import { logoutAction } from "@/features/auth/actions/auth.actions";
 import type { UserOrganization } from "@/features/tenants/types/tenants.types";
 import type { EnrichedModule } from "../services/modules.service";
 
@@ -59,6 +60,8 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
   });
 
   const [showCrearMenu, setShowCrearMenu] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showGrupoModal, setShowGrupoModal] = useState(false);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -104,7 +107,9 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
   return (
     <aside
       aria-label="Menú principal de la empresa"
-      className="side bg-surface-sunken/60 border-line relative z-20 flex w-full shrink-0 flex-col gap-2.5 border-b p-3 transition-colors sm:p-3.5 lg:min-h-dvh lg:w-64 lg:border-r lg:border-b-0"
+      className={`side bg-surface-sunken/60 border-line relative z-20 hidden lg:flex ${
+        isCollapsed ? "p-2 lg:w-20" : "p-3 sm:p-3.5 lg:w-64"
+      } shrink-0 flex-col gap-2.5 border-r transition-all duration-200 lg:min-h-dvh`}
     >
       {/* 1. Selector de Empresa / Identidad (side-brand) */}
       <div className="flex flex-col gap-2 p-1">
@@ -553,26 +558,162 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
       </nav>
 
       {/* 4. Footer del Sidebar (side-foot) */}
-      <div className="border-line mt-auto flex flex-col gap-2 border-t pt-2">
-        <Link
-          href="/select-org"
-          className="bg-surface-raised border-line text-ink hover:border-primary hover:bg-primary-soft flex w-full cursor-pointer items-center justify-between rounded-xl border p-2 text-xs font-bold transition-colors"
-          title="Cambiar de empresa"
-        >
-          <div className="flex min-w-0 flex-col text-left leading-tight">
-            <span className="text-ink-muted text-[10px] font-semibold">
-              Empresa activa
-            </span>
-            <b className="text-primary-ink truncate text-xs">{companyName}</b>
-          </div>
-          <ArrowRightLeft className="text-ink-muted h-3.5 w-3.5 shrink-0" />
-        </Link>
+      <div className="side-foot border-line mt-auto flex flex-col gap-2 border-t pt-2.5">
+        {!isCollapsed ? (
+          <>
+            {/* Perfil & Cerrar sesión */}
+            <div className="flex items-center justify-between px-1 text-xs">
+              <span className="text-ink-muted truncate text-[11px] font-semibold">
+                Perfil: <b className="text-ink font-bold">{roleName}</b>
+              </span>
+              <form action={logoutAction} className="shrink-0">
+                <button
+                  type="submit"
+                  className="text-primary-ink cursor-pointer text-[11px] font-bold hover:underline"
+                  title="Cerrar sesión en Vittkly"
+                >
+                  Cerrar sesión
+                </button>
+              </form>
+            </div>
 
-        <div className="text-ink-muted flex items-center justify-center gap-1.5 py-1 text-[11px] font-semibold">
-          <span>Con tecnología</span>
-          <VittklyLogo variant="wordmark" height={16} />
-        </div>
+            {/* Resumen del grupo */}
+            <button
+              type="button"
+              onClick={() => setShowGrupoModal(true)}
+              className="border-line bg-surface-raised hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center justify-center rounded-xl border px-2 py-1.5 text-xs font-semibold shadow-2xs transition-colors"
+            >
+              <span>Resumen del grupo</span>
+            </button>
+
+            {/* Empresa activa */}
+            <Link
+              href="/select-org"
+              className="bg-surface-raised border-line text-ink hover:border-primary hover:bg-primary-soft flex w-full cursor-pointer items-center justify-between rounded-xl border p-2 text-xs font-bold shadow-2xs transition-colors"
+              title="Cambiar de empresa"
+            >
+              <div className="flex min-w-0 flex-col text-left leading-tight">
+                <span className="text-ink-muted text-[10px] font-semibold">
+                  Empresa activa
+                </span>
+                <b className="text-primary-ink truncate text-xs">
+                  {companyName}
+                </b>
+              </div>
+              <ArrowRightLeft className="text-ink-muted h-3.5 w-3.5 shrink-0" />
+            </Link>
+
+            {/* Con tecnología Vittkly */}
+            <div className="text-ink-muted flex items-center justify-center gap-1.5 py-1 text-[11px] font-semibold">
+              <span>Con tecnología</span>
+              <VittklyLogo variant="wordmark" height={16} />
+            </div>
+
+            {/* Contraer menú */}
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(true)}
+              className="hover:bg-surface-raised text-ink-muted hover:text-ink flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
+            >
+              <span>« Contraer menú</span>
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Colapsado */}
+            <form action={logoutAction} className="flex justify-center">
+              <button
+                type="submit"
+                className="text-primary-ink cursor-pointer py-1 text-[10px] font-bold hover:underline"
+                title="Cerrar sesión"
+              >
+                Salir
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(false)}
+              className="hover:bg-surface-raised text-ink-muted hover:text-ink flex h-8 w-full cursor-pointer items-center justify-center rounded-lg text-xs font-bold transition-colors"
+              title="Expandir menú"
+            >
+              »
+            </button>
+          </>
+        )}
       </div>
+
+      {/* Modal Resumen del Grupo */}
+      {showGrupoModal && (
+        <div className="animate-sc-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
+          <div className="bg-surface-raised border-line shadow-2 relative flex w-full max-w-md flex-col gap-4 rounded-2xl border p-6">
+            <div className="border-line flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-ink text-base font-bold">
+                  Resumen del grupo
+                </h3>
+                <p className="text-ink-muted text-xs">
+                  Empresas vinculadas a tu cuenta de usuario
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGrupoModal(false)}
+                className="text-ink-muted hover:text-ink hover:bg-surface-sunken cursor-pointer rounded-lg p-1 text-sm font-bold"
+                aria-label="Cerrar modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex max-h-60 flex-col gap-2 overflow-y-auto">
+              {organizations.map((org) => {
+                const isAct = org.id === activeOrganizationId;
+                return (
+                  <Link
+                    key={org.id}
+                    href={`/select-org?switch=${org.id}`}
+                    onClick={() => setShowGrupoModal(false)}
+                    className={`flex items-center justify-between rounded-xl border p-3 transition-colors ${
+                      isAct
+                        ? "border-primary bg-primary-soft/50 text-ink"
+                        : "border-line bg-surface hover:bg-surface-sunken text-ink"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="bg-surface-raised border-line text-primary-ink flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold">
+                        {org.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="flex flex-col">
+                        <b className="text-xs font-bold">{org.name}</b>
+                        <small className="text-ink-muted text-[11px]">
+                          Rol: {org.roleName || "Colaborador"}
+                        </small>
+                      </div>
+                    </div>
+                    {isAct ? (
+                      <span className="bg-success rounded-full px-2 py-0.5 text-[10px] font-bold text-white">
+                        Activa
+                      </span>
+                    ) : (
+                      <span className="text-primary-ink text-xs font-semibold hover:underline">
+                        Conmutar ›
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowGrupoModal(false)}
+              className="bg-primary text-on-primary hover:bg-primary-hover min-h-[36px] cursor-pointer rounded-xl text-xs font-bold transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
