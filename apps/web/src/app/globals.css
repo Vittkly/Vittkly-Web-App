@@ -227,3 +227,28 @@ body {
 .animate-sc-fill {
   animation: scFill 5.5s linear forwards;
 }
+
+/* Activar scroll cuando el zoom reduzca la altura disponible */
+@media screen and (max-height: 700px) {
+  #empGate {
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  #empGate > .grid {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  #empGate > .grid > section {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* Permitir que el contenido del showcase crezca */
+  #empGate > .grid > section:last-child {
+    overflow: visible;
+  }
+}

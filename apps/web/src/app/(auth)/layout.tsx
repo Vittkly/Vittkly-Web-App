@@ -10,11 +10,11 @@ export default function AuthLayout({
   return (
     <div
       id="empGate"
-      className="bg-surface text-ink min-h-dvh w-full transition-colors"
+      className="bg-surface text-ink h-screen w-screen overflow-hidden transition-colors"
     >
-      <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(420px,40%)_minmax(0,1fr)]">
+      <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(420px,40%)_minmax(0,1fr)]">
         {/* Columna Izquierda: Tarjeta de Acceso y Decoración de Marca */}
-        <section className="from-primary-soft/50 via-surface to-surface-sunken/40 relative flex flex-col items-center justify-center overflow-hidden bg-linear-to-br p-6 sm:p-8 lg:p-10">
+        <section className="from-primary-soft/50 via-surface to-surface-sunken/40 relative flex h-full flex-col items-center justify-center overflow-hidden bg-linear-to-br p-6 sm:p-8 lg:p-10">
           {/* Fondo geométrico SVG y Orbs difuminados */}
           <div
             aria-hidden="true"
@@ -119,9 +119,11 @@ export default function AuthLayout({
           </div>
         </section>
 
-        {/* Columna Derecha: Showcase Bento Grid y Micro-Interacciones */}
-        <section className="bg-surface-sunken/40 border-line hidden items-center justify-center overflow-y-auto border-l p-6 lg:flex lg:p-8 xl:p-12">
-          <AuthBentoShowcase />
+        {/* Columna Derecha: Escala milimétrica exacta */}
+        <section className="bg-surface-sunken/40 border-line flex min-h-screen w-full items-center justify-center overflow-visible border-t p-6 lg:min-h-screen lg:border-t-0 lg:border-l lg:p-8 xl:p-12">
+          <div className="flex max-h-full w-full max-w-4xl origin-center scale-[0.80] flex-col items-center justify-center transition-transform xl:scale-[0.86]">
+            <AuthBentoShowcase />
+          </div>
         </section>
       </div>
     </div>

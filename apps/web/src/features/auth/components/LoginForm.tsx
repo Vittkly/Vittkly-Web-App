@@ -77,9 +77,9 @@ export function LoginForm() {
         </h1>
       </div>
 
-      {/* Tabs de Selección: Iniciar Sesión / Crear Cuenta */}
+      {/* Tabs de Selección */}
       <div
-        className="bg-surface-sunken grid grid-cols-2 gap-1 rounded-xl p-1"
+        className="grid grid-cols-2 gap-1 rounded-lg border border-[#16384d] bg-[#0b2130] p-1 shadow-xs"
         role="tablist"
         aria-label="Acceso"
       >
@@ -87,7 +87,7 @@ export function LoginForm() {
           type="button"
           role="tab"
           aria-selected="true"
-          className="bg-surface-raised text-primary-ink flex min-h-[38px] cursor-default items-center justify-center rounded-lg border-0 text-xs font-bold shadow-xs select-none"
+          className="text-primary-ink flex min-h-[38px] cursor-default items-center justify-center rounded-md border border-[#1b465e] bg-[#102d3c] text-xs font-bold shadow-xs select-none"
         >
           Iniciar sesión
         </button>
@@ -95,7 +95,7 @@ export function LoginForm() {
           href="/register"
           role="tab"
           aria-selected="false"
-          className="text-ink-muted hover:text-ink flex min-h-[38px] cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-xs font-bold transition-colors select-none"
+          className="text-ink-muted hover:text-ink flex min-h-[38px] cursor-pointer items-center justify-center rounded-md border-0 bg-[#0b2130] text-xs font-bold transition-colors select-none"
         >
           Crear cuenta
         </Link>
@@ -143,10 +143,10 @@ export function LoginForm() {
 
       {/* Formulario Principal de Autenticación */}
       <form action={formAction} className="flex flex-col gap-3">
-        {/* Campo Correo */}
+        {/* Campo Correo estirado y cuadrado */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="lgU" className="text-ink text-xs font-semibold">
-            Correo
+          <label htmlFor="lgU" className="text-ink-muted text-xs font-semibold">
+            CORREO
           </label>
           <input
             type="email"
@@ -159,15 +159,18 @@ export function LoginForm() {
             value={emailValue}
             onChange={(e) => setEmailValue(e.target.value)}
             placeholder="nombre@empresa.com"
-            className="border-line bg-surface-raised text-ink focus-visible:outline-primary focus-visible:border-primary min-h-[44px] w-full rounded-xl border px-3.5 text-sm transition-all focus-visible:outline-2 disabled:opacity-50"
+            className="border-line bg-surface-raised text-ink focus-visible:outline-primary focus-visible:border-primary min-h-[46px] w-full rounded-lg border px-3.5 text-sm transition-all focus-visible:outline-2 disabled:opacity-50"
           />
         </div>
 
-        {/* Campo Contraseña */}
+        {/* Campo Contraseña estirado y cuadrado */}
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between">
-            <label htmlFor="lgP" className="text-ink text-xs font-semibold">
-              Contraseña
+            <label
+              htmlFor="lgP"
+              className="text-ink-muted text-xs font-semibold"
+            >
+              CONTRASEÑA
             </label>
             <Link
               href="/olvide-contrasena"
@@ -187,7 +190,7 @@ export function LoginForm() {
               value={passwordValue}
               onChange={(e) => setPasswordValue(e.target.value)}
               placeholder="••••••••"
-              className="border-line bg-surface-raised text-ink focus-visible:outline-primary focus-visible:border-primary min-h-[44px] w-full rounded-xl border pr-20 pl-3.5 text-sm transition-all focus-visible:outline-2 disabled:opacity-50"
+              className="border-line bg-surface-raised text-ink focus-visible:outline-primary focus-visible:border-primary min-h-[46px] w-full rounded-lg border pr-20 pl-3.5 text-sm transition-all focus-visible:outline-2 disabled:opacity-50"
             />
             <button
               type="button"
@@ -206,7 +209,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={isPending || isLocked}
-          className="bg-primary text-on-primary hover:bg-primary-hover mt-1 flex min-h-[46px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-bold tracking-wide shadow-xs transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-primary text-on-primary hover:bg-primary-hover mt-1 flex min-h-[46px] w-full cursor-pointer items-center justify-center gap-2 rounded-lg text-sm font-bold tracking-wide shadow-xs transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? (
             <>
@@ -232,7 +235,7 @@ export function LoginForm() {
           type="button"
           aria-label="Continuar con Google"
           onClick={() => {}}
-          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft flex min-h-[40px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 text-xs font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5"
+          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft flex min-h-[46px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5"
         >
           <svg
             width="17"
@@ -265,7 +268,7 @@ export function LoginForm() {
           type="button"
           aria-label="Continuar con Microsoft"
           onClick={() => {}}
-          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft flex min-h-[40px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 text-xs font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5"
+          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft flex min-h-[46px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5"
         >
           <svg
             width="15"
@@ -286,7 +289,7 @@ export function LoginForm() {
           type="button"
           aria-label="Continuar con WhatsApp"
           onClick={() => {}}
-          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft flex min-h-[40px] cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 text-xs font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5"
+          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft flex min-h-[46px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5"
         >
           <svg
             width="17"
@@ -307,21 +310,21 @@ export function LoginForm() {
         </button>
       </div>
 
-      {/* Tiles de Acceso Rápido: Invitación y App Técnico */}
+      {/* Tiles de Acceso Rápido */}
       <div className="mt-1 grid grid-cols-2 gap-2">
         <Link
           href="/invitado"
-          className="border-line bg-surface-raised hover:border-primary hover:bg-primary-soft group flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 shadow-xs transition-all duration-150 hover:-translate-y-0.5"
+          className="border-line bg-surface-raised hover:border-primary hover:bg-primary-soft group flex cursor-pointer items-center gap-2.5 rounded-lg border p-3 shadow-xs transition-all duration-150 hover:-translate-y-0.5"
         >
           <span className="bg-primary-soft text-primary-ink group-hover:bg-surface-raised flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors">
             <Users className="h-4 w-4" />
           </span>
           <span className="flex min-w-0 flex-col">
             <b className="text-ink text-[0.76rem] leading-tight font-bold">
-              Tengo invitación
+              Tengo una invitación
             </b>
-            <small className="text-ink-muted truncate text-[0.66rem] leading-tight">
-              Únete al equipo
+            <small className="text-ink-muted text-[0.64rem] leading-tight">
+              Únete al equipo de tu empresa
             </small>
           </span>
         </Link>
@@ -329,7 +332,7 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setShowTecModal(true)}
-          className="border-line bg-surface-raised hover:border-primary hover:bg-primary-soft group flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-left shadow-xs transition-all duration-150 hover:-translate-y-0.5"
+          className="border-line bg-surface-raised hover:border-primary hover:bg-primary-soft group flex cursor-pointer items-center gap-2.5 rounded-lg border p-3 text-left shadow-xs transition-all duration-150 hover:-translate-y-0.5"
         >
           <span className="bg-primary-soft text-primary-ink group-hover:bg-surface-raised flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors">
             <Smartphone className="h-4 w-4" />
@@ -347,44 +350,133 @@ export function LoginForm() {
 
       {/* Modal / Dialog Informativo Técnico */}
       {showTecModal && (
-        <div className="animate-sc-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-          <div className="bg-surface-raised border-line shadow-2 relative flex w-full max-w-sm flex-col gap-3 rounded-2xl border p-5">
-            <div className="flex items-center justify-between">
-              <div className="text-primary-ink flex items-center gap-2">
-                <Smartphone className="h-5 w-5" />
-                <h3 className="text-ink text-sm font-bold">
-                  Acceso para Técnicos de Campo
-                </h3>
+        <div className="animate-sc-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="shadow-2 relative flex w-full max-w-[420px] flex-col gap-4 rounded-[24px] border border-[#16384d] bg-[#0b2130] p-7 text-left text-white">
+            {/* Icono superior del celular */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#1b465e] bg-[#102d3c] text-[#78c4d4]">
+              <Smartphone className="h-6 w-6" />
+            </div>
+
+            {/* Título y descripción principal */}
+            <div className="flex flex-col gap-1.5">
+              <h2 className="text-[1.35rem] font-bold tracking-tight text-white">
+                Los técnicos entran por la app
+              </h2>
+              <p className="text-[0.82rem] leading-relaxed text-[#9fb3be]">
+                Si trabajas en campo, registra tus servicios desde el celular:
+                agenda, ruta, fotos y cierre de cada servicio.
+              </p>
+            </div>
+
+            {/* Pasos Numerados */}
+            <div className="my-1 flex flex-col gap-3.5">
+              <div className="flex items-start gap-3.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#16384d] text-xs font-bold text-[#78c4d4]">
+                  1
+                </span>
+                <div className="flex flex-col text-xs leading-snug">
+                  <b className="text-[0.84rem] font-bold text-white">
+                    Descarga la app
+                  </b>
+                  <span className="text-[#9fb3be]">
+                    Disponible para iOS y Android.
+                  </span>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowTecModal(false)}
-                className="text-ink-muted hover:text-ink hover:bg-surface-sunken cursor-pointer rounded-lg p-1"
-                aria-label="Cerrar modal"
-              >
-                <X className="h-4 w-4" />
-              </button>
+
+              <div className="flex items-start gap-3.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#16384d] text-xs font-bold text-[#78c4d4]">
+                  2
+                </span>
+                <div className="flex flex-col text-xs leading-snug">
+                  <b className="text-[0.84rem] font-bold text-white">
+                    Ingresa con tu celular
+                  </b>
+                  <span className="text-[#9fb3be]">
+                    Escribe el número que registró tu administrador.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#16384d] text-xs font-bold text-[#78c4d4]">
+                  3
+                </span>
+                <div className="flex flex-col text-xs leading-snug">
+                  <b className="text-[0.84rem] font-bold text-white">
+                    Confirma el código
+                  </b>
+                  <span className="text-[#9fb3be]">
+                    Te lo enviamos por WhatsApp.
+                  </span>
+                </div>
+              </div>
             </div>
-            <p className="text-ink-muted text-xs leading-relaxed">
-              Los técnicos y operarios acceden exclusivamente a través de la{" "}
-              <b>App Móvil Vittkly</b> para gestionar órdenes de trabajo, fichas
-              y asistencias sin precios.
+
+            {/* Contenedores de App Store y Google Play */}
+            <div className="my-0.5 grid grid-cols-2 gap-2.5">
+              <div className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#1b465e]/60 bg-black/30 px-3 text-white shadow-xs transition-opacity hover:opacity-95">
+                <svg
+                  className="h-4 w-4 shrink-0 fill-white"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.8 6.55c.55-.68.92-1.63.82-2.58-.81.03-1.79.54-2.37 1.22-.52.6-.98 1.56-.85 2.49.91.07 1.84-.48 2.4-1.13z" />
+                </svg>
+                <div className="flex flex-col text-left leading-none">
+                  <span className="text-[0.48rem] font-medium text-[#9fb3be]">
+                    Próximamente en
+                  </span>
+                  <span className="mt-0.5 text-[0.7rem] font-extrabold">
+                    App Store
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#1b465e]/60 bg-black/30 px-3 text-white shadow-xs transition-opacity hover:opacity-95">
+                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M3.609 1.814L13.792 12 3.61 22.186a1.458 1.458 0 0 1-.21-.81V2.624c0-.315.075-.589.21-.81z"
+                  />
+                  <path
+                    fill="#FBBC04"
+                    d="M17.33 11.286l-3.538-2.044L13.792 12l3.538 2.758 2.935-1.696c.717-.414.717-1.09 0-1.504l-2.935-1.696z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M3.61 22.186l11.6-10.772 2.122 2.122-11.45 6.612a1.45 1.45 0 0 1-.772.282c-.2 0-.38-.052-.5-.144z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M3.609 1.814c.12-.092.3-.144.5-.144a1.45 1.45 0 0 1 .772.282l11.45 6.612-2.122 2.122L3.61 1.814z"
+                  />
+                </svg>
+                <div className="flex flex-col text-left leading-none">
+                  <span className="text-[0.48rem] font-medium text-[#9fb3be]">
+                    Próximamente en
+                  </span>
+                  <span className="mt-0.5 text-[0.7rem] font-extrabold">
+                    Google Play
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Texto inferior de configuración web */}
+            <p className="border-t border-[#16384d] pt-3 text-[0.76rem] leading-relaxed text-[#9fb3be]">
+              ¿Necesitas ver la agenda en una computadora? Pide a tu
+              administrador que active tu{" "}
+              <b className="text-white">Acceso web</b> en Configuración →
+              Usuarios.
             </p>
-            <div className="bg-surface-sunken text-ink flex flex-col gap-1 rounded-xl p-3 text-xs">
-              <span className="text-primary-ink font-bold">
-                ¿Necesitas entrar a la Central Web?
-              </span>
-              <span className="text-ink-muted text-[0.72rem]">
-                Solicita a tu administrador que active el permiso de
-                &ldquo;Acceso Web&rdquo; en tu perfil.
-              </span>
-            </div>
+
+            {/* Botón inferior Volver a iniciar sesión */}
             <button
               type="button"
               onClick={() => setShowTecModal(false)}
-              className="bg-primary text-on-primary hover:bg-primary-hover mt-1 min-h-[36px] cursor-pointer rounded-xl text-xs font-bold transition-colors"
+              className="mt-1 flex cursor-pointer items-center justify-center gap-2 py-1 text-xs font-bold text-[#78c4d4] transition-colors hover:text-white"
             >
-              Entendido
+              <span>← Volver a iniciar sesión</span>
             </button>
           </div>
         </div>
