@@ -77,9 +77,9 @@ export function LoginForm() {
         </h1>
       </div>
 
-      {/* Tabs de Selección */}
+{/* Tabs de Selección Adaptativos */}
       <div
-        className="grid grid-cols-2 gap-1 rounded-lg border border-[#16384d] bg-[#0b2130] p-1 shadow-xs"
+        className="bg-surface-sunken grid grid-cols-2 gap-1 rounded-lg border border-line p-1 shadow-xs"
         role="tablist"
         aria-label="Acceso"
       >
@@ -87,7 +87,7 @@ export function LoginForm() {
           type="button"
           role="tab"
           aria-selected="true"
-          className="text-primary-ink flex min-h-[38px] cursor-default items-center justify-center rounded-md border border-[#1b465e] bg-[#102d3c] text-xs font-bold shadow-xs select-none"
+          className="bg-surface-raised text-primary-ink flex min-h-[38px] cursor-default items-center justify-center rounded-md border border-line text-xs font-bold shadow-xs select-none"
         >
           Iniciar sesión
         </button>
@@ -95,7 +95,7 @@ export function LoginForm() {
           href="/register"
           role="tab"
           aria-selected="false"
-          className="text-ink-muted hover:text-ink flex min-h-[38px] cursor-pointer items-center justify-center rounded-md border-0 bg-[#0b2130] text-xs font-bold transition-colors select-none"
+          className="text-ink-muted hover:text-ink flex min-h-[38px] cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-xs font-bold transition-colors select-none"
         >
           Crear cuenta
         </Link>

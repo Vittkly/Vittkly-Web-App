@@ -107,31 +107,29 @@ export function RegisterForm() {
           </p>
         </div>
 
-        {/* Tabs de Selección idénticos al Login */}
-        {step === 1 && (
-          <div
-            className="grid grid-cols-2 gap-1 rounded-lg border border-[#16384d] bg-[#0b2130] p-1 shadow-xs"
-            role="tablist"
-            aria-label="Acceso"
-          >
-            <Link
-              href="/login"
-              role="tab"
-              aria-selected="false"
-              className="text-ink-muted hover:text-ink flex min-h-[34px] items-center justify-center rounded-md text-xs font-bold transition-colors select-none"
-            >
-              Iniciar sesión
-            </Link>
-            <button
-              type="button"
-              role="tab"
-              aria-selected="true"
-              className="text-primary-ink flex min-h-[34px] cursor-default items-center justify-center rounded-md border border-[#1b465e] bg-[#102d3c] text-xs font-bold shadow-xs select-none"
-            >
-              Crear cuenta
-            </button>
-          </div>
-        )}
+{/* Tabs de Selección Adaptativos para Registro */}
+      <div
+        className="bg-surface-sunken grid grid-cols-2 gap-1 rounded-lg border border-line p-1 shadow-xs"
+        role="tablist"
+        aria-label="Acceso"
+      >
+        <Link
+          href="/login"
+          role="tab"
+          aria-selected="false"
+          className="text-ink-muted hover:text-ink flex min-h-[38px] cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-xs font-bold transition-colors select-none"
+        >
+          Iniciar sesión
+        </Link>
+        <button
+          type="button"
+          role="tab"
+          aria-selected="true"
+          className="bg-surface-raised text-primary-ink flex min-h-[38px] cursor-default items-center justify-center rounded-md border border-line text-xs font-bold shadow-xs select-none"
+        >
+          Crear cuenta
+        </button>
+      </div>
 
         {/* Indicador de paso */}
         <div
