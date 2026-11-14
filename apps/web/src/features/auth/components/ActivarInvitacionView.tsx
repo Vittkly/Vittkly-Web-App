@@ -24,9 +24,8 @@ import {
   enviarOtpActivacionAction,
   verificarOtpActivacionAction,
   completarActivacionAction,
-  maskContact,
-  type OtpChannel,
 } from "../actions/activar-invitacion.actions";
+import { maskContact, type OtpChannel } from "../utils/contact-mask";
 
 interface ActivarInvitacionViewProps {
   initialStatus: InvitationVerificationStatus;

@@ -5,25 +5,14 @@ import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getInvitationByToken } from "../services/invitacion-activation.service";
+import { maskContact, type OtpChannel } from "../utils/contact-mask";
 
-export type OtpChannel = "correo" | "celular";
+export type { OtpChannel };
 
 export interface ActionResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
-}
-
-export function maskContact(value: string, channel: OtpChannel): string {
-  if (channel === "correo") {
-    const [user, domain] = value.split("@");
-    if (!user || !domain) return value;
-    const visible = user.slice(0, 2);
-    return `${visible}••••@${domain}`;
-  }
-  const clean = value.trim();
-  if (clean.length < 6) return clean;
-  return `${clean.slice(0, 3)} ••• ••${clean.slice(-2)}`;
 }
 
 /**
