@@ -57,12 +57,15 @@ function AnimatedTotal({ target }: { target: number }) {
   const [value, setValue] = useState(0);
 
   useEffect(() => {
-    const duration = 900;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const duration = prefersReducedMotion ? 0 : 900;
     const startTime = performance.now();
 
     const step = (now: number) => {
       const elapsed = now - startTime;
-      const progress = Math.min(1, elapsed / duration);
+      const progress = duration === 0 ? 1 : Math.min(1, elapsed / duration);
       const easeOut = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(target * easeOut));
       if (progress < 1) {
@@ -76,34 +79,53 @@ function AnimatedTotal({ target }: { target: number }) {
   return <>{value}</>;
 }
 
+function ShowcaseMockWindow({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      data-theme="light"
+      className="shadow-2 animate-sc-in bg-surface-raised text-ink w-full overflow-hidden rounded-xl"
+    >
+      <div className="border-line bg-surface-sunken text-ink-muted flex min-w-0 items-center gap-1.5 border-b px-3 py-2 text-[0.7rem] font-bold">
+        <span className="bg-line-strong/40 h-2 w-2 shrink-0 rounded-full" />
+        <span className="bg-line-strong/40 h-2 w-2 shrink-0 rounded-full" />
+        <span className="bg-line-strong/40 h-2 w-2 shrink-0 rounded-full" />
+        <span className="ml-2 min-w-0 truncate font-mono text-[0.68rem]">
+          {title}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function AuthBentoShowcase() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [selectedFaq, setSelectedFaq] = useState(0);
   const [activeTip, setActiveTip] = useState(0);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 0 });
 
-  // Auto-rotación sutil de slides si el usuario no interactúa
+  // Auto-rotación sutil de slides respetando preferencia de movimiento reducido
   const nextSlide = useCallback(() => {
     setActiveSlide((prev) => (prev + 1) % LG_SLIDES.length);
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(nextSlide, 7000);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    const timer = setInterval(nextSlide, 5500);
     return () => clearInterval(timer);
   }, [nextSlide]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
-
   return (
-    <div className="grid w-full max-w-[1080px] grid-cols-1 gap-3.5 select-none md:grid-cols-6">
+    <div className="grid w-full max-w-[1080px] grid-cols-1 gap-3.5 md:grid-cols-6">
       {/* 1. Tarjeta Showcase Heroica */}
-      <div className="shadow-2 from-hero-from to-primary relative col-span-1 grid grid-cols-1 items-center gap-6 overflow-hidden rounded-[20px] bg-linear-to-br via-[#12475F] p-5 text-white sm:p-7 md:col-span-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <div className="shadow-2 from-hero-from to-hero-to text-hero-ink relative col-span-1 grid grid-cols-1 items-center gap-5 overflow-hidden rounded-[20px] bg-linear-to-br p-4 sm:gap-6 sm:p-7 md:col-span-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         {/* Glow orbs animados */}
         <div
           aria-hidden="true"
@@ -116,10 +138,10 @@ export function AuthBentoShowcase() {
 
         {/* Columna Izquierda: Información y Selector de Tabs */}
         <div className="relative z-10 flex min-w-0 flex-col gap-3">
-          <p className="text-[0.68rem] font-extrabold tracking-widest text-[#7FD9BE] uppercase">
+          <p className="text-hero-ink/90 text-[0.68rem] font-extrabold tracking-widest uppercase">
             Así trabaja Vittkly
           </p>
-          <h2 className="text-xl leading-tight font-bold tracking-tight text-white sm:text-2xl">
+          <h2 className="text-hero-ink text-xl leading-tight font-bold tracking-tight sm:text-2xl">
             Cotiza, programa y cobra desde un solo lugar
           </h2>
 
@@ -137,20 +159,20 @@ export function AuthBentoShowcase() {
                   role="tab"
                   aria-selected={isSelected}
                   onClick={() => setActiveSlide(idx)}
-                  className={`group relative cursor-pointer overflow-hidden rounded-xl border p-3 text-left transition-all duration-200 ${
+                  className={`group focus-visible:outline-hero-ink relative cursor-pointer overflow-hidden rounded-xl border p-3 text-left transition-all duration-200 focus-visible:outline-2 ${
                     isSelected
-                      ? "border-white/40 bg-white/15 text-white shadow-sm"
-                      : "border-white/15 bg-white/5 text-[#C9DDE8] hover:bg-white/10"
+                      ? "border-hero-ink/40 bg-hero-ink/15 text-hero-ink shadow-sm"
+                      : "border-hero-ink/15 bg-hero-ink/5 text-hero-ink/85 hover:bg-hero-ink/10"
                   }`}
                 >
                   <span className="block text-xs font-bold sm:text-sm">
                     {slide.t}
                   </span>
                   <span
-                    className={`mt-0.5 block text-[0.72rem] leading-relaxed text-[#C9DDE8] transition-opacity duration-200 ${
+                    className={`text-hero-ink/80 mt-0.5 block text-[0.72rem] leading-relaxed transition-opacity duration-200 ${
                       isSelected
                         ? "opacity-100"
-                        : "opacity-60 group-hover:opacity-85"
+                        : "opacity-75 group-hover:opacity-95"
                     }`}
                   >
                     {slide.d}
@@ -166,123 +188,105 @@ export function AuthBentoShowcase() {
             })}
           </div>
 
-          <div className="mt-1 flex items-center justify-between gap-3 border-t border-white/10 pt-2 text-xs text-[#9DB2BE]">
+          <div className="border-hero-ink/15 text-hero-ink/80 mt-1 flex flex-wrap items-center justify-between gap-2.5 border-t pt-2.5 text-xs">
             <button
               type="button"
               onClick={nextSlide}
-              className="inline-flex min-h-[32px] cursor-pointer items-center rounded-full border border-white/40 bg-white/10 px-3.5 text-xs font-bold text-white transition-colors hover:bg-white/20"
+              className="border-hero-ink/40 bg-hero-ink/10 text-hero-ink hover:bg-hero-ink/20 focus-visible:outline-hero-ink inline-flex min-h-[40px] cursor-pointer items-center rounded-full border px-3.5 text-xs font-bold transition-colors focus-visible:outline-2 sm:min-h-[34px]"
             >
               Ver siguiente flujo &rarr;
             </button>
-            <span className="text-[0.68rem] text-[#C9DDE8]/80 italic">
+            <span className="text-hero-ink/75 text-[0.68rem] italic">
               Ejemplo con datos ficticios.
             </span>
           </div>
         </div>
 
-        {/* Columna Derecha: Escenario Dinámico (Stage) */}
-        <div className="relative z-10 flex min-h-[220px] items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md">
+        {/* Columna Derecha: Escenario Dinámico (primero arriba en móvil al hacer scroll) */}
+        <div className="border-hero-ink/20 bg-hero-ink/10 relative z-10 order-first flex min-h-[210px] min-w-0 items-center justify-center overflow-hidden rounded-2xl border p-3 backdrop-blur-md sm:min-h-[220px] sm:p-4 lg:order-none">
           {activeSlide === 0 && (
-            <div className="shadow-2 animate-sc-in w-full overflow-hidden rounded-xl bg-white text-[#0E2A3B]">
-              <div className="flex items-center gap-1.5 border-b border-[#DDE7EC] bg-[#EAF2F6] px-3 py-2 text-[0.7rem] font-bold text-[#52626D]">
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="ml-2 font-mono text-[0.68rem]">
-                  Cotización · Limpieza de muebles
-                </span>
-              </div>
+            <ShowcaseMockWindow title="Cotización · Limpieza de muebles">
               <div className="flex flex-col gap-2 p-3 sm:p-4">
-                <div className="flex items-center justify-between border-b border-dashed border-[#DDE7EC] py-1 text-xs">
+                <div className="border-line flex items-center justify-between gap-2 border-b border-dashed py-1 text-xs">
                   <span>Sofá 3 cuerpos</span>
-                  <b className="font-mono tabular-nums">S/ 120</b>
+                  <b className="font-mono whitespace-nowrap tabular-nums">
+                    S/ 120
+                  </b>
                 </div>
-                <div className="flex items-center justify-between border-b border-dashed border-[#DDE7EC] py-1 text-xs">
+                <div className="border-line flex items-center justify-between gap-2 border-b border-dashed py-1 text-xs">
                   <span>Colchón 2 plazas</span>
-                  <b className="font-mono tabular-nums">S/ 90</b>
+                  <b className="font-mono whitespace-nowrap tabular-nums">
+                    S/ 90
+                  </b>
                 </div>
-                <div className="flex items-center justify-between border-b border-dashed border-[#DDE7EC] py-1 text-xs">
+                <div className="border-line flex items-center justify-between gap-2 border-b border-dashed py-1 text-xs">
                   <span>Alfombra 2 &times; 3 m</span>
-                  <b className="font-mono tabular-nums">S/ 60</b>
+                  <b className="font-mono whitespace-nowrap tabular-nums">
+                    S/ 60
+                  </b>
                 </div>
-                <div className="flex items-center justify-between pt-2 text-sm font-extrabold text-[#0E2A3B]">
+                <div className="text-ink flex items-center justify-between gap-2 pt-2 text-sm font-extrabold">
                   <span>Total cotizado</span>
-                  <b className="text-primary-ink font-mono text-base tabular-nums">
+                  <b className="text-primary-ink font-mono text-base whitespace-nowrap tabular-nums">
                     S/ <AnimatedTotal target={270} />
                   </b>
                 </div>
                 <div className="bg-success-soft text-success-ink mt-1 inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[0.68rem] font-bold">
-                  <span className="bg-kleanly h-1.5 w-1.5 rounded-full" />
+                  <span className="bg-kleanly h-1.5 w-1.5 shrink-0 rounded-full" />
                   Enviada por WhatsApp
                 </div>
               </div>
-            </div>
+            </ShowcaseMockWindow>
           )}
 
           {activeSlide === 1 && (
-            <div className="shadow-2 animate-sc-in w-full overflow-hidden rounded-xl bg-white text-[#0E2A3B]">
-              <div className="flex items-center gap-1.5 border-b border-[#DDE7EC] bg-[#EAF2F6] px-3 py-2 text-[0.7rem] font-bold text-[#52626D]">
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="ml-2 font-mono text-[0.68rem]">
-                  Semana 42 · Cuadrilla Norte
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 p-3 sm:p-4">
-                <div className="bg-primary flex flex-col gap-1 rounded-lg p-2.5 text-white">
-                  <span className="font-mono text-[0.65rem] font-bold tracking-wider uppercase opacity-90">
+            <ShowcaseMockWindow title="Semana 42 · Cuadrilla Norte">
+              <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-3 sm:p-4">
+                <div className="bg-primary text-on-primary flex flex-col gap-1 rounded-lg p-2.5">
+                  <span className="font-mono text-[0.65rem] font-bold tracking-wider uppercase opacity-95">
                     LUN · OT-1042
                   </span>
                   <b className="text-xs leading-tight">Lavado alfombra</b>
-                  <span className="text-[0.68rem] opacity-80">
+                  <span className="text-[0.68rem] opacity-90">
                     San Isidro · 09:00
                   </span>
                 </div>
-                <div className="flex flex-col gap-1 rounded-lg bg-[#2FA886] p-2.5 text-white">
-                  <span className="font-mono text-[0.65rem] font-bold tracking-wider uppercase opacity-90">
+                <div className="bg-success-ink text-on-primary flex flex-col gap-1 rounded-lg p-2.5">
+                  <span className="font-mono text-[0.65rem] font-bold tracking-wider uppercase opacity-95">
                     MAR · OT-1045
                   </span>
                   <b className="text-xs leading-tight">Desinfección clínica</b>
-                  <span className="text-[0.68rem] opacity-80">
+                  <span className="text-[0.68rem] opacity-90">
                     Miraflores · 11:30
                   </span>
                 </div>
-                <div className="flex flex-col gap-1 rounded-lg bg-[#B97A14] p-2.5 text-white">
-                  <span className="font-mono text-[0.65rem] font-bold tracking-wider uppercase opacity-90">
+                <div className="bg-warning-ink text-on-primary flex flex-col gap-1 rounded-lg p-2.5">
+                  <span className="font-mono text-[0.65rem] font-bold tracking-wider uppercase opacity-95">
                     MIÉ · OT-1048
                   </span>
                   <b className="text-xs leading-tight">Limpieza tapiz</b>
-                  <span className="text-[0.68rem] opacity-80">
+                  <span className="text-[0.68rem] opacity-90">
                     Surco · 15:00
                   </span>
                 </div>
               </div>
-            </div>
+            </ShowcaseMockWindow>
           )}
 
           {activeSlide === 2 && (
-            <div className="shadow-2 animate-sc-in w-full overflow-hidden rounded-xl bg-white text-[#0E2A3B]">
-              <div className="flex items-center gap-1.5 border-b border-[#DDE7EC] bg-[#EAF2F6] px-3 py-2 text-[0.7rem] font-bold text-[#52626D]">
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="h-2 w-2 rounded-full bg-[#C5D4DC]" />
-                <span className="ml-2 font-mono text-[0.68rem]">
-                  Liquidación · OT-1042
-                </span>
-              </div>
+            <ShowcaseMockWindow title="Liquidación · OT-1042">
               <div className="flex flex-col gap-2.5 p-3 sm:p-4">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#52626D]">Monto cobrado:</span>
-                  <b className="text-primary-ink font-mono text-base tabular-nums">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-ink-muted">Monto cobrado:</span>
+                  <b className="text-primary-ink font-mono text-base whitespace-nowrap tabular-nums">
                     S/ 270.00
                   </b>
                 </div>
                 <div className="bg-success-soft text-success-ink inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-xs font-bold">
-                  <span className="bg-kleanly h-2 w-2 rounded-full" />
+                  <span className="bg-kleanly h-2 w-2 shrink-0 rounded-full" />
                   Pagada (Yape / Transferencia)
                 </div>
-                <div className="border-kleanly/30 rounded-xl border bg-[#DCF8E7] p-2.5 text-xs leading-relaxed text-[#14402B]">
+                <div className="border-kleanly/30 bg-success-soft text-success-ink rounded-xl border p-2.5 text-xs leading-relaxed">
                   <b className="mb-0.5 block font-semibold">
                     Mensaje automático de confirmación:
                   </b>
@@ -290,22 +294,13 @@ export function AuthBentoShowcase() {
                   servicio de limpieza. Gracias por confiar en nosotros.&rdquo;
                 </div>
               </div>
-            </div>
+            </ShowcaseMockWindow>
           )}
         </div>
       </div>
 
       {/* 2. Tarjeta FAQ de Acceso */}
-      <div
-        onMouseMove={handleMouseMove}
-        style={
-          {
-            "--mx": `${mousePos.x}px`,
-            "--my": `${mousePos.y}px`,
-          } as React.CSSProperties
-        }
-        className="bg-surface-raised border-line hover:shadow-2 hover:border-primary relative col-span-1 flex flex-col gap-3 overflow-hidden rounded-[18px] border p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 md:col-span-4"
-      >
+      <div className="bg-surface-raised border-line hover:shadow-2 hover:border-primary relative col-span-1 flex flex-col gap-3 overflow-hidden rounded-[18px] border p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 sm:p-5 md:col-span-4">
         <h3 className="text-ink text-sm font-bold tracking-tight">
           Preguntas frecuentes de acceso
         </h3>
@@ -322,7 +317,7 @@ export function AuthBentoShowcase() {
                 type="button"
                 onClick={() => setSelectedFaq(idx)}
                 aria-pressed={isSelected}
-                className={`min-h-[32px] cursor-pointer rounded-full px-3 text-xs font-bold transition-all ${
+                className={`focus-visible:outline-focus min-h-[40px] cursor-pointer rounded-xl px-3 py-1.5 text-left text-xs leading-snug font-bold transition-all focus-visible:outline-2 sm:min-h-[34px] sm:rounded-full sm:text-center ${
                   isSelected
                     ? "bg-primary text-on-primary shadow-xs"
                     : "bg-surface border-line text-ink hover:bg-primary-soft hover:text-primary-ink border"
@@ -334,6 +329,7 @@ export function AuthBentoShowcase() {
           })}
         </div>
         <p
+          key={selectedFaq}
           className="text-ink-muted bg-surface-sunken/60 border-line/60 animate-sc-in min-h-[5em] rounded-xl border p-3 text-xs leading-relaxed"
           aria-live="polite"
         >
@@ -342,7 +338,7 @@ export function AuthBentoShowcase() {
       </div>
 
       {/* 3. Tarjeta Vittkly en tu Bolsillo (Mobile App) */}
-      <div className="bg-surface-raised border-line hover:shadow-2 hover:border-primary relative col-span-1 flex flex-col items-center justify-between gap-3 overflow-hidden rounded-[18px] border p-5 text-center shadow-xs transition-all duration-200 hover:-translate-y-0.5 md:col-span-2">
+      <div className="bg-surface-raised border-line hover:shadow-2 hover:border-primary relative col-span-1 flex flex-col items-center justify-between gap-3 overflow-hidden rounded-[18px] border p-4 text-center shadow-xs transition-all duration-200 hover:-translate-y-0.5 sm:p-5 md:col-span-2">
         {/* Smartphone CSS mockup */}
         <div
           aria-hidden="true"
@@ -360,31 +356,35 @@ export function AuthBentoShowcase() {
         </div>
 
         <div className="flex w-full flex-col gap-2">
-          <div className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#0E2A3B] px-3 text-xs font-bold text-white shadow-xs transition-opacity hover:opacity-95">
-            <Apple className="h-4 w-4" />
+          <div className="from-hero-from to-hero-to border-hero-ink/15 text-hero-ink flex min-h-[44px] items-center justify-center gap-2 rounded-xl border bg-linear-to-r px-3 py-1.5 text-xs font-bold shadow-xs">
+            <Apple className="h-4 w-4 shrink-0" aria-hidden="true" />
             <div className="flex flex-col text-left leading-none">
-              <span className="text-[0.55rem] font-medium opacity-80">
-                Consíguelo en el
+              <span className="text-hero-ink/75 text-[10px] font-medium">
+                Próximamente en
               </span>
-              <span className="text-[0.72rem] font-extrabold">App Store</span>
+              <span className="text-xs font-extrabold">App Store</span>
             </div>
           </div>
-          <div className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#0E2A3B] px-3 text-xs font-bold text-white shadow-xs transition-opacity hover:opacity-95">
-            <Play className="h-3.5 w-3.5 fill-white" />
+          <div className="from-hero-from to-hero-to border-hero-ink/15 text-hero-ink flex min-h-[44px] items-center justify-center gap-2 rounded-xl border bg-linear-to-r px-3 py-1.5 text-xs font-bold shadow-xs">
+            <Play
+              className="h-3.5 w-3.5 shrink-0 fill-current"
+              aria-hidden="true"
+            />
             <div className="flex flex-col text-left leading-none">
-              <span className="text-[0.55rem] font-medium opacity-80">
-                Disponible en
+              <span className="text-hero-ink/75 text-[10px] font-medium">
+                Próximamente en
               </span>
-              <span className="text-[0.72rem] font-extrabold">Google Play</span>
+              <span className="text-xs font-extrabold">Google Play</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* 4. Tarjeta Tip del Día */}
-      <div className="bg-surface-raised border-line relative col-span-1 flex items-center justify-between gap-4 overflow-hidden rounded-[18px] border p-4 shadow-xs md:col-span-6">
+      <div className="bg-surface-raised border-line relative col-span-1 flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-[18px] border p-4 shadow-xs sm:flex-nowrap sm:gap-4 md:col-span-6">
         <p
-          className="text-ink animate-sc-in flex-1 text-xs leading-snug font-medium sm:text-sm"
+          key={activeTip}
+          className="text-ink animate-sc-in min-w-0 flex-1 text-xs leading-snug font-medium sm:text-sm"
           aria-live="polite"
         >
           <b className="text-primary-ink mr-2 font-bold">Tip de operación:</b>
@@ -392,7 +392,7 @@ export function AuthBentoShowcase() {
         </p>
 
         <div
-          className="flex shrink-0 items-center gap-1.5"
+          className="flex shrink-0 items-center"
           role="group"
           aria-label="Consejos"
         >
@@ -403,12 +403,16 @@ export function AuthBentoShowcase() {
               onClick={() => setActiveTip(i)}
               aria-label={`Consejo ${i + 1}`}
               aria-current={i === activeTip}
-              className={`h-2 cursor-pointer rounded-full transition-all ${
-                i === activeTip
-                  ? "bg-primary w-5"
-                  : "bg-line hover:bg-line-strong w-2"
-              }`}
-            />
+              className="focus-visible:outline-focus flex min-h-[36px] min-w-[24px] cursor-pointer items-center justify-center rounded-full focus-visible:outline-2"
+            >
+              <span
+                className={`h-2 rounded-full transition-all ${
+                  i === activeTip
+                    ? "bg-primary w-5"
+                    : "bg-line hover:bg-line-strong w-2"
+                }`}
+              />
+            </button>
           ))}
         </div>
       </div>

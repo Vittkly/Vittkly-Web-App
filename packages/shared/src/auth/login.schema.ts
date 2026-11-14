@@ -93,7 +93,15 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export const registerSchema = z
   .object({
     fullName: z.string().trim().min(2, 'Ingresa tu nombre completo'),
+    tipoDocumento: z.enum(['DNI', 'carné de extranjería', 'pasaporte']).default('DNI'),
+    numeroDocumento: z
+      .string()
+      .trim()
+      .min(6, 'Ingresa un número de documento válido')
+      .max(20, 'Máximo 20 caracteres'),
     companyName: z.string().trim().min(2, 'Ingresa el nombre o razón social de tu empresa'),
+    rubro: z.string().trim().max(80).optional(),
+    ciudad: z.string().trim().max(50).optional(),
     ruc: z
       .string()
       .trim()
@@ -102,7 +110,8 @@ export const registerSchema = z
         (val) => !val || /^(10|20)\d{9}$/.test(val),
         'El RUC debe tener 11 dígitos e iniciar con 10 o 20',
       ),
-    planCode: z.enum(['inicia', 'crece', 'empresa']).default('empresa'),
+    planCode: z.enum(['inicia', 'crece', 'empresa']).default('crece'),
+    periodo: z.enum(['mensual', 'anual']).default('mensual'),
     email: z
       .string()
       .trim()
@@ -115,6 +124,10 @@ export const registerSchema = z
       .regex(/[0-9]/, 'Debe incluir al menos un número')
       .regex(/[^A-Za-z0-9]/, 'Debe incluir al menos un carácter especial o símbolo'),
     confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
+  })
+  .refine((data) => data.tipoDocumento !== 'DNI' || /^\d{8}$/.test(data.numeroDocumento), {
+    message: 'El DNI debe tener exactamente 8 dígitos numéricos',
+    path: ['numeroDocumento'],
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Las contraseñas no coinciden',

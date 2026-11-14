@@ -1,5 +1,6 @@
 import React from "react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AuthBackdrop } from "@/features/auth/components/AuthBackdrop";
 import { AuthBentoShowcase } from "@/features/auth/components/AuthBentoShowcase";
 
 export default function AuthLayout({
@@ -10,118 +11,27 @@ export default function AuthLayout({
   return (
     <div
       id="empGate"
-      className="bg-surface text-ink h-screen w-screen overflow-hidden transition-colors"
+      className="group/gate bg-surface text-ink min-h-dvh w-full overflow-x-clip transition-colors lg:h-screen lg:overflow-hidden has-[[data-register-step=3]]:lg:h-auto has-[[data-register-step=3]]:lg:min-h-screen has-[[data-register-step=3]]:lg:overflow-y-auto"
     >
-      <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(420px,40%)_minmax(0,1fr)]">
+      <div className="grid min-h-dvh w-full grid-cols-1 group-has-[[data-register-step=3]]/gate:h-auto group-has-[[data-register-step=3]]/gate:min-h-screen lg:h-full lg:grid-cols-[minmax(440px,42%)_minmax(0,1fr)] group-has-[[data-register-step=3]]/gate:lg:grid-cols-1">
         {/* Columna Izquierda: Tarjeta de Acceso y Decoración de Marca */}
-        <section className="from-primary-soft/50 via-surface to-surface-sunken/40 relative flex h-full flex-col items-center justify-center overflow-hidden bg-linear-to-br p-6 sm:p-8 lg:p-10">
-          {/* Fondo geométrico SVG y Orbs difuminados */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-hidden"
-          >
-            <div className="animate-lg-drift bg-vitta absolute -top-24 -left-20 h-96 w-96 rounded-full opacity-20 blur-3xl" />
-            <div className="animate-lg-drift-delayed bg-kleanly absolute -right-20 -bottom-28 h-80 w-80 rounded-full opacity-15 blur-3xl" />
-            <svg
-              viewBox="0 0 600 800"
-              preserveAspectRatio="xMidYMid slice"
-              focusable="false"
-              className="pointer-events-none absolute inset-0 h-full w-full opacity-60"
-            >
-              <defs>
-                <linearGradient id="lgS1" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="var(--vitta)" stopOpacity=".22" />
-                  <stop offset="1" stopColor="var(--vitta)" stopOpacity=".04" />
-                </linearGradient>
-                <linearGradient id="lgS2" x1="1" y1="1" x2="0" y2="0">
-                  <stop
-                    offset="0"
-                    stopColor="var(--kleanly)"
-                    stopOpacity=".24"
-                  />
-                  <stop
-                    offset="1"
-                    stopColor="var(--kleanly)"
-                    stopOpacity=".04"
-                  />
-                </linearGradient>
-              </defs>
-              <g>
-                <rect
-                  x="-90"
-                  y="-70"
-                  width="270"
-                  height="270"
-                  rx="64"
-                  transform="rotate(14 45 65)"
-                  fill="url(#lgS1)"
-                />
-              </g>
-              <g>
-                <rect
-                  x="420"
-                  y="610"
-                  width="260"
-                  height="260"
-                  rx="64"
-                  transform="rotate(-12 550 740)"
-                  fill="url(#lgS2)"
-                />
-              </g>
-              <g>
-                <circle
-                  cx="520"
-                  cy="120"
-                  r="46"
-                  fill="none"
-                  stroke="var(--vitta)"
-                  strokeOpacity=".28"
-                  strokeWidth="1.5"
-                />
-              </g>
-              <g
-                fill="var(--primary)"
-                fillOpacity=".25"
-                transform="translate(40 640)"
-              >
-                <circle cx="0" cy="0" r="2" />
-                <circle cx="0" cy="16" r="2" />
-                <circle cx="0" cy="32" r="2" />
-                <circle cx="0" cy="48" r="2" />
-                <circle cx="0" cy="64" r="2" />
-                <circle cx="16" cy="0" r="2" />
-                <circle cx="16" cy="16" r="2" />
-                <circle cx="16" cy="32" r="2" />
-                <circle cx="16" cy="48" r="2" />
-                <circle cx="16" cy="64" r="2" />
-                <circle cx="32" cy="0" r="2" />
-                <circle cx="32" cy="16" r="2" />
-                <circle cx="32" cy="32" r="2" />
-                <circle cx="32" cy="48" r="2" />
-                <circle cx="32" cy="64" r="2" />
-                <circle cx="48" cy="0" r="2" />
-                <circle cx="48" cy="16" r="2" />
-                <circle cx="48" cy="32" r="2" />
-                <circle cx="48" cy="48" r="2" />
-                <circle cx="48" cy="64" r="2" />
-              </g>
-            </svg>
-          </div>
+        <main className="from-primary-soft/50 via-surface to-surface-sunken/40 relative flex flex-col items-center justify-center bg-linear-to-br px-4 py-5 group-has-[[data-register-step=3]]/gate:h-auto group-has-[[data-register-step=3]]/gate:min-h-screen sm:p-8 lg:h-full lg:p-8 xl:p-10 [@media(max-height:700px)]:lg:pt-16">
+          <AuthBackdrop />
 
-          {/* Theme Toggle flotante discreto */}
-          <div className="absolute top-4 right-4 z-20">
+          {/* Toggle de tema en flujo en móvil / paso 3, flotante en escritorio */}
+          <div className="relative z-20 mb-2 flex w-full max-w-[400px] justify-end group-has-[[data-register-step=3]]/gate:max-w-4xl lg:absolute lg:top-4 lg:right-4 lg:mb-0 lg:w-auto lg:max-w-none group-has-[[data-register-step=3]]/gate:lg:static group-has-[[data-register-step=3]]/gate:lg:mb-3 group-has-[[data-register-step=3]]/gate:lg:w-full">
             <ThemeToggle />
           </div>
 
           {/* Contenedor del Card de Autenticación */}
-          <div className="relative z-10 my-auto flex w-full items-center justify-center">
+          <div className="relative z-10 flex w-full items-center justify-center lg:my-auto">
             {children}
           </div>
-        </section>
+        </main>
 
-        {/* Columna Derecha: Escala milimétrica exacta */}
-        <section className="bg-surface-sunken/40 border-line flex min-h-screen w-full items-center justify-center overflow-visible border-t p-6 lg:min-h-screen lg:border-t-0 lg:border-l lg:p-8 xl:p-12">
-          <div className="flex max-h-full w-full max-w-4xl origin-center scale-[0.80] flex-col items-center justify-center transition-transform xl:scale-[0.86]">
+        {/* Columna Derecha: Showcase B2B visible debajo en móvil con scroll vertical */}
+        <section className="bg-surface-sunken/40 border-line flex w-full items-center justify-center border-t px-4 py-6 group-has-[[data-register-step=3]]/gate:hidden sm:p-8 lg:min-h-screen lg:border-t-0 lg:border-l lg:p-8 xl:p-12">
+          <div className="flex w-full max-w-4xl flex-col items-center justify-center transition-transform lg:max-h-full lg:origin-center lg:scale-[0.80] xl:scale-[0.86]">
             <AuthBentoShowcase />
           </div>
         </section>

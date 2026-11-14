@@ -1,300 +1,990 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  TeamMember,
-  MemberStatus,
-  AccessScope,
+import {
+  mapFlagsToAccessLabel,
+  maskDocumentNumber,
+  type AccessScope,
+  type AuditLogEntry,
+  type CompanyProfile,
+  type DocumentType,
+  type ExitRequestRecord,
+  type InvitationRecord,
+  type MemberStatus,
+  type ProfileConfiguration,
+  type RestrictionKey,
+  type RestrictionScope,
+  type TeamMember,
+  type UsersProfilesBundle,
 } from "../types/settings.types";
 
-interface DbMembershipRow {
-  id: string;
-  org_id?: string;
-  empresa_id?: string;
-  user_id?: string;
-  usuario_id?: string;
-  role?: string;
-  status?: string;
-  activo?: boolean;
-  es_propietario?: boolean;
-  acceso_web?: boolean;
-  access_scope?: string;
-  job_title?: string | null;
-  created_at?: string;
-  creado_en?: string;
-  profiles?: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    full_name: string | null;
-    phone: string | null;
-    avatar_url: string | null;
-  } | null;
-  usuarios?: {
-    id: string;
-    nombre: string | null;
-    telefono: string | null;
-    identificador?: string | null;
-  } | null;
-  access_profiles?: {
-    id: string;
-    name: string;
-    std_key: string | null;
-  } | null;
-  perfiles?: {
-    id: string;
-    nombre: string;
-    codigo?: string;
-  } | null;
+interface StandardProfilePreset {
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  recomendadoPara: string;
+  configuracion: ProfileConfiguration;
 }
 
-/**
- * Obtiene los colaboradores y perfiles vinculados a la organización activa.
- * Aplica RLS mediante la sesión de Supabase SSR.
- */
-export const getTeamMembers = cache(
-  async (orgId: string): Promise<TeamMember[]> => {
+const ALL_MODULES = [
+  "dashboard",
+  "cotizaciones",
+  "clientes",
+  "calendario",
+  "trabajos",
+  "tiempo",
+  "finanzas",
+  "postventa",
+  "inventario",
+  "academia",
+  "reportes",
+  "configuraciones",
+];
+
+function buildProfileConfig(
+  overrides: Partial<ProfileConfiguration> & {
+    restricciones?: Partial<Record<RestrictionKey, RestrictionScope>>;
+  },
+): ProfileConfiguration {
+  return {
+    modulos: overrides.modulos ?? ["dashboard", "calendario", "trabajos"],
+    opciones: {
+      ve_precios_montos: overrides.opciones?.ve_precios_montos ?? false,
+      valida_servicios: overrides.opciones?.valida_servicios ?? false,
+      es_personal_campo: overrides.opciones?.es_personal_campo ?? false,
+    },
+    restricciones: {
+      ver_montos_cotizaciones:
+        overrides.restricciones?.ver_montos_cotizaciones ?? "ninguna",
+      editar_cotizaciones:
+        overrides.restricciones?.editar_cotizaciones ?? "ninguna",
+      eliminar_cotizaciones:
+        overrides.restricciones?.eliminar_cotizaciones ?? "ninguna",
+      programar_reprogramar:
+        overrides.restricciones?.programar_reprogramar ?? "ninguna",
+      pagos_clientes: overrides.restricciones?.pagos_clientes ?? "ninguna",
+      costeo_margenes: overrides.restricciones?.costeo_margenes ?? "ninguna",
+      cancelar_servicios:
+        overrides.restricciones?.cancelar_servicios ?? "ninguna",
+    },
+    descargar_archivos: overrides.descargar_archivos ?? false,
+    aprueba_solicitudes: overrides.aprueba_solicitudes ?? false,
+    ocultar_datos_cliente: {
+      telefonos: overrides.ocultar_datos_cliente?.telefonos ?? false,
+      correos: overrides.ocultar_datos_cliente?.correos ?? false,
+      documento: overrides.ocultar_datos_cliente?.documento ?? false,
+      direccion: overrides.ocultar_datos_cliente?.direccion ?? false,
+    },
+    horario_acceso: {
+      restringido: overrides.horario_acceso?.restringido ?? false,
+      inicio: overrides.horario_acceso?.inicio ?? "08:00",
+      fin: overrides.horario_acceso?.fin ?? "18:00",
+    },
+    dispositivo_acceso: overrides.dispositivo_acceso ?? "cualquiera",
+  };
+}
+
+export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
+  {
+    codigo: "admin",
+    nombre: "Administrador",
+    descripcion:
+      "Acceso total a todos los módulos, configuraciones, finanzas y reportes de la empresa.",
+    recomendadoPara: "Dueños, gerencia general y responsables de cuenta",
+    configuracion: buildProfileConfig({
+      modulos: ALL_MODULES,
+      opciones: {
+        ve_precios_montos: true,
+        valida_servicios: true,
+        es_personal_campo: false,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "todas",
+        editar_cotizaciones: "todas",
+        eliminar_cotizaciones: "todas",
+        programar_reprogramar: "todas",
+        pagos_clientes: "todas",
+        costeo_margenes: "todas",
+        cancelar_servicios: "todas",
+      },
+      descargar_archivos: true,
+      aprueba_solicitudes: true,
+    }),
+  },
+  {
+    codigo: "supervisor",
+    nombre: "Supervisor",
+    descripcion:
+      "Supervisa trabajos en campo, valida servicios realizados y gestiona cuadrillas operativas.",
+    recomendadoPara: "Jefes de operaciones y supervisores de ruta",
+    configuracion: buildProfileConfig({
+      modulos: [
+        "dashboard",
+        "calendario",
+        "clientes",
+        "trabajos",
+        "tiempo",
+        "postventa",
+        "inventario",
+        "academia",
+      ],
+      opciones: {
+        ve_precios_montos: false,
+        valida_servicios: true,
+        es_personal_campo: true,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "equipo",
+        editar_cotizaciones: "ninguna",
+        eliminar_cotizaciones: "ninguna",
+        programar_reprogramar: "todas",
+        pagos_clientes: "ninguna",
+        costeo_margenes: "ninguna",
+        cancelar_servicios: "equipo",
+      },
+      descargar_archivos: true,
+      aprueba_solicitudes: true,
+    }),
+  },
+  {
+    codigo: "ventas",
+    nombre: "Ventas",
+    descripcion:
+      "Cotiza, atiende clientes, programa trabajos y hace seguimiento comercial.",
+    recomendadoPara: "Ejecutivos comerciales y asesores de ventas",
+    configuracion: buildProfileConfig({
+      modulos: [
+        "cotizaciones",
+        "clientes",
+        "calendario",
+        "trabajos",
+        "postventa",
+      ],
+      opciones: {
+        ve_precios_montos: true,
+        valida_servicios: false,
+        es_personal_campo: false,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "propias",
+        editar_cotizaciones: "propias",
+        eliminar_cotizaciones: "ninguna",
+        programar_reprogramar: "propias",
+        pagos_clientes: "propias",
+        costeo_margenes: "ninguna",
+        cancelar_servicios: "ninguna",
+      },
+      descargar_archivos: true,
+      aprueba_solicitudes: false,
+    }),
+  },
+  {
+    codigo: "coordinador_agenda",
+    nombre: "Coordinador de agenda",
+    descripcion:
+      "Organiza el calendario, asigna técnicos a visitas y reprograma órdenes de trabajo.",
+    recomendadoPara: "Despachadores y coordinadores de programación",
+    configuracion: buildProfileConfig({
+      modulos: ["dashboard", "calendario", "clientes", "trabajos", "tiempo"],
+      opciones: {
+        ve_precios_montos: false,
+        valida_servicios: true,
+        es_personal_campo: false,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "ninguna",
+        editar_cotizaciones: "ninguna",
+        eliminar_cotizaciones: "ninguna",
+        programar_reprogramar: "todas",
+        pagos_clientes: "ninguna",
+        costeo_margenes: "ninguna",
+        cancelar_servicios: "todas",
+      },
+      descargar_archivos: false,
+      aprueba_solicitudes: false,
+    }),
+  },
+  {
+    codigo: "contabilidad",
+    nombre: "Contabilidad",
+    descripcion:
+      "Gestiona cobranzas, comprobantes, liquidaciones, caja, bancos y análisis de rentabilidad.",
+    recomendadoPara: "Contadores, tesorería y administración financiera",
+    configuracion: buildProfileConfig({
+      modulos: [
+        "dashboard",
+        "cotizaciones",
+        "clientes",
+        "finanzas",
+        "reportes",
+      ],
+      opciones: {
+        ve_precios_montos: true,
+        valida_servicios: false,
+        es_personal_campo: false,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "todas",
+        editar_cotizaciones: "ninguna",
+        eliminar_cotizaciones: "ninguna",
+        programar_reprogramar: "ninguna",
+        pagos_clientes: "todas",
+        costeo_margenes: "todas",
+        cancelar_servicios: "ninguna",
+      },
+      descargar_archivos: true,
+      aprueba_solicitudes: false,
+    }),
+  },
+  {
+    codigo: "atencion_cliente",
+    nombre: "Atención al cliente",
+    descripcion:
+      "Atiende consultas, gestiona post venta, garantías y seguimiento de satisfacción.",
+    recomendadoPara: "Mesa de ayuda, recepción y post venta",
+    configuracion: buildProfileConfig({
+      modulos: ["clientes", "calendario", "trabajos", "postventa"],
+      opciones: {
+        ve_precios_montos: false,
+        valida_servicios: false,
+        es_personal_campo: false,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "ninguna",
+        editar_cotizaciones: "ninguna",
+        eliminar_cotizaciones: "ninguna",
+        programar_reprogramar: "propias",
+        pagos_clientes: "ninguna",
+        costeo_margenes: "ninguna",
+        cancelar_servicios: "ninguna",
+      },
+      descargar_archivos: false,
+      aprueba_solicitudes: false,
+    }),
+  },
+  {
+    codigo: "analista_gerencia",
+    nombre: "Analista / Gerencia",
+    descripcion:
+      "Consulta indicadores, márgenes, reportes ejecutivos y desempeño operativo en modo lectura.",
+    recomendadoPara: "Analistas de gestión, directorio y auditoría interna",
+    configuracion: buildProfileConfig({
+      modulos: [
+        "dashboard",
+        "cotizaciones",
+        "clientes",
+        "calendario",
+        "trabajos",
+        "tiempo",
+        "finanzas",
+        "reportes",
+      ],
+      opciones: {
+        ve_precios_montos: true,
+        valida_servicios: false,
+        es_personal_campo: false,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "todas",
+        editar_cotizaciones: "ninguna",
+        eliminar_cotizaciones: "ninguna",
+        programar_reprogramar: "ninguna",
+        pagos_clientes: "todas",
+        costeo_margenes: "todas",
+        cancelar_servicios: "ninguna",
+      },
+      descargar_archivos: true,
+      aprueba_solicitudes: false,
+    }),
+  },
+  {
+    codigo: "tecnico",
+    nombre: "Técnico",
+    descripcion:
+      "Solo ve sus trabajos asignados, marcaciones de tiempo y hojas de servicio en la app móvil.",
+    recomendadoPara: "Técnicos de campo y operarios en ruta",
+    configuracion: buildProfileConfig({
+      modulos: ["calendario", "trabajos", "tiempo", "academia"],
+      opciones: {
+        ve_precios_montos: false,
+        valida_servicios: false,
+        es_personal_campo: true,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "ninguna",
+        editar_cotizaciones: "ninguna",
+        eliminar_cotizaciones: "ninguna",
+        programar_reprogramar: "ninguna",
+        pagos_clientes: "ninguna",
+        costeo_margenes: "ninguna",
+        cancelar_servicios: "ninguna",
+      },
+      descargar_archivos: false,
+      aprueba_solicitudes: false,
+      ocultar_datos_cliente: {
+        telefonos: true,
+        correos: true,
+        documento: true,
+        direccion: false,
+      },
+      dispositivo_acceso: "solo_app",
+    }),
+  },
+  {
+    codigo: "gerente_comercial",
+    nombre: "Gerente Comercial",
+    descripcion:
+      "Lidera el equipo de ventas, aprueba descuentos, revisa márgenes y gestiona el embudo comercial.",
+    recomendadoPara: "Jefes de ventas y gerentes comerciales",
+    configuracion: buildProfileConfig({
+      modulos: [
+        "dashboard",
+        "cotizaciones",
+        "clientes",
+        "calendario",
+        "trabajos",
+        "postventa",
+        "reportes",
+      ],
+      opciones: {
+        ve_precios_montos: true,
+        valida_servicios: false,
+        es_personal_campo: false,
+      },
+      restricciones: {
+        ver_montos_cotizaciones: "todas",
+        editar_cotizaciones: "todas",
+        eliminar_cotizaciones: "equipo",
+        programar_reprogramar: "todas",
+        pagos_clientes: "equipo",
+        costeo_margenes: "todas",
+        cancelar_servicios: "equipo",
+      },
+      descargar_archivos: true,
+      aprueba_solicitudes: true,
+    }),
+  },
+];
+
+function normalizeProfileConfiguration(
+  rawConfig: unknown,
+  codigo: string | null,
+  nombre: string,
+  permisosRows: { permiso_codigo: string; alcance: string | null }[],
+): {
+  descripcionDefault: string;
+  recomendadoDefault: string;
+  configuracion: ProfileConfiguration;
+} {
+  const preset =
+    STANDARD_PROFILE_PRESETS.find(
+      (p) =>
+        (codigo && p.codigo.toLowerCase() === codigo.toLowerCase()) ||
+        p.nombre.toLowerCase() === nombre.toLowerCase(),
+    ) ?? STANDARD_PROFILE_PRESETS[2];
+
+  const base = preset.configuracion;
+  const parsed =
+    rawConfig && typeof rawConfig === "object" && !Array.isArray(rawConfig)
+      ? (rawConfig as Partial<ProfileConfiguration>)
+      : {};
+
+  const merged = buildProfileConfig({
+    modulos: Array.isArray(parsed.modulos) ? parsed.modulos : base.modulos,
+    opciones: {
+      ve_precios_montos:
+        parsed.opciones?.ve_precios_montos ?? base.opciones.ve_precios_montos,
+      valida_servicios:
+        parsed.opciones?.valida_servicios ?? base.opciones.valida_servicios,
+      es_personal_campo:
+        parsed.opciones?.es_personal_campo ?? base.opciones.es_personal_campo,
+    },
+    restricciones: {
+      ...base.restricciones,
+      ...(parsed.restricciones ?? {}),
+    },
+    descargar_archivos: parsed.descargar_archivos ?? base.descargar_archivos,
+    aprueba_solicitudes: parsed.aprueba_solicitudes ?? base.aprueba_solicitudes,
+    ocultar_datos_cliente: {
+      ...base.ocultar_datos_cliente,
+      ...(parsed.ocultar_datos_cliente ?? {}),
+    },
+    horario_acceso: {
+      ...base.horario_acceso,
+      ...(parsed.horario_acceso ?? {}),
+    },
+    dispositivo_acceso: parsed.dispositivo_acceso ?? base.dispositivo_acceso,
+  });
+
+  // Si existen filas en perfil_permisos con alcance explícito, sincronizarlas
+  for (const pp of permisosRows) {
+    const scope = (pp.alcance as RestrictionScope | null) ?? "todas";
+    if (
+      pp.permiso_codigo === "cotizaciones.ver_montos" ||
+      pp.permiso_codigo === "ver_montos_cotizaciones"
+    ) {
+      merged.restricciones.ver_montos_cotizaciones = scope;
+    } else if (
+      pp.permiso_codigo === "cotizaciones.editar" ||
+      pp.permiso_codigo === "editar_cotizaciones"
+    ) {
+      merged.restricciones.editar_cotizaciones = scope;
+    } else if (
+      pp.permiso_codigo === "cotizaciones.eliminar" ||
+      pp.permiso_codigo === "eliminar_cotizaciones"
+    ) {
+      merged.restricciones.eliminar_cotizaciones = scope;
+    } else if (
+      pp.permiso_codigo === "agenda.programar" ||
+      pp.permiso_codigo === "programar_reprogramar"
+    ) {
+      merged.restricciones.programar_reprogramar = scope;
+    } else if (
+      pp.permiso_codigo === "cobranzas.ver" ||
+      pp.permiso_codigo === "pagos_clientes"
+    ) {
+      merged.restricciones.pagos_clientes = scope;
+    } else if (
+      pp.permiso_codigo === "rentabilidad.ver" ||
+      pp.permiso_codigo === "costeo_margenes"
+    ) {
+      merged.restricciones.costeo_margenes = scope;
+    } else if (
+      pp.permiso_codigo === "trabajos.cancelar" ||
+      pp.permiso_codigo === "cancelar_servicios"
+    ) {
+      merged.restricciones.cancelar_servicios = scope;
+    }
+  }
+
+  return {
+    descripcionDefault: preset.descripcion,
+    recomendadoDefault: preset.recomendadoPara,
+    configuracion: merged,
+  };
+}
+
+function splitFullName(
+  nombre: string | null | undefined,
+  nombres?: string | null,
+  apellidos?: string | null,
+): { fullName: string; firstName: string; lastName: string } {
+  if (nombres || apellidos) {
+    const first = (nombres ?? "").trim();
+    const last = (apellidos ?? "").trim();
+    const full = `${first} ${last}`.trim() || (nombre ?? "").trim();
+    return { fullName: full, firstName: first, lastName: last };
+  }
+  const clean = (nombre ?? "").trim();
+  if (!clean) {
+    return { fullName: "Sin nombre", firstName: "", lastName: "" };
+  }
+  const parts = clean.split(/\s+/);
+  if (parts.length === 1) {
+    return { fullName: clean, firstName: parts[0], lastName: "" };
+  }
+  const firstName = parts.slice(0, Math.ceil(parts.length / 2)).join(" ");
+  const lastName = parts.slice(Math.ceil(parts.length / 2)).join(" ");
+  return { fullName: clean, firstName, lastName };
+}
+
+function describeAuditRecord(
+  accion: string,
+  tabla: string,
+  antes: Record<string, unknown> | null,
+  despues: Record<string, unknown> | null,
+): string {
+  const verbo =
+    accion === "crear"
+      ? "Creó registro en"
+      : accion === "editar"
+        ? "Actualizó registro en"
+        : accion === "borrar"
+          ? "Eliminó registro en"
+          : `${accion} en`;
+
+  if (tabla === "membresias") {
+    const estadoNuevo = despues?.estado as string | undefined;
+    const estadoAnterior = antes?.estado as string | undefined;
+    if (estadoNuevo === "desvinculada") {
+      return "Desvinculó a un miembro de la empresa";
+    }
+    if (estadoNuevo && estadoAnterior && estadoNuevo !== estadoAnterior) {
+      return `Cambió estado de membresía de ${estadoAnterior} a ${estadoNuevo}`;
+    }
+    if (
+      antes?.perfil_id &&
+      despues?.perfil_id &&
+      antes.perfil_id !== despues.perfil_id
+    ) {
+      return "Actualizó el perfil asignado a un miembro";
+    }
+    return `${verbo} membresías del equipo`;
+  }
+
+  if (tabla === "invitaciones") {
+    const correo = (despues?.correo ?? antes?.correo ?? "") as string;
+    const estado = (despues?.estado ?? "") as string;
+    if (accion === "crear") {
+      return `Envió invitación a ${correo || "nuevo colaborador"}`;
+    }
+    if (estado === "anulada") {
+      return `Anuló invitación previa (${correo || "colaborador"})`;
+    }
+    return `${verbo} invitaciones (${estado || "actualización"})`;
+  }
+
+  if (tabla === "perfiles") {
+    const nombre = (despues?.nombre ?? antes?.nombre ?? "perfil") as string;
+    if (accion === "crear") return `Creó el perfil «${nombre}»`;
+    if (accion === "editar") return `Actualizó el perfil «${nombre}»`;
+    if (accion === "borrar") return `Eliminó el perfil «${nombre}»`;
+  }
+
+  if (tabla === "solicitudes_salida") {
+    const estado = (despues?.estado ?? "") as string;
+    if (estado === "aprobada") return "Aprobó una solicitud de salida";
+    if (estado === "rechazada") return "Rechazó una solicitud de salida";
+    return "Registró movimiento en solicitudes de salida";
+  }
+
+  return `${verbo} ${tabla}`;
+}
+
+export const getUsersProfilesBundle = cache(
+  async (empresaId: string): Promise<UsersProfilesBundle> => {
     const supabase = await createClient();
     const {
       data: { user: currentUser },
     } = await supabase.auth.getUser();
 
     const currentUserId = currentUser?.id ?? "";
-    const currentUserEmail = currentUser?.email ?? "admin@vittakleanly.pe";
 
-    const members: TeamMember[] = [];
+    // 1. Consultar perfiles exclusivamente de la empresa activa (empresa_id = empresaId)
+    const { data: rawProfiles } = await supabase
+      .from("perfiles")
+      .select(
+        "id, empresa_id, codigo, nombre, descripcion, recomendado_para, configuracion, es_base",
+      )
+      .eq("empresa_id", empresaId)
+      .order("es_base", { ascending: false })
+      .order("nombre", { ascending: true });
 
-    // 1. Intento principal sobre la tabla canónica memberships
-    try {
-      const { data: canonicalRows, error: canonicalError } = await supabase
-        .from("memberships")
-        .select(
-          `
+    const profileIds = (rawProfiles ?? []).map((p) => p.id);
+    const { data: rawPerfilPermisos } =
+      profileIds.length > 0
+        ? await supabase
+            .from("perfil_permisos")
+            .select("perfil_id, permiso_codigo, alcance")
+            .in("perfil_id", profileIds)
+        : {
+            data: [] as {
+              perfil_id: string;
+              permiso_codigo: string;
+              alcance: string | null;
+            }[],
+          };
+
+    // 2. Consultar membresías de la empresa activa (JOIN con usuarios y perfiles)
+    const { data: rawMembresias } = await supabase
+      .from("membresias")
+      .select(
+        `
+        id,
+        empresa_id,
+        usuario_id,
+        perfil_id,
+        es_propietario,
+        acceso_web,
+        acceso_app,
+        cargo,
+        estado,
+        activo,
+        invitacion_id,
+        creado_en,
+        usuarios:usuario_id (
           id,
-          org_id,
-          user_id,
-          role,
-          status,
-          access_scope,
-          job_title,
-          created_at,
-          profiles:user_id (
-            id,
-            first_name,
-            last_name,
-            full_name,
-            phone,
-            avatar_url
-          ),
-          access_profiles:access_profile_id (
-            id,
-            name,
-            std_key
-          )
-        `,
+          nombre,
+          nombres,
+          apellidos,
+          correo,
+          celular,
+          avatar_ruta,
+          tipo_documento,
+          numero_documento
+        ),
+        perfiles:perfil_id (
+          id,
+          nombre,
+          codigo,
+          es_base
         )
-        .eq("org_id", orgId);
+      `,
+      )
+      .eq("empresa_id", empresaId)
+      .order("es_propietario", { ascending: false })
+      .order("creado_en", { ascending: true });
 
-      if (!canonicalError && canonicalRows && canonicalRows.length > 0) {
-        for (const row of canonicalRows as unknown as DbMembershipRow[]) {
-          const uId = row.user_id ?? "";
-          const isCurrent = Boolean(currentUserId && uId === currentUserId);
-          const p = row.profiles;
-          const ap = row.access_profiles;
+    // 3. Consultar invitaciones de la empresa activa
+    const { data: rawInvitaciones } = await supabase
+      .from("invitaciones")
+      .select(
+        `
+        id,
+        empresa_id,
+        tipo,
+        usuario_id,
+        nombres,
+        apellidos,
+        tipo_documento,
+        numero_documento,
+        correo,
+        celular,
+        perfil_id,
+        cargo,
+        acceso_web,
+        acceso_app,
+        vence_en,
+        estado,
+        motivo_rechazo,
+        respondida_en,
+        creado_en
+      `,
+      )
+      .eq("empresa_id", empresaId)
+      .order("creado_en", { ascending: false });
 
-          const fullName =
-            p?.full_name ||
-            [p?.first_name, p?.last_name].filter(Boolean).join(" ") ||
-            (isCurrent ? "Tú (Administrador)" : "Colaborador Vittkly");
+    // 4. Consultar solicitudes de salida de la empresa activa
+    const { data: rawSalidas } = await supabase
+      .from("solicitudes_salida")
+      .select(
+        `
+        id,
+        empresa_id,
+        membresia_id,
+        usuario_id,
+        motivo,
+        estado,
+        comentario_resolucion,
+        servicios_futuros,
+        creado_en,
+        resuelto_en
+      `,
+      )
+      .eq("empresa_id", empresaId)
+      .order("creado_en", { ascending: false });
 
-          let status: MemberStatus = "active";
-          if (row.status === "invited" || row.status === "pending") {
-            status = "pending";
-          } else if (row.status === "suspended" || row.status === "inactive") {
-            status = "suspended";
-          }
+    // 5. Consultar auditoría de la empresa activa
+    const { data: rawAuditoria } = await supabase
+      .from("auditoria")
+      .select(
+        "id, empresa_id, usuario_id, accion, tabla, registro_id, antes, despues, creado_en",
+      )
+      .eq("empresa_id", empresaId)
+      .order("creado_en", { ascending: false })
+      .limit(60);
 
-          let scope: AccessScope = "both";
-          if (row.access_scope === "web" || row.access_scope === "mobile") {
-            scope = row.access_scope as AccessScope;
-          }
-
-          const roleName =
-            ap?.name ||
-            (row.role === "owner"
-              ? "Administrador"
-              : row.role === "technician"
-                ? "Técnico"
-                : "Personal");
-
-          members.push({
-            id: row.id,
-            userId: uId,
-            fullName,
-            email: isCurrent
-              ? currentUserEmail
-              : `${fullName.toLowerCase().replace(/\s+/g, ".")}@vittakleanly.pe`,
-            phone: p?.phone || (isCurrent ? "+51 987 654 321" : null),
-            avatarUrl: p?.avatar_url || null,
-            role: roleName,
-            isOwner: row.role === "owner" || isCurrent,
-            isCurrentUser: isCurrent,
-            accessScope: scope,
-            accessMethods: isCurrent
-              ? ["google", "password"]
-              : ["whatsapp", "pin"],
-            status,
-            jobTitle: row.job_title || null,
-            createdAt: row.created_at || new Date().toISOString(),
-          });
-        }
-      }
-    } catch {
-      // Fallback si la vista no existe en la base de datos
-    }
-
-    // 2. Si members está vacío, intentar sobre la tabla membresias
-    if (members.length === 0) {
-      try {
-        const { data: legacyRows, error: legacyError } = await supabase
-          .from("membresias")
-          .select(
-            `
-            id,
-            empresa_id,
-            usuario_id,
-            es_propietario,
-            acceso_web,
-            activo,
-            creado_en,
-            usuarios:usuario_id (
-              id,
-              nombre,
-              telefono,
-              identificador
-            ),
-            perfiles:perfil_id (
-              id,
-              nombre,
-              codigo
-            )
-          `,
-          )
-          .eq("empresa_id", orgId);
-
-        if (!legacyError && legacyRows && legacyRows.length > 0) {
-          for (const row of legacyRows as unknown as DbMembershipRow[]) {
-            const uId = row.usuario_id ?? "";
-            const isCurrent = Boolean(currentUserId && uId === currentUserId);
-            const u = row.usuarios;
-            const p = row.perfiles;
-
-            const fullName =
-              u?.nombre ||
-              (isCurrent ? "Tú (Administrador)" : "Colaborador Vittkly");
-            const roleName =
-              p?.nombre || (row.es_propietario ? "Administrador" : "Personal");
-
-            members.push({
-              id: row.id,
-              userId: uId,
-              fullName,
-              email:
-                u?.identificador ||
-                (isCurrent
-                  ? currentUserEmail
-                  : `${fullName.toLowerCase().replace(/\s+/g, ".")}@vittakleanly.pe`),
-              phone: u?.telefono || (isCurrent ? "+51 987 654 321" : null),
-              avatarUrl: null,
-              role: roleName,
-              isOwner: Boolean(row.es_propietario || isCurrent),
-              isCurrentUser: isCurrent,
-              accessScope: row.acceso_web ? "web" : "both",
-              accessMethods: ["google", "whatsapp"],
-              status: row.activo ? "active" : "suspended",
-              createdAt: row.creado_en || new Date().toISOString(),
-            });
-          }
-        }
-      } catch {
-        // Fallback controlado
-      }
-    }
-
-    // 3. Requisito 5.2: Si no hay colaboradores adicionales o la BD es nueva,
-    // garantizamos el equipo inicial canónico del artefacto con estados Activa, Pendiente y Suspendida
-    const currentUserExists = members.some((m) => m.isCurrentUser);
-
-    if (!currentUserExists) {
-      members.unshift({
-        id: "owner-current-user",
-        userId: currentUserId || "usr-001",
-        fullName: "Wilmer Abanto",
-        email: currentUserEmail,
-        phone: "+51 987 654 321",
-        avatarUrl: null,
-        role: "Administrador",
-        isOwner: true,
-        isCurrentUser: true,
-        accessScope: "both",
-        accessMethods: ["google", "microsoft", "whatsapp"],
-        status: "active",
-        createdAt: "2026-01-15T08:00:00Z",
+    // Mapa rápido de perfiles por ID
+    const profileMap = new Map<
+      string,
+      { id: string; nombre: string; codigo: string | null; es_base: boolean }
+    >();
+    for (const p of rawProfiles ?? []) {
+      profileMap.set(p.id, {
+        id: p.id,
+        nombre: p.nombre,
+        codigo: p.codigo,
+        es_base: p.es_base,
       });
     }
 
-    // Complementar con el equipo base oficial si solo figura el usuario actual
-    if (members.length === 1) {
-      members.push(
-        {
-          id: "mem-002",
-          userId: "usr-002",
-          fullName: "Carolina Mendizábal",
-          email: "carolina.m@vittakleanly.pe",
-          phone: "+51 945 123 890",
-          avatarUrl: null,
-          role: "Ventas",
-          isOwner: false,
-          isCurrentUser: false,
-          accessScope: "web",
-          accessMethods: ["google", "whatsapp"],
-          status: "active",
-          createdAt: "2026-02-01T09:30:00Z",
-        },
-        {
-          id: "mem-003",
-          userId: "usr-003",
-          fullName: "Javier Paredes",
-          email: "javier.paredes@vittakleanly.pe",
-          phone: "+51 978 444 321",
-          avatarUrl: null,
-          role: "Técnico",
-          isOwner: false,
-          isCurrentUser: false,
-          accessScope: "mobile",
-          accessMethods: ["whatsapp", "pin"],
-          status: "pending",
-          statusLabel: "Aún no ingresa",
-          createdAt: "2026-03-10T14:15:00Z",
-        },
-        {
-          id: "mem-004",
-          userId: "usr-004",
-          fullName: "Rodrigo Morales",
-          email: "rodrigo.m@vittakleanly.pe",
-          phone: "+51 912 333 777",
-          avatarUrl: null,
-          role: "Técnico",
-          isOwner: false,
-          isCurrentUser: false,
-          accessScope: "mobile",
-          accessMethods: ["pin"],
-          status: "suspended",
-          createdAt: "2026-01-20T11:00:00Z",
-        },
+    // Mapa de nombres de usuario para enriquecer salidas y auditoría
+    const userNamesById = new Map<
+      string,
+      { fullName: string; email: string | null }
+    >();
+
+    // Conteo de miembros activos/suspendidos por perfil
+    const usageByProfileId = new Map<string, number>();
+
+    const members: TeamMember[] = [];
+
+    for (const row of rawMembresias ?? []) {
+      const rawEstado =
+        (row as { estado?: string }).estado ??
+        (row.activo ? "activa" : "desactivada");
+
+      // Las membresías desvinculadas ya no forman parte de la tabla activa de Personas
+      if (rawEstado === "desvinculada") {
+        continue;
+      }
+
+      usageByProfileId.set(
+        row.perfil_id,
+        (usageByProfileId.get(row.perfil_id) ?? 0) + 1,
       );
+
+      const u = Array.isArray(row.usuarios) ? row.usuarios[0] : row.usuarios;
+      const p = Array.isArray(row.perfiles) ? row.perfiles[0] : row.perfiles;
+
+      const isCurrent = Boolean(
+        currentUserId && row.usuario_id === currentUserId,
+      );
+
+      const { fullName, firstName, lastName } = splitFullName(
+        u?.nombre || (isCurrent ? (currentUser?.email ?? "Usuario") : null),
+        (u as { nombres?: string | null } | null)?.nombres,
+        (u as { apellidos?: string | null } | null)?.apellidos,
+      );
+
+      const email =
+        u?.correo || (isCurrent ? (currentUser?.email ?? "") : "") || "";
+      const phone = u?.celular ?? null;
+
+      userNamesById.set(row.usuario_id, { fullName, email });
+
+      const accesoWeb = row.acceso_web ?? true;
+      const accesoApp =
+        (row as { acceso_app?: boolean }).acceso_app ??
+        (p?.codigo === "tecnico" ? true : true);
+      const accessLabel = mapFlagsToAccessLabel(accesoWeb, accesoApp);
+      const accessScope: AccessScope =
+        accessLabel === "Solo web"
+          ? "web"
+          : accessLabel === "Solo app"
+            ? "mobile"
+            : "both";
+
+      const status: MemberStatus =
+        rawEstado === "activa" ? "active" : "suspended";
+
+      const docType = ((u as { tipo_documento?: string | null } | null)
+        ?.tipo_documento ?? null) as DocumentType | null;
+      const docNumberRaw =
+        (u as { numero_documento?: string | null } | null)?.numero_documento ??
+        null;
+
+      members.push({
+        id: row.id,
+        sourceType: "membresia",
+        userId: row.usuario_id,
+        perfilId: row.perfil_id,
+        fullName,
+        firstName,
+        lastName,
+        email,
+        phone,
+        avatarUrl: u?.avatar_ruta ?? null,
+        docType,
+        docNumberMasked: maskDocumentNumber(docNumberRaw),
+        role:
+          p?.nombre ??
+          profileMap.get(row.perfil_id)?.nombre ??
+          (row.es_propietario ? "Administrador" : "Personal"),
+        roleCode: p?.codigo ?? profileMap.get(row.perfil_id)?.codigo ?? "admin",
+        isOwner: Boolean(row.es_propietario),
+        isCurrentUser: isCurrent,
+        accesoWeb,
+        accesoApp,
+        accessScope,
+        accessLabel,
+        accessMethods:
+          accessLabel === "Solo app"
+            ? ["whatsapp", "pin"]
+            : ["google", "microsoft", "whatsapp"],
+        status,
+        jobTitle: (row as { cargo?: string | null }).cargo ?? null,
+        invitationId:
+          (row as { invitacion_id?: string | null }).invitacion_id ?? null,
+        createdAt: row.creado_en,
+      });
     }
 
-    return members;
+    // Procesar invitaciones y agregar las 'pendiente' a la lista de Personas
+    const invitations: InvitationRecord[] = [];
+    for (const inv of rawInvitaciones ?? []) {
+      const perfilMeta = profileMap.get(inv.perfil_id);
+      const perfilNombre = perfilMeta?.nombre ?? "Colaborador";
+      const accesoWeb = inv.acceso_web ?? true;
+      const accesoApp = (inv as { acceso_app?: boolean }).acceso_app ?? true;
+      const accessLabel = mapFlagsToAccessLabel(accesoWeb, accesoApp);
+
+      const { fullName, firstName, lastName } = splitFullName(
+        inv.correo ?? inv.celular ?? "Invitado",
+        (inv as { nombres?: string | null }).nombres,
+        (inv as { apellidos?: string | null }).apellidos,
+      );
+
+      const docType = ((inv as { tipo_documento?: string | null })
+        .tipo_documento ?? null) as DocumentType | null;
+      const docNumberMasked = maskDocumentNumber(
+        (inv as { numero_documento?: string | null }).numero_documento ?? null,
+      );
+
+      const invEstado = (inv.estado ||
+        "pendiente") as InvitationRecord["estado"];
+
+      invitations.push({
+        id: inv.id,
+        tipo:
+          (inv as { tipo?: string }).tipo === "cuenta_existente"
+            ? "cuenta_existente"
+            : "nueva_cuenta",
+        usuarioId: (inv as { usuario_id?: string | null }).usuario_id ?? null,
+        fullName,
+        email: inv.correo,
+        phone: inv.celular,
+        docType,
+        docNumberMasked,
+        perfilId: inv.perfil_id,
+        perfilNombre,
+        cargo: (inv as { cargo?: string | null }).cargo ?? null,
+        accesoWeb,
+        accesoApp,
+        accessLabel,
+        estado: invEstado,
+        motivoRechazo:
+          (inv as { motivo_rechazo?: string | null }).motivo_rechazo ?? null,
+        venceEn: inv.vence_en,
+        respondidaEn:
+          (inv as { respondida_en?: string | null }).respondida_en ?? null,
+        creadoEn: inv.creado_en,
+      });
+
+      if (invEstado === "pendiente") {
+        const accessScope: AccessScope =
+          accessLabel === "Solo web"
+            ? "web"
+            : accessLabel === "Solo app"
+              ? "mobile"
+              : "both";
+
+        members.push({
+          id: `inv-${inv.id}`,
+          sourceType: "invitacion",
+          userId:
+            (inv as { usuario_id?: string | null }).usuario_id ??
+            `inv-user-${inv.id}`,
+          perfilId: inv.perfil_id,
+          fullName,
+          firstName,
+          lastName,
+          email: inv.correo ?? "",
+          phone: inv.celular ?? null,
+          avatarUrl: null,
+          docType,
+          docNumberMasked,
+          role: perfilNombre,
+          roleCode: perfilMeta?.codigo ?? undefined,
+          isOwner: false,
+          isCurrentUser: false,
+          accesoWeb,
+          accesoApp,
+          accessScope,
+          accessLabel,
+          accessMethods:
+            accessLabel === "Solo app"
+              ? ["whatsapp", "pin"]
+              : ["google", "microsoft", "whatsapp"],
+          status: "pending",
+          statusLabel: "Aún no ingresa",
+          jobTitle: (inv as { cargo?: string | null }).cargo ?? null,
+          invitationId: inv.id,
+          invitationExpiresAt: inv.vence_en,
+          createdAt: inv.creado_en,
+        });
+      }
+    }
+
+    // Construir tarjetas de perfiles de la empresa
+    const profiles: CompanyProfile[] = (rawProfiles ?? []).map((p) => {
+      const permRows = (rawPerfilPermisos ?? []).filter(
+        (pp) => pp.perfil_id === p.id,
+      );
+      const { descripcionDefault, recomendadoDefault, configuracion } =
+        normalizeProfileConfiguration(
+          (p as { configuracion?: unknown }).configuracion,
+          p.codigo,
+          p.nombre,
+          permRows,
+        );
+
+      return {
+        id: p.id,
+        codigo: p.codigo,
+        nombre: p.nombre,
+        descripcion: p.descripcion || descripcionDefault,
+        recomendadoPara:
+          (p as { recomendado_para?: string | null }).recomendado_para ||
+          recomendadoDefault,
+        esBase: p.es_base,
+        usageCount: usageByProfileId.get(p.id) ?? 0,
+        configuracion,
+      };
+    });
+
+    // Construir solicitudes de salida
+    const exitRequests: ExitRequestRecord[] = (rawSalidas ?? []).map((s) => {
+      const uMeta = userNamesById.get(s.usuario_id);
+      const matchingMember = members.find((m) => m.id === s.membresia_id);
+      return {
+        id: s.id,
+        membresiaId: s.membresia_id,
+        usuarioId: s.usuario_id,
+        fullName: uMeta?.fullName ?? matchingMember?.fullName ?? "Colaborador",
+        email: uMeta?.email ?? matchingMember?.email ?? null,
+        perfilNombre: matchingMember?.role ?? "Miembro",
+        motivo: s.motivo,
+        estado: (s.estado as ExitRequestRecord["estado"]) || "pendiente",
+        comentarioResolucion: s.comentario_resolucion,
+        serviciosFuturos: s.servicios_futuros ?? 0,
+        creadoEn: s.creado_en,
+        resueltoEn: s.resuelto_en,
+      };
+    });
+
+    // Construir registros de auditoría
+    const auditLogs: AuditLogEntry[] = (rawAuditoria ?? []).map((a) => {
+      const actorMeta = a.usuario_id
+        ? userNamesById.get(a.usuario_id)
+        : undefined;
+      const antesObj =
+        a.antes && typeof a.antes === "object" && !Array.isArray(a.antes)
+          ? (a.antes as Record<string, unknown>)
+          : null;
+      const despuesObj =
+        a.despues && typeof a.despues === "object" && !Array.isArray(a.despues)
+          ? (a.despues as Record<string, unknown>)
+          : null;
+
+      return {
+        id: a.id,
+        accion: a.accion,
+        tabla: a.tabla,
+        registroId: a.registro_id,
+        actorNombre:
+          actorMeta?.fullName ??
+          (a.usuario_id && a.usuario_id === currentUserId
+            ? "Tú (Administrador)"
+            : "Sistema / Administrador"),
+        resumen: describeAuditRecord(a.accion, a.tabla, antesObj, despuesObj),
+        creadoEn: a.creado_en,
+      };
+    });
+
+    return {
+      members,
+      profiles,
+      invitations,
+      exitRequests,
+      auditLogs,
+    };
+  },
+);
+
+export const getTeamMembers = cache(
+  async (empresaId: string): Promise<TeamMember[]> => {
+    const bundle = await getUsersProfilesBundle(empresaId);
+    return bundle.members;
   },
 );

@@ -14,6 +14,7 @@ import {
 import { evaluatePasswordStrength } from "@vittkly/shared";
 import { resetPasswordAction } from "@/features/auth/actions/auth.actions";
 import type { AuthActionState } from "@/features/auth/types/auth.types";
+import { AuthCard } from "@/features/auth/components/AuthCard";
 
 const initialState: AuthActionState = {
   error: null,
@@ -41,9 +42,9 @@ export default function RestablecerContrasenaPage() {
   const isFormValid = strength.isValid && passwordsMatch;
 
   return (
-    <div className="flex flex-col gap-6">
+    <AuthCard showLogo>
       <div className="flex flex-col gap-1.5 text-center sm:text-left">
-        <h1 className="text-ink text-2xl font-bold tracking-tight">
+        <h1 className="text-ink text-xl font-bold tracking-tight sm:text-2xl">
           Nueva Contraseña
         </h1>
         <p className="text-soft text-sm">
@@ -81,16 +82,16 @@ export default function RestablecerContrasenaPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border pr-11 pl-3.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+              className="border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border pr-12 pl-3.5 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
             />
             <button
               type="button"
-              tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
+              aria-pressed={showPassword}
               aria-label={
                 showPassword ? "Ocultar contraseña" : "Ver contraseña"
               }
-              className="text-soft hover:text-ink absolute right-3 inline-flex p-1 transition-colors focus-visible:outline-none"
+              className="text-soft hover:text-ink focus-visible:outline-focus absolute right-1.5 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors focus-visible:outline-2"
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -188,20 +189,20 @@ export default function RestablecerContrasenaPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
-              className={`border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border pr-11 pl-3.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`text-ink bg-surface-raised placeholder:text-soft/60 h-12 w-full rounded-md border pr-12 pl-3.5 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm ${
                 confirmPassword.length > 0 && !passwordsMatch
                   ? "border-danger focus-visible:outline-danger"
-                  : ""
+                  : "border-line focus-visible:outline-accent"
               }`}
             />
             <button
               type="button"
-              tabIndex={-1}
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              aria-pressed={showConfirmPassword}
               aria-label={
                 showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"
               }
-              className="text-soft hover:text-ink absolute right-3 inline-flex p-1 transition-colors focus-visible:outline-none"
+              className="text-soft hover:text-ink focus-visible:outline-focus absolute right-1.5 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors focus-visible:outline-2"
             >
               {showConfirmPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -233,7 +234,7 @@ export default function RestablecerContrasenaPage() {
         <button
           type="submit"
           disabled={isPending || !isFormValid}
-          className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? (
             <>
@@ -248,15 +249,15 @@ export default function RestablecerContrasenaPage() {
           )}
         </button>
 
-        <div className="mt-2 text-center">
+        <div className="mt-1 text-center">
           <Link
             href="/login"
-            className="text-soft hover:text-ink text-xs font-semibold transition-colors"
+            className="text-soft hover:text-ink focus-visible:outline-focus inline-flex min-h-[44px] items-center rounded px-2 text-xs font-semibold transition-colors focus-visible:outline-2"
           >
             Cancelar y volver al login
           </Link>
         </div>
       </form>
-    </div>
+    </AuthCard>
   );
 }

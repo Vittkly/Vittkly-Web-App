@@ -19,7 +19,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   if (!mounted) {
     return (
       <div
-        className={`rounded-pill bg-surface-sunken h-9 w-9 animate-pulse ${className}`}
+        className={`rounded-pill bg-surface-sunken h-11 w-11 animate-pulse lg:h-9 lg:w-9 ${className}`}
       />
     );
   }
@@ -30,7 +30,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className={`rounded-pill border-line bg-surface-raised text-ink hover:text-primary-ink hover:border-vitta focus-visible:outline-focus inline-flex h-9 w-9 items-center justify-center border transition-colors focus-visible:outline-2 ${className}`}
+      className={`rounded-pill border-line bg-surface-raised text-ink hover:text-primary-ink hover:border-vitta focus-visible:outline-focus inline-flex h-11 w-11 cursor-pointer items-center justify-center border transition-colors focus-visible:outline-2 lg:h-9 lg:w-9 ${className}`}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
     >

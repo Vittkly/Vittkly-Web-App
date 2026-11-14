@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { forgotPasswordAction } from "@/features/auth/actions/auth.actions";
 import type { AuthActionState } from "@/features/auth/types/auth.types";
+import { AuthCard } from "@/features/auth/components/AuthCard";
 
 const initialState: AuthActionState = {
   error: null,
@@ -25,9 +26,9 @@ export default function OlvideContrasenaPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <AuthCard showLogo>
       <div className="flex flex-col gap-1.5 text-center sm:text-left">
-        <h1 className="text-ink text-2xl font-bold tracking-tight">
+        <h1 className="text-ink text-xl font-bold tracking-tight sm:text-2xl">
           Recuperar Contraseña
         </h1>
         <p className="text-soft text-sm">
@@ -53,7 +54,7 @@ export default function OlvideContrasenaPage() {
 
           <Link
             href="/login"
-            className="text-accent hover:text-primary-hover inline-flex items-center gap-2 text-sm font-semibold transition-colors"
+            className="text-primary-ink hover:text-primary-hover focus-visible:outline-focus inline-flex min-h-[44px] items-center gap-2 rounded text-sm font-semibold transition-colors focus-visible:outline-2"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Volver al inicio de sesión</span>
@@ -84,10 +85,11 @@ export default function OlvideContrasenaPage() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                inputMode="email"
                 required
                 disabled={isPending}
                 placeholder="tu.correo@empresa.com"
-                className="border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border pr-3.5 pl-10 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                className="border-line text-ink bg-surface-raised placeholder:text-soft/60 focus-visible:outline-accent h-12 w-full rounded-md border pr-3.5 pl-10 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
               />
               <Mail className="text-soft absolute left-3.5 h-4 w-4" />
             </div>
@@ -96,7 +98,7 @@ export default function OlvideContrasenaPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-primary hover:bg-primary-hover text-on-primary focus-visible:outline-focus mt-2 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full text-[15px] font-bold shadow-xs transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? (
               <>
@@ -108,10 +110,10 @@ export default function OlvideContrasenaPage() {
             )}
           </button>
 
-          <div className="mt-2 text-center">
+          <div className="mt-1 text-center">
             <Link
               href="/login"
-              className="text-soft hover:text-ink inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
+              className="text-soft hover:text-ink focus-visible:outline-focus inline-flex min-h-[44px] items-center gap-1.5 rounded px-2 text-xs font-semibold transition-colors focus-visible:outline-2"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Regresar al login</span>
@@ -119,6 +121,6 @@ export default function OlvideContrasenaPage() {
           </div>
         </form>
       )}
-    </div>
+    </AuthCard>
   );
 }

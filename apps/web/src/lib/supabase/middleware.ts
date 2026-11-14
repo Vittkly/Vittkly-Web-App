@@ -54,7 +54,7 @@ export async function updateSession(request: NextRequest) {
     "/dashboard",
   ]);
   const isTenantProtectedRoute =
-    isWorkspaceRoute || startsWithAny(["/select-org"]);
+    isWorkspaceRoute || startsWithAny(["/accesos", "/select-org"]);
 
   if (!user && isStaffDashboardRoute) {
     const loginUrl = request.nextUrl.clone();
@@ -75,7 +75,7 @@ export async function updateSession(request: NextRequest) {
     !request.cookies.get(ACTIVE_ORG_COOKIE)?.value
   ) {
     const selectUrl = request.nextUrl.clone();
-    selectUrl.pathname = "/select-org";
+    selectUrl.pathname = "/accesos";
     selectUrl.search = "";
     const redirectResponse = NextResponse.redirect(selectUrl);
     supabaseResponse.cookies

@@ -2,7 +2,7 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 import {
-  getTeamMembers,
+  getUsersProfilesBundle,
   UsersProfilesView,
   SettingsPlaceholderCanvas,
   SETTINGS_SUBMODULES,
@@ -22,14 +22,12 @@ export default async function SettingsSectionPage({
   const { userId, active } = await resolveActiveOrganization();
 
   if (!userId) redirect("/login");
-  if (!active) redirect("/select-org");
+  if (!active) redirect("/accesos");
 
   // 1. MÓDULO ACTIVO: Usuarios y perfiles
   if (sectionSlug === "usuarios-perfiles") {
-    const members = await getTeamMembers(active.id);
-    return (
-      <UsersProfilesView initialMembers={members} companyName={active.name} />
-    );
+    const bundle = await getUsersProfilesBundle(active.id);
+    return <UsersProfilesView bundle={bundle} companyName={active.name} />;
   }
 
   // 2. RESTO DE MÓDULOS: Cascarones limpios "Próximamente disponible"

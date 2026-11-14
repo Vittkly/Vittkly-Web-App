@@ -146,6 +146,9 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
   --radius-pill: var(--radius-pill);
+
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
 }
 
 * {
@@ -228,26 +231,30 @@ body {
   animation: scFill 5.5s linear forwards;
 }
 
-/* Activar scroll cuando el zoom reduzca la altura disponible */
-@media screen and (max-height: 700px) {
+@media (prefers-reduced-motion: reduce) {
+  .animate-lg-drift,
+  .animate-lg-drift-delayed,
+  .animate-sc-in,
+  .animate-sc-bar,
+  .animate-sc-fill {
+    animation: none !important;
+  }
+}
+
+/* Activar scroll en escritorio cuando el zoom o la altura reducida (< 700px) recorten la vista dividida */
+@media screen and (min-width: 1024px) and (max-height: 700px) {
   #empGate {
     height: auto;
-    min-height: 100vh;
-    overflow-x: hidden;
+    min-height: 100dvh;
+    overflow-x: clip;
     overflow-y: auto;
   }
 
   #empGate > .grid {
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 
-  #empGate > .grid > section {
-    height: auto;
-    min-height: 100vh;
-  }
-
-  /* Permitir que el contenido del showcase crezca */
   #empGate > .grid > section:last-child {
     overflow: visible;
   }

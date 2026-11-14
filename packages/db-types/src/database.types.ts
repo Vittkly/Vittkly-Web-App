@@ -359,9 +359,16 @@ export interface Database {
         Row: {
           id: string;
           nombre: string;
+          nombres: string | null;
+          apellidos: string | null;
+          tipo_documento: string | null;
+          numero_documento: string | null;
           correo: string | null;
           celular: string | null;
           avatar_ruta: string | null;
+          correo_verificado_en: string | null;
+          celular_verificado_en: string | null;
+          prueba_usada_en: string | null;
           ultima_empresa_id: string | null;
           ultimo_ingreso_en: string | null;
           creado_en: string;
@@ -370,10 +377,17 @@ export interface Database {
         };
         Insert: {
           id: string;
-          nombre: string;
+          nombre?: string;
+          nombres?: string | null;
+          apellidos?: string | null;
+          tipo_documento?: string | null;
+          numero_documento?: string | null;
           correo?: string | null;
           celular?: string | null;
           avatar_ruta?: string | null;
+          correo_verificado_en?: string | null;
+          celular_verificado_en?: string | null;
+          prueba_usada_en?: string | null;
           ultima_empresa_id?: string | null;
           ultimo_ingreso_en?: string | null;
           creado_en?: string;
@@ -383,9 +397,16 @@ export interface Database {
         Update: {
           id?: string;
           nombre?: string;
+          nombres?: string | null;
+          apellidos?: string | null;
+          tipo_documento?: string | null;
+          numero_documento?: string | null;
           correo?: string | null;
           celular?: string | null;
           avatar_ruta?: string | null;
+          correo_verificado_en?: string | null;
+          celular_verificado_en?: string | null;
+          prueba_usada_en?: string | null;
           ultima_empresa_id?: string | null;
           ultimo_ingreso_en?: string | null;
           creado_en?: string;
@@ -432,6 +453,8 @@ export interface Database {
           logo_ruta: string | null;
           color_marca: string | null;
           modelo_operacion: string;
+          rubro: string | null;
+          ciudad: string | null;
           zona_horaria: string;
           pais: string;
           moneda: string;
@@ -452,6 +475,8 @@ export interface Database {
           logo_ruta?: string | null;
           color_marca?: string | null;
           modelo_operacion?: string;
+          rubro?: string | null;
+          ciudad?: string | null;
           zona_horaria?: string;
           pais?: string;
           moneda?: string;
@@ -472,6 +497,8 @@ export interface Database {
           logo_ruta?: string | null;
           color_marca?: string | null;
           modelo_operacion?: string;
+          rubro?: string | null;
+          ciudad?: string | null;
           zona_horaria?: string;
           pais?: string;
           moneda?: string;
@@ -492,8 +519,13 @@ export interface Database {
           perfil_id: string;
           es_propietario: boolean;
           acceso_web: boolean;
+          acceso_app: boolean;
+          cargo: string | null;
+          estado: string;
           activo: boolean;
+          invitacion_id: string | null;
           invitado_por: string | null;
+          desvinculada_en: string | null;
           creado_en: string;
           creado_por: string | null;
           actualizado_en: string;
@@ -506,8 +538,13 @@ export interface Database {
           perfil_id: string;
           es_propietario?: boolean;
           acceso_web?: boolean;
+          acceso_app?: boolean;
+          cargo?: string | null;
+          estado?: string;
           activo?: boolean;
+          invitacion_id?: string | null;
           invitado_por?: string | null;
+          desvinculada_en?: string | null;
           creado_en?: string;
           creado_por?: string | null;
           actualizado_en?: string;
@@ -520,8 +557,13 @@ export interface Database {
           perfil_id?: string;
           es_propietario?: boolean;
           acceso_web?: boolean;
+          acceso_app?: boolean;
+          cargo?: string | null;
+          estado?: string;
           activo?: boolean;
+          invitacion_id?: string | null;
           invitado_por?: string | null;
+          desvinculada_en?: string | null;
           creado_en?: string;
           creado_por?: string | null;
           actualizado_en?: string;
@@ -680,6 +722,8 @@ export interface Database {
           codigo: string | null;
           nombre: string;
           descripcion: string | null;
+          recomendado_para: string | null;
+          configuracion: Json;
           es_base: boolean;
           creado_en: string;
           creado_por: string | null;
@@ -692,6 +736,8 @@ export interface Database {
           codigo?: string | null;
           nombre: string;
           descripcion?: string | null;
+          recomendado_para?: string | null;
+          configuracion?: Json;
           es_base?: boolean;
           creado_en?: string;
           creado_por?: string | null;
@@ -704,6 +750,8 @@ export interface Database {
           codigo?: string | null;
           nombre?: string;
           descripcion?: string | null;
+          recomendado_para?: string | null;
+          configuracion?: Json;
           es_base?: boolean;
           creado_en?: string;
           creado_por?: string | null;
@@ -883,6 +931,264 @@ export interface Database {
         };
         Relationships: [];
       };
+      invitaciones: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          tipo: string;
+          usuario_id: string | null;
+          nombres: string | null;
+          apellidos: string | null;
+          tipo_documento: string | null;
+          numero_documento: string | null;
+          correo: string | null;
+          celular: string | null;
+          perfil_id: string;
+          cargo: string | null;
+          acceso_web: boolean;
+          acceso_app: boolean;
+          codigo_hash: string;
+          token_hash: string | null;
+          vence_en: string;
+          estado: string;
+          motivo_rechazo: string | null;
+          respondida_en: string | null;
+          usada_en: string | null;
+          usada_por: string | null;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          tipo?: string;
+          usuario_id?: string | null;
+          nombres?: string | null;
+          apellidos?: string | null;
+          tipo_documento?: string | null;
+          numero_documento?: string | null;
+          correo?: string | null;
+          celular?: string | null;
+          perfil_id: string;
+          cargo?: string | null;
+          acceso_web?: boolean;
+          acceso_app?: boolean;
+          codigo_hash: string;
+          token_hash?: string | null;
+          vence_en?: string;
+          estado?: string;
+          motivo_rechazo?: string | null;
+          respondida_en?: string | null;
+          usada_en?: string | null;
+          usada_por?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          tipo?: string;
+          usuario_id?: string | null;
+          nombres?: string | null;
+          apellidos?: string | null;
+          tipo_documento?: string | null;
+          numero_documento?: string | null;
+          correo?: string | null;
+          celular?: string | null;
+          perfil_id?: string;
+          cargo?: string | null;
+          acceso_web?: boolean;
+          acceso_app?: boolean;
+          codigo_hash?: string;
+          token_hash?: string | null;
+          vence_en?: string;
+          estado?: string;
+          motivo_rechazo?: string | null;
+          respondida_en?: string | null;
+          usada_en?: string | null;
+          usada_por?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [];
+      };
+      verificaciones: {
+        Row: {
+          id: string;
+          usuario_id: string | null;
+          canal: string;
+          destino: string;
+          codigo_hash: string;
+          intentos: number;
+          vence_en: string;
+          verificado_en: string | null;
+          creado_en: string;
+        };
+        Insert: {
+          id?: string;
+          usuario_id?: string | null;
+          canal: string;
+          destino: string;
+          codigo_hash: string;
+          intentos?: number;
+          vence_en?: string;
+          verificado_en?: string | null;
+          creado_en?: string;
+        };
+        Update: {
+          id?: string;
+          usuario_id?: string | null;
+          canal?: string;
+          destino?: string;
+          codigo_hash?: string;
+          intentos?: number;
+          vence_en?: string;
+          verificado_en?: string | null;
+          creado_en?: string;
+        };
+        Relationships: [];
+      };
+      solicitudes_salida: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          membresia_id: string;
+          usuario_id: string;
+          motivo: string | null;
+          estado: string;
+          comentario_resolucion: string | null;
+          servicios_futuros: number;
+          soporte_desde: string;
+          resuelto_por: string | null;
+          resuelto_en: string | null;
+          creado_en: string;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          membresia_id: string;
+          usuario_id: string;
+          motivo?: string | null;
+          estado?: string;
+          comentario_resolucion?: string | null;
+          servicios_futuros?: number;
+          soporte_desde?: string;
+          resuelto_por?: string | null;
+          resuelto_en?: string | null;
+          creado_en?: string;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          membresia_id?: string;
+          usuario_id?: string;
+          motivo?: string | null;
+          estado?: string;
+          comentario_resolucion?: string | null;
+          servicios_futuros?: number;
+          soporte_desde?: string;
+          resuelto_por?: string | null;
+          resuelto_en?: string | null;
+          creado_en?: string;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [];
+      };
+      casos_soporte: {
+        Row: {
+          id: string;
+          empresa_id: string | null;
+          usuario_id: string | null;
+          tipo_documento: string | null;
+          numero_documento: string | null;
+          correo_contacto: string | null;
+          celular_contacto: string | null;
+          motivo: string;
+          estado: string;
+          resolucion: string | null;
+          creado_en: string;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id?: string | null;
+          usuario_id?: string | null;
+          tipo_documento?: string | null;
+          numero_documento?: string | null;
+          correo_contacto?: string | null;
+          celular_contacto?: string | null;
+          motivo: string;
+          estado?: string;
+          resolucion?: string | null;
+          creado_en?: string;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string | null;
+          usuario_id?: string | null;
+          tipo_documento?: string | null;
+          numero_documento?: string | null;
+          correo_contacto?: string | null;
+          celular_contacto?: string | null;
+          motivo?: string;
+          estado?: string;
+          resolucion?: string | null;
+          creado_en?: string;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [];
+      };
+      auditoria: {
+        Row: {
+          id: number;
+          empresa_id: string | null;
+          usuario_id: string | null;
+          accion: string;
+          tabla: string;
+          registro_id: string | null;
+          antes: Json | null;
+          despues: Json | null;
+          creado_en: string;
+        };
+        Insert: {
+          id?: never;
+          empresa_id?: string | null;
+          usuario_id?: string | null;
+          accion: string;
+          tabla: string;
+          registro_id?: string | null;
+          antes?: Json | null;
+          despues?: Json | null;
+          creado_en?: string;
+        };
+        Update: {
+          id?: never;
+          empresa_id?: string | null;
+          usuario_id?: string | null;
+          accion?: string;
+          tabla?: string;
+          registro_id?: string | null;
+          antes?: Json | null;
+          despues?: Json | null;
+          creado_en?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       team_people_v: {
@@ -926,7 +1232,40 @@ export interface Database {
         Returns: string | null;
       };
       crear_cuenta_y_empresa: {
-        Args: { p_nombre_empresa: string; p_ruc?: string | null; p_plan_codigo?: string };
+        Args: {
+          p_nombre_empresa: string;
+          p_ruc?: string | null;
+          p_plan_codigo?: string;
+          p_rubro?: string | null;
+          p_ciudad?: string | null;
+          p_modo?: string;
+          p_periodo?: string;
+        };
+        Returns: string;
+      };
+      mis_accesos: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      responder_invitacion: {
+        Args: {
+          p_invitacion_id: string;
+          p_acepta: boolean;
+          p_motivo?: string | null;
+        };
+        Returns: Json;
+      };
+      solicitar_salida: {
+        Args: {
+          p_membresia_id: string;
+          p_motivo?: string | null;
+        };
+        Returns: string;
+      };
+      pedir_soporte_salida: {
+        Args: {
+          p_solicitud_id: string;
+        };
         Returns: string;
       };
       es_miembro: {
@@ -944,6 +1283,21 @@ export interface Database {
       unir_invitaciones_pendientes: {
         Args: Record<PropertyKey, never>;
         Returns: number;
+      };
+      buscar_persona: {
+        Args: {
+          p_empresa_id: string;
+          p_tipo_documento: string;
+          p_numero_documento: string;
+        };
+        Returns: {
+          encontrado: boolean;
+          usuario_id: string | null;
+          nombre_mascara: string | null;
+          correo_mascara: string | null;
+          celular_mascara: string | null;
+          ya_es_miembro: boolean;
+        }[];
       };
     };
     Enums: {

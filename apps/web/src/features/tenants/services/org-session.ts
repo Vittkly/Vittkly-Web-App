@@ -34,8 +34,12 @@ export async function clearActiveOrganizationCookie() {
 export async function initializeOrganizationContext(): Promise<
   "ready" | "select"
 > {
-  const { userId, organizations } = await getOrganizationOptions();
-  const only = organizations.length === 1 ? organizations[0] : undefined;
+  const { userId, organizations, totalActiveCount } =
+    await getOrganizationOptions();
+  const only =
+    totalActiveCount === 1 && organizations.length === 1
+      ? organizations[0]
+      : undefined;
 
   if (userId && only) {
     await setActiveOrganizationCookies(only.id);

@@ -2,26 +2,284 @@ export type MemberStatus = "active" | "pending" | "suspended";
 
 export type AccessScope = "web" | "mobile" | "both";
 
+export type AccessLabel = "Solo web" | "Solo app" | "Web y app";
+
+export type DocumentType = "DNI" | "carné de extranjería" | "pasaporte";
+
 export type AuthMethod =
   "google" | "microsoft" | "whatsapp" | "pin" | "password";
 
 export interface TeamMember {
   id: string;
+  sourceType: "membresia" | "invitacion";
   userId: string;
+  perfilId: string;
   fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string | null;
   avatarUrl: string | null;
+  docType?: DocumentType | null;
+  docNumberMasked?: string | null;
   role: string;
   roleCode?: string;
   isOwner: boolean;
   isCurrentUser: boolean;
+  accesoWeb: boolean;
+  accesoApp: boolean;
   accessScope: AccessScope;
+  accessLabel: AccessLabel;
   accessMethods: AuthMethod[];
   status: MemberStatus;
   statusLabel?: string;
   jobTitle?: string | null;
+  invitationId?: string | null;
+  invitationExpiresAt?: string | null;
   createdAt: string;
+}
+
+export interface InvitationRecord {
+  id: string;
+  tipo: "nueva_cuenta" | "cuenta_existente";
+  usuarioId: string | null;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  docType: DocumentType | null;
+  docNumberMasked: string | null;
+  perfilId: string;
+  perfilNombre: string;
+  cargo: string | null;
+  accesoWeb: boolean;
+  accesoApp: boolean;
+  accessLabel: AccessLabel;
+  estado:
+    "pendiente" | "aceptada" | "rechazada" | "vencida" | "anulada" | "usada";
+  motivoRechazo: string | null;
+  venceEn: string;
+  respondidaEn: string | null;
+  creadoEn: string;
+}
+
+export interface ExitRequestRecord {
+  id: string;
+  membresiaId: string;
+  usuarioId: string;
+  fullName: string;
+  email: string | null;
+  perfilNombre: string;
+  motivo: string | null;
+  estado: "pendiente" | "aprobada" | "rechazada";
+  comentarioResolucion: string | null;
+  serviciosFuturos: number;
+  creadoEn: string;
+  resueltoEn: string | null;
+}
+
+export type RestrictionScope = "todas" | "equipo" | "propias" | "ninguna";
+
+export type RestrictionKey =
+  | "ver_montos_cotizaciones"
+  | "editar_cotizaciones"
+  | "eliminar_cotizaciones"
+  | "programar_reprogramar"
+  | "pagos_clientes"
+  | "costeo_margenes"
+  | "cancelar_servicios";
+
+export interface ProfileConfiguration {
+  modulos: string[];
+  opciones: {
+    ve_precios_montos: boolean;
+    valida_servicios: boolean;
+    es_personal_campo: boolean;
+  };
+  restricciones: Record<RestrictionKey, RestrictionScope>;
+  descargar_archivos: boolean;
+  aprueba_solicitudes: boolean;
+  ocultar_datos_cliente: {
+    telefonos: boolean;
+    correos: boolean;
+    documento: boolean;
+    direccion: boolean;
+  };
+  horario_acceso: {
+    restringido: boolean;
+    inicio: string;
+    fin: string;
+  };
+  dispositivo_acceso: "cualquiera" | "solo_web" | "solo_app";
+}
+
+export interface CompanyProfile {
+  id: string;
+  codigo: string | null;
+  nombre: string;
+  descripcion: string;
+  recomendadoPara: string;
+  esBase: boolean;
+  usageCount: number;
+  configuracion: ProfileConfiguration;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  accion: "crear" | "editar" | "borrar" | string;
+  tabla: string;
+  registroId: string | null;
+  actorNombre: string;
+  resumen: string;
+  creadoEn: string;
+}
+
+export interface UsersProfilesBundle {
+  members: TeamMember[];
+  profiles: CompanyProfile[];
+  invitations: InvitationRecord[];
+  exitRequests: ExitRequestRecord[];
+  auditLogs: AuditLogEntry[];
+}
+
+export interface ProfileModuleCatalogItem {
+  code: string;
+  label: string;
+  description: string;
+}
+
+export const PROFILE_MODULES_CATALOG: ProfileModuleCatalogItem[] = [
+  {
+    code: "dashboard",
+    label: "Dashboard",
+    description: "Resumen general, indicadores del día y alertas operativas.",
+  },
+  {
+    code: "cotizaciones",
+    label: "Cotización",
+    description: "Propuestas comerciales, plantillas y seguimiento de envíos.",
+  },
+  {
+    code: "clientes",
+    label: "CRM & Clientes",
+    description: "Directorio de clientes, sedes, contactos e historial.",
+  },
+  {
+    code: "calendario",
+    label: "Calendario",
+    description: "Programación de visitas, turnos y disponibilidad de equipos.",
+  },
+  {
+    code: "trabajos",
+    label: "Trabajos",
+    description: "Órdenes de trabajo, ejecución en campo y actas de cierre.",
+  },
+  {
+    code: "tiempo",
+    label: "Tiempo",
+    description: "Marcaciones de asistencia, rutas y control de horas.",
+  },
+  {
+    code: "finanzas",
+    label: "Finanzas",
+    description: "Cobranzas, comprobantes, liquidaciones, caja y rentabilidad.",
+  },
+  {
+    code: "postventa",
+    label: "Post venta",
+    description: "Garantías, reclamos, encuestas de satisfacción y calidad.",
+  },
+  {
+    code: "inventario",
+    label: "Inventario",
+    description: "Almacenes, insumos, equipos asignados y movimientos.",
+  },
+  {
+    code: "academia",
+    label: "Biblioteca y Academia",
+    description: "Protocolos técnicos, guías operativas y capacitación.",
+  },
+  {
+    code: "reportes",
+    label: "Reportes",
+    description: "Indicadores gerenciales, exportación y análisis histórico.",
+  },
+  {
+    code: "configuraciones",
+    label: "Configuraciones",
+    description: "Parámetros de empresa, tarifarios, usuarios y perfiles.",
+  },
+];
+
+export const RESTRICTION_FIELDS_META: {
+  key: RestrictionKey;
+  label: string;
+  shortHeader: string;
+}[] = [
+  {
+    key: "ver_montos_cotizaciones",
+    label: "Ver montos de cotizaciones",
+    shortHeader: "VER MONTOS DE COTIZACIONES",
+  },
+  {
+    key: "editar_cotizaciones",
+    label: "Editar cotizaciones",
+    shortHeader: "EDITAR COTIZACIONES",
+  },
+  {
+    key: "eliminar_cotizaciones",
+    label: "Eliminar cotizaciones",
+    shortHeader: "ELIMINAR COTIZACIONES",
+  },
+  {
+    key: "programar_reprogramar",
+    label: "Programar y reprogramar",
+    shortHeader: "PROGRAMAR Y REPROGRAMAR",
+  },
+  {
+    key: "pagos_clientes",
+    label: "Pagos de clientes",
+    shortHeader: "PAGOS DE CLIENTES",
+  },
+  {
+    key: "costeo_margenes",
+    label: "Costeo y márgenes",
+    shortHeader: "COSTEO Y MÁRGENES",
+  },
+  {
+    key: "cancelar_servicios",
+    label: "Cancelar servicios",
+    shortHeader: "CANCELAR SERVICIOS",
+  },
+];
+
+export function mapFlagsToAccessLabel(
+  accesoWeb: boolean,
+  accesoApp: boolean,
+): AccessLabel {
+  if (accesoWeb && !accesoApp) return "Solo web";
+  if (!accesoWeb && accesoApp) return "Solo app";
+  return "Web y app";
+}
+
+export function mapAccessLabelToFlags(label: AccessLabel): {
+  accesoWeb: boolean;
+  accesoApp: boolean;
+  accessScope: AccessScope;
+} {
+  if (label === "Solo web") {
+    return { accesoWeb: true, accesoApp: false, accessScope: "web" };
+  }
+  if (label === "Solo app") {
+    return { accesoWeb: false, accesoApp: true, accessScope: "mobile" };
+  }
+  return { accesoWeb: true, accesoApp: true, accessScope: "both" };
+}
+
+export function maskDocumentNumber(docNumber?: string | null): string | null {
+  if (!docNumber) return null;
+  const trimmed = docNumber.trim();
+  if (trimmed.length <= 3) return "***";
+  return `***${trimmed.slice(-3)}`;
 }
 
 export type SettingsCategoryKey =

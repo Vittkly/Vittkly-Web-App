@@ -47,8 +47,8 @@ export function PasswordField({
   const hintId = hint ? `${id}-hint` : undefined;
   const sizeClass =
     controlSize === "lg"
-      ? "h-12 pr-11 pl-3.5 text-sm"
-      : "h-10 pr-10 pl-3 text-sm";
+      ? "h-12 pr-12 pl-3.5 text-base sm:text-sm"
+      : "h-10 pr-11 pl-3 text-base sm:text-sm";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (value === undefined) {
@@ -106,10 +106,10 @@ export function PasswordField({
 
         <button
           type="button"
-          tabIndex={-1}
           onClick={() => setShowPassword(!showPassword)}
+          aria-pressed={showPassword}
           aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
-          className="text-ink-muted hover:text-ink absolute right-3 inline-flex cursor-pointer p-1.5 transition-colors focus-visible:outline-none"
+          className="text-ink-muted hover:text-ink focus-visible:outline-primary absolute right-1.5 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:outline-2"
         >
           {showPassword ? (
             <EyeOff className="h-4 w-4" aria-hidden="true" />

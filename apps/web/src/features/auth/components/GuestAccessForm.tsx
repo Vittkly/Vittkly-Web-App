@@ -9,6 +9,7 @@ import { TextField } from "@/components/ui/TextField";
 import { PasswordField } from "@/components/ui/PasswordField";
 import { FeedbackBanner } from "@/components/ui/FeedbackBanner";
 import { Badge } from "@/components/ui/Badge";
+import { AuthCard } from "./AuthCard";
 
 const initialState: AuthActionState = {
   error: null,
@@ -24,14 +25,14 @@ export function GuestAccessForm() {
   const [invitationCode, setInvitationCode] = useState("");
 
   return (
-    <div className="flex flex-col gap-6">
+    <AuthCard showLogo className="gap-5">
       <div className="flex flex-col gap-2 text-center sm:text-left">
         <div className="flex items-center justify-center gap-2 sm:justify-start">
           <Badge variant="outline" size="sm" mono>
             Portal Clientes &amp; Invitados
           </Badge>
         </div>
-        <h1 className="text-ink text-2xl font-bold tracking-tight">
+        <h1 className="text-ink text-xl font-bold tracking-tight sm:text-2xl">
           Acceso con Invitación
         </h1>
         <p className="text-ink-muted text-sm">
@@ -42,7 +43,7 @@ export function GuestAccessForm() {
 
       {state.error && <FeedbackBanner variant="danger" message={state.error} />}
 
-      <form action={formAction} className="flex flex-col gap-4">
+      <form action={formAction} className="flex flex-col gap-3.5">
         <TextField
           id="fullName"
           name="fullName"
@@ -104,26 +105,26 @@ export function GuestAccessForm() {
       </form>
 
       <div className="border-line flex flex-col gap-2 border-t pt-4 text-center">
-        <p className="text-ink-muted text-xs">
+        <p className="text-ink-muted text-xs leading-relaxed">
           ¿Ya eres miembro activo?{" "}
           <Link
             href="/login"
-            className="text-accent hover:text-primary-hover font-bold transition-colors focus-visible:underline"
+            className="text-primary-ink hover:text-primary-hover focus-visible:outline-focus inline-block rounded py-0.5 font-bold transition-colors focus-visible:underline focus-visible:outline-2"
           >
             Inicia sesión aquí
           </Link>
         </p>
-        <p className="text-ink-muted text-xs">
+        <p className="text-ink-muted text-xs leading-relaxed">
           ¿Deseas contratar Vittkly para tu propia empresa?{" "}
           <Link
             href="/register"
-            className="text-accent hover:text-primary-hover font-bold transition-colors focus-visible:underline"
+            className="text-primary-ink hover:text-primary-hover focus-visible:outline-focus inline-block rounded py-0.5 font-bold transition-colors focus-visible:underline focus-visible:outline-2"
           >
             Registrar nueva empresa (Tenant B2B)
           </Link>
         </p>
       </div>
-    </div>
+    </AuthCard>
   );
 }
 

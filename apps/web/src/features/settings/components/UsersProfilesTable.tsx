@@ -1,39 +1,71 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Search,
   Plus,
   MoreHorizontal,
   Edit2,
   Ban,
-  Smartphone,
-  Globe,
-  Layers,
+  Check,
   ShieldAlert,
+  Send,
+  UserMinus,
+  Power,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import type { TeamMember, MemberStatus } from "../types/settings.types";
+import {
+  resendInvitationAction,
+  toggleMemberStatusAction,
+  unlinkMemberAction,
+  updateMemberInlineAction,
+  type GeneratedInvitationPayload,
+} from "../actions/users-profiles.actions";
+import type {
+  AccessLabel,
+  CompanyProfile,
+  TeamMember,
+} from "../types/settings.types";
+import { EditMemberModal } from "./EditMemberModal";
 
 export interface UsersProfilesTableProps {
-  initialMembers: TeamMember[];
+  members: TeamMember[];
+  profiles: CompanyProfile[];
   companyName: string;
   onOpenAddModal: () => void;
+  onOpenInvitationModal: (payload: GeneratedInvitationPayload) => void;
 }
 
 type FilterChipKey = "all" | "active" | "pending" | "suspended";
 
+interface RowDraft {
+  perfilId?: string;
+  accessLabel?: AccessLabel;
+}
+
 export function UsersProfilesTable({
-  initialMembers,
+  members,
+  profiles,
   companyName,
   onOpenAddModal,
+  onOpenInvitationModal,
 }: UsersProfilesTableProps) {
-  const [members, setMembers] = useState<TeamMember[]>(initialMembers);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChip, setActiveChip] = useState<FilterChipKey>("all");
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
-  // Conteo dinámico de colaboradores por estado
+  // Estado local solo para los cambios pendientes en los comboboxes inline (Perfil y Acceso)
+  const [rowDrafts, setRowDrafts] = useState<Record<string, RowDraft>>({});
+  const [savingRowId, setSavingRowId] = useState<string | null>(null);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+
+  // Confirmación limpia sin alert() para Suspender o Quitar de la empresa
+  const [confirmDialog, setConfirmDialog] = useState<{
+    type: "suspend" | "unlink";
+    member: TeamMember;
+  } | null>(null);
+  const [isConfirmLoading, setIsConfirmLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
   const counts = useMemo(() => {
     return {
       all: members.length,
@@ -43,15 +75,12 @@ export function UsersProfilesTable({
     };
   }, [members]);
 
-  // Filtrado reactivo en cliente (Buscador + Chip activo)
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
-      // Filtro por Chip
       if (activeChip === "active" && m.status !== "active") return false;
       if (activeChip === "pending" && m.status !== "pending") return false;
       if (activeChip === "suspended" && m.status !== "suspended") return false;
 
-      // Filtro por Buscador
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const matchName = m.fullName.toLowerCase().includes(q);
@@ -63,26 +92,146 @@ export function UsersProfilesTable({
     });
   }, [members, activeChip, searchQuery]);
 
-  const toggleMemberStatus = (id: string) => {
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id === id) {
-          const nextStatus: MemberStatus =
-            m.status === "suspended" ? "active" : "suspended";
-          return { ...m, status: nextStatus };
-        }
-        return m;
-      }),
-    );
-    setActiveMenuId(null);
-  };
-
   const getInitials = (name: string) => {
-    const parts = name.trim().split(" ");
+    const parts = name.trim().split(/\s+/);
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
     return (name.slice(0, 2) || "VK").toUpperCase();
+  };
+
+  const handleDraftChange = (
+    member: TeamMember,
+    field: "perfilId" | "accessLabel",
+    value: string,
+  ) => {
+    setRowDrafts((prev) => {
+      const currentDraft = prev[member.id] ?? {};
+      const nextDraft: RowDraft = {
+        ...currentDraft,
+        [field]: value,
+      };
+
+      const effectivePerfilId = nextDraft.perfilId ?? member.perfilId;
+      const effectiveAccess = nextDraft.accessLabel ?? member.accessLabel;
+
+      if (
+        effectivePerfilId === member.perfilId &&
+        effectiveAccess === member.accessLabel
+      ) {
+        const clone = { ...prev };
+        delete clone[member.id];
+        return clone;
+      }
+
+      return {
+        ...prev,
+        [member.id]: nextDraft,
+      };
+    });
+  };
+
+  const handleSaveInlineRow = async (member: TeamMember) => {
+    const draft = rowDrafts[member.id];
+    if (!draft) return;
+
+    setFeedbackError(null);
+    setSavingRowId(member.id);
+
+    const res = await updateMemberInlineAction({
+      id: member.id,
+      sourceType: member.sourceType,
+      invitationId: member.invitationId ?? null,
+      perfilId: draft.perfilId ?? member.perfilId,
+      accessLabel: draft.accessLabel ?? member.accessLabel,
+    });
+
+    setSavingRowId(null);
+
+    if (res.success) {
+      setRowDrafts((prev) => {
+        const clone = { ...prev };
+        delete clone[member.id];
+        return clone;
+      });
+    } else {
+      setFeedbackError(
+        res.error || "No se pudo guardar el cambio en la fila seleccionada.",
+      );
+    }
+  };
+
+  const handleViewOrResendInvitation = async (member: TeamMember) => {
+    setActiveMenuId(null);
+    setFeedbackError(null);
+
+    if (member.invitationId) {
+      const res = await resendInvitationAction(member.invitationId);
+      if (res.success && res.data) {
+        onOpenInvitationModal(res.data);
+        return;
+      }
+      // Si el usuario solo quiere inspeccionar los datos actuales
+      onOpenInvitationModal({
+        invitationId: member.invitationId,
+        recipientName: member.fullName,
+        recipientEmail: member.email || null,
+        recipientPhone: member.phone,
+        perfilNombre: member.role,
+        accessLabel: member.accessLabel,
+        expiresAt:
+          member.invitationExpiresAt ??
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        invitationPath: `/invitado?empresa=${encodeURIComponent(companyName)}`,
+      });
+      return;
+    }
+
+    onOpenInvitationModal({
+      invitationId: member.id,
+      recipientName: member.fullName,
+      recipientEmail: member.email || null,
+      recipientPhone: member.phone,
+      perfilNombre: member.role,
+      accessLabel: member.accessLabel,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      invitationPath: `/invitado?empresa=${encodeURIComponent(companyName)}`,
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmDialog) return;
+    setFeedbackError(null);
+    setIsConfirmLoading(true);
+
+    if (confirmDialog.type === "suspend") {
+      const shouldSuspend = confirmDialog.member.status !== "suspended";
+      const res = await toggleMemberStatusAction({
+        membershipId: confirmDialog.member.id,
+        suspend: shouldSuspend,
+      });
+      setIsConfirmLoading(false);
+      if (!res.success) {
+        setFeedbackError(
+          res.error || "No se pudo cambiar el estado de acceso.",
+        );
+      }
+      setConfirmDialog(null);
+      return;
+    }
+
+    const res = await unlinkMemberAction({
+      id: confirmDialog.member.id,
+      sourceType: confirmDialog.member.sourceType,
+      invitationId: confirmDialog.member.invitationId,
+    });
+    setIsConfirmLoading(false);
+    if (!res.success) {
+      setFeedbackError(
+        res.error || "No se pudo desvincular a la persona de la empresa.",
+      );
+    }
+    setConfirmDialog(null);
   };
 
   return (
@@ -96,26 +245,29 @@ export function UsersProfilesTable({
           <p className="text-ink-muted text-xs leading-relaxed">
             Registra a cada persona con sus datos y asígnale un perfil. Entra a{" "}
             <b className="text-ink font-semibold">{companyName}</b> con Google,
-            Microsoft, WhatsApp o un código de invitación, y ve solo lo que su
+            Microsoft, WhatsApp o un enlace de invitación, y ve solo lo que su
             perfil permite.
           </p>
         </div>
 
-        <Button
+        <button
           type="button"
-          variant="primary"
-          size="md"
           onClick={onOpenAddModal}
-          className="shrink-0 self-start shadow-xs sm:self-auto"
+          className="bg-primary text-on-primary hover:bg-primary-hover inline-flex shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-xl px-4 py-2.5 text-xs font-bold shadow-xs transition-colors sm:self-auto"
         >
           <Plus className="h-4 w-4" />
-          <span>Agregar persona</span>
-        </Button>
+          <span>+ Agregar persona</span>
+        </button>
       </div>
+
+      {feedbackError && (
+        <div className="border-danger/30 bg-danger-soft text-danger-ink rounded-xl border p-3 text-xs font-semibold">
+          {feedbackError}
+        </div>
+      )}
 
       {/* 2. Buscador y Filtros por Chips */}
       <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
-        {/* Input con ícono de lupa */}
         <div className="relative w-full lg:max-w-md">
           <Search className="text-ink-muted pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2" />
           <input
@@ -129,14 +281,13 @@ export function UsersProfilesTable({
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="text-ink-muted hover:text-ink absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold"
+              className="text-ink-muted hover:text-ink absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer text-xs font-semibold"
             >
               Limpiar
             </button>
           )}
         </div>
 
-        {/* Chips de conteo y filtrado rápido */}
         <div
           className="flex flex-wrap items-center gap-1.5"
           role="group"
@@ -153,7 +304,7 @@ export function UsersProfilesTable({
           >
             <span>Todas</span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              [{counts.all}]
+              ({counts.all})
             </span>
           </button>
 
@@ -166,12 +317,9 @@ export function UsersProfilesTable({
                 : "bg-surface-sunken text-ink-muted hover:text-ink border-line border"
             }`}
           >
-            <span className="inline-flex items-center gap-1.5">
-              <span className="bg-success h-1.5 w-1.5 rounded-full" />
-              <span>Activas</span>
-            </span>{" "}
+            <span>Activas</span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              [{counts.active}]
+              ({counts.active})
             </span>
           </button>
 
@@ -184,12 +332,9 @@ export function UsersProfilesTable({
                 : "bg-surface-sunken text-ink-muted hover:text-ink border-line border"
             }`}
           >
-            <span className="inline-flex items-center gap-1.5">
-              <span className="bg-warning h-1.5 w-1.5 rounded-full" />
-              <span>Pendientes</span>
-            </span>{" "}
+            <span>Pendientes</span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              [{counts.pending}]
+              ({counts.pending})
             </span>
           </button>
 
@@ -204,14 +349,14 @@ export function UsersProfilesTable({
           >
             <span>Suspendidas</span>{" "}
             <span className="font-mono text-[11px] tabular-nums">
-              [{counts.suspended}]
+              ({counts.suspended})
             </span>
           </button>
         </div>
       </div>
 
-      {/* 3. Tabla de Colaboradores */}
-      <div className="border-line bg-surface-raised overflow-hidden rounded-xl border">
+      {/* 3. Tabla de Personas */}
+      <div className="border-line bg-surface-raised overflow-visible rounded-xl border">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
@@ -239,42 +384,40 @@ export function UsersProfilesTable({
                   <td colSpan={5} className="p-8 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <p className="text-ink font-semibold">
-                        No se encontraron colaboradores
+                        No se encontraron personas en este filtro
                       </p>
                       <p className="text-ink-muted text-xs">
-                        Intenta con otro término de búsqueda o cambia el filtro
-                        seleccionado.
+                        Prueba con otro término de búsqueda o agrega a una nueva
+                        persona.
                       </p>
-                      {(searchQuery || activeChip !== "all") && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSearchQuery("");
-                            setActiveChip("all");
-                          }}
-                          className="text-primary hover:text-primary-hover mt-2 text-xs font-bold hover:underline"
-                        >
-                          Restablecer filtros
-                        </button>
-                      )}
                     </div>
                   </td>
                 </tr>
               ) : (
                 filteredMembers.map((member) => {
                   const initials = getInitials(member.fullName);
+                  const draft = rowDrafts[member.id];
+                  const selectedPerfilId = draft?.perfilId ?? member.perfilId;
+                  const selectedAccessLabel =
+                    draft?.accessLabel ?? member.accessLabel;
+                  const isRowDirty = Boolean(
+                    draft &&
+                    (selectedPerfilId !== member.perfilId ||
+                      selectedAccessLabel !== member.accessLabel),
+                  );
+                  const isSavingThisRow = savingRowId === member.id;
 
                   return (
                     <tr
                       key={member.id}
                       className="hover:bg-surface-sunken/40 transition-colors"
                     >
-                      {/* PERSONA */}
+                      {/* 1. PERSONA */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <div
                             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold select-none ${
-                              member.isCurrentUser
+                              member.isOwner
                                 ? "bg-primary text-on-primary ring-primary/20 ring-2"
                                 : "bg-surface-sunken text-ink border-line border"
                             }`}
@@ -283,25 +426,36 @@ export function UsersProfilesTable({
                           </div>
 
                           <div className="flex min-w-0 flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="text-ink truncate text-sm font-bold">
                                 {member.fullName}
                               </span>
-                              {member.isCurrentUser && (
+                              {member.isOwner && (
                                 <span className="bg-primary-soft text-primary-ink border-primary/20 py-0.2 rounded-md border px-1.5 text-[10px] font-bold">
-                                  Tú ·{" "}
-                                  {member.isOwner ? "Propietario" : "Admin"}
+                                  Tú · Propietario de la cuenta
                                 </span>
                               )}
                             </div>
 
                             <div className="text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px]">
-                              <span className="truncate">{member.email}</span>
+                              {member.email && (
+                                <span className="truncate">{member.email}</span>
+                              )}
                               {member.phone && (
                                 <>
-                                  <span className="text-line-strong">·</span>
+                                  {member.email && (
+                                    <span className="text-line-strong">·</span>
+                                  )}
                                   <span className="tabular-nums">
                                     {member.phone}
+                                  </span>
+                                </>
+                              )}
+                              {member.jobTitle && (
+                                <>
+                                  <span className="text-line-strong">·</span>
+                                  <span className="font-sans">
+                                    {member.jobTitle}
                                   </span>
                                 </>
                               )}
@@ -310,80 +464,83 @@ export function UsersProfilesTable({
                         </div>
                       </td>
 
-                      {/* PERFIL */}
+                      {/* 2. PERFIL (Combobox individual) */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ${
-                            member.role === "Administrador"
-                              ? "bg-primary-soft text-primary-ink border-primary/20 border font-bold"
-                              : member.role === "Ventas"
-                                ? "bg-accent/10 text-primary-ink border-primary/20 border"
-                                : "bg-surface-sunken text-ink border-line border"
-                          }`}
-                        >
-                          {member.role}
-                        </span>
+                        {member.isOwner ? (
+                          <span className="bg-primary-soft text-primary-ink border-primary/20 inline-flex items-center rounded-lg border px-2.5 py-1.5 text-xs font-bold">
+                            Administrador
+                          </span>
+                        ) : (
+                          <select
+                            aria-label={`Perfil de ${member.fullName}`}
+                            value={selectedPerfilId}
+                            onChange={(e) =>
+                              handleDraftChange(
+                                member,
+                                "perfilId",
+                                e.target.value,
+                              )
+                            }
+                            className="border-line bg-surface-sunken text-ink focus:border-primary focus:bg-surface-raised cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors outline-none"
+                          >
+                            {profiles.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </td>
 
-                      {/* ACCESO */}
+                      {/* 3. ACCESO (Combobox individual) */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          <div className="text-ink flex items-center gap-1.5 text-xs font-medium">
-                            {member.accessScope === "web" ? (
-                              <>
-                                <Globe className="text-primary-ink h-3.5 w-3.5" />
-                                <span>Panel web</span>
-                              </>
-                            ) : member.accessScope === "mobile" ? (
-                              <>
-                                <Smartphone className="text-kleanly h-3.5 w-3.5" />
-                                <span>Solo app móvil</span>
-                              </>
-                            ) : (
-                              <>
-                                <Layers className="text-primary-ink h-3.5 w-3.5" />
-                                <span>Panel web + Móvil</span>
-                              </>
-                            )}
-                          </div>
-
-                          <div className="text-ink-muted flex items-center gap-1 text-[10px]">
-                            {member.accessMethods.includes("google") && (
-                              <span className="bg-surface-sunken border-line rounded border px-1">
-                                Google
-                              </span>
-                            )}
-                            {member.accessMethods.includes("microsoft") && (
-                              <span className="bg-surface-sunken border-line rounded border px-1">
-                                MS
-                              </span>
-                            )}
-                            {member.accessMethods.includes("whatsapp") && (
-                              <span className="bg-surface-sunken border-line rounded border px-1">
-                                WhatsApp
-                              </span>
-                            )}
-                            {member.accessMethods.includes("pin") && (
-                              <span className="bg-surface-sunken border-line rounded border px-1 font-mono">
-                                PIN
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* ESTADO */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        {member.status === "active" ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="bg-success-soft text-success-ink border-success/30 rounded-pill inline-flex items-center gap-1 border px-2.5 py-0.5 text-xs font-bold">
-                              <span className="bg-success h-1.5 w-1.5 rounded-full" />
-                              <span>Activa</span>
+                        {member.isOwner ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-ink text-xs font-bold">
+                              Web y app
+                            </span>
+                            <span className="text-ink-muted text-[10px]">
+                              Google · Microsoft · WhatsApp
                             </span>
                           </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <select
+                              aria-label={`Acceso de ${member.fullName}`}
+                              value={selectedAccessLabel}
+                              onChange={(e) =>
+                                handleDraftChange(
+                                  member,
+                                  "accessLabel",
+                                  e.target.value as AccessLabel,
+                                )
+                              }
+                              className="border-line bg-surface-sunken text-ink focus:border-primary focus:bg-surface-raised cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors outline-none"
+                            >
+                              <option value="Solo web">Solo web</option>
+                              <option value="Solo app">Solo app</option>
+                              <option value="Web y app">Web y app</option>
+                            </select>
+
+                            <span className="text-ink-muted text-[10px]">
+                              {selectedAccessLabel === "Solo app"
+                                ? "WhatsApp · PIN"
+                                : "Google · Microsoft · WhatsApp"}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 4. ESTADO */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {member.status === "active" ? (
+                          <span className="bg-success-soft text-kleanly border-success/30 rounded-pill inline-flex items-center gap-1.5 border px-2.5 py-0.5 text-xs font-bold">
+                            <span className="bg-success h-1.5 w-1.5 rounded-full" />
+                            <span>Activa</span>
+                          </span>
                         ) : member.status === "pending" ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="bg-warning-soft text-warning-ink border-warning/30 rounded-pill inline-flex items-center gap-1 border px-2.5 py-0.5 text-xs font-bold">
+                            <span className="bg-warning-soft text-warning-ink border-warning/30 rounded-pill inline-flex w-fit items-center gap-1 border px-2.5 py-0.5 text-xs font-bold">
                               <span className="bg-warning h-1.5 w-1.5 rounded-full" />
                               <span>Pendiente</span>
                             </span>
@@ -392,67 +549,113 @@ export function UsersProfilesTable({
                             </span>
                           </div>
                         ) : (
-                          <span className="bg-surface-sunken text-ink-muted border-line rounded-pill inline-flex items-center gap-1 border px-2.5 py-0.5 text-xs font-medium">
+                          <span className="bg-danger-soft/60 text-danger-ink border-danger/20 rounded-pill inline-flex items-center gap-1 border px-2.5 py-0.5 text-xs font-semibold">
                             <Ban className="h-3 w-3" />
                             <span>Suspendida</span>
                           </span>
                         )}
                       </td>
 
-                      {/* ACCIONES */}
+                      {/* 5. ACCIONES (Guardar dinámico, Editar, ...) */}
                       <td className="relative px-4 py-3.5 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              alert(`Editar perfil de ${member.fullName}`)
-                            }
-                            className="border-line bg-surface-sunken hover:bg-surface-raised hover:text-primary text-ink-muted cursor-pointer rounded-md border p-1.5 transition-colors"
-                            title="Editar datos de colaborador"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-
-                          <div className="relative">
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          {/* Botón Guardar: oculto por defecto, solo visible cuando hay cambio en Perfil o Acceso */}
+                          {isRowDirty && (
                             <button
                               type="button"
-                              onClick={() =>
-                                setActiveMenuId(
-                                  activeMenuId === member.id ? null : member.id,
-                                )
-                              }
-                              className="border-line bg-surface-sunken hover:bg-surface-raised hover:text-primary text-ink-muted cursor-pointer rounded-md border p-1.5 transition-colors"
-                              title="Más opciones"
+                              disabled={isSavingThisRow}
+                              onClick={() => void handleSaveInlineRow(member)}
+                              className="bg-primary text-on-primary hover:bg-primary-hover animate-sc-in inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold shadow-xs transition-colors disabled:opacity-50"
                             >
-                              <MoreHorizontal className="h-3.5 w-3.5" />
+                              <Check className="h-3.5 w-3.5" />
+                              <span>
+                                {isSavingThisRow ? "Guardando..." : "Guardar"}
+                              </span>
                             </button>
+                          )}
 
-                            {activeMenuId === member.id && (
-                              <div className="border-line bg-surface-raised animate-sc-in absolute top-full right-0 z-30 mt-1 w-44 rounded-xl border p-1 text-left text-xs shadow-lg">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    alert(
-                                      `Reenviando invitación a ${member.email}`,
-                                    );
-                                    setActiveMenuId(null);
-                                  }}
-                                  className="hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium"
-                                >
-                                  Reenviar invitación
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleMemberStatus(member.id)}
-                                  className="hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium"
-                                >
-                                  {member.status === "suspended"
-                                    ? "Reactivar acceso"
-                                    : "Suspender acceso"}
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          {/* Botón Editar */}
+                          <button
+                            type="button"
+                            onClick={() => setEditingMember(member)}
+                            className="border-line bg-surface-sunken hover:bg-surface-raised hover:text-primary text-ink inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors"
+                            title="Editar datos de la persona"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                            <span>Editar</span>
+                          </button>
+
+                          {/* Menú contextual ... */}
+                          {!member.isOwner && (
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveMenuId(
+                                    activeMenuId === member.id
+                                      ? null
+                                      : member.id,
+                                  )
+                                }
+                                className="border-line bg-surface-sunken hover:bg-surface-raised hover:text-primary text-ink-muted cursor-pointer rounded-lg border p-1.5 transition-colors"
+                                title="Más opciones"
+                                aria-label="Más opciones"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+
+                              {activeMenuId === member.id && (
+                                <div className="border-line bg-surface-raised animate-sc-in absolute top-full right-0 z-30 mt-1 w-52 rounded-xl border p-1.5 text-left text-xs shadow-xl">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleViewOrResendInvitation(member)
+                                    }
+                                    className="hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold"
+                                  >
+                                    <Send className="text-primary-ink h-3.5 w-3.5" />
+                                    <span>Ver o reenviar invitación</span>
+                                  </button>
+
+                                  {member.sourceType === "membresia" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveMenuId(null);
+                                        setConfirmDialog({
+                                          type: "suspend",
+                                          member,
+                                        });
+                                      }}
+                                      className="hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold"
+                                    >
+                                      <Power className="text-warning-ink h-3.5 w-3.5" />
+                                      <span>
+                                        {member.status === "suspended"
+                                          ? "Reactivar acceso"
+                                          : "Suspender acceso"}
+                                      </span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      setConfirmDialog({
+                                        type: "unlink",
+                                        member,
+                                      });
+                                    }}
+                                    className="hover:bg-danger-soft text-danger-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold"
+                                  >
+                                    <UserMinus className="h-3.5 w-3.5" />
+                                    <span>Quitar de la empresa</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -474,6 +677,71 @@ export function UsersProfilesTable({
           bloquea el acceso sin borrar a la persona.
         </p>
       </div>
+
+      {/* Modal Editar Persona */}
+      {editingMember && (
+        <EditMemberModal
+          key={editingMember.id}
+          isOpen={Boolean(editingMember)}
+          onClose={() => setEditingMember(null)}
+          member={editingMember}
+          profiles={profiles}
+        />
+      )}
+
+      {/* Modal de Confirmación para Suspender o Quitar de la empresa */}
+      {confirmDialog && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="bg-ink/60 animate-sc-in fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
+          <div className="border-line bg-surface-raised flex w-full max-w-md flex-col gap-4 rounded-2xl border p-6 shadow-2xl">
+            <h3 className="text-ink text-base font-bold">
+              {confirmDialog.type === "suspend"
+                ? confirmDialog.member.status === "suspended"
+                  ? `¿Reactivar el acceso de ${confirmDialog.member.fullName}?`
+                  : `¿Suspender el acceso de ${confirmDialog.member.fullName}?`
+                : `¿Quitar a ${confirmDialog.member.fullName} de ${companyName}?`}
+            </h3>
+            <p className="text-ink-muted text-xs leading-relaxed">
+              {confirmDialog.type === "suspend"
+                ? confirmDialog.member.status === "suspended"
+                  ? "La persona volverá a ingresar a la central web y/o aplicación móvil según su perfil asignado."
+                  : "Se bloqueará inmediatamente su ingreso a la empresa conservando intacto su historial."
+                : "Su membresía pasará a estado desvinculada conservando el historial de auditoría y servicios pasados, sin eliminar su cuenta personal en Vittkly."}
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isConfirmLoading}
+                onClick={() => setConfirmDialog(null)}
+                className="text-ink-muted hover:text-ink cursor-pointer px-3 py-2 text-xs font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isConfirmLoading}
+                onClick={() => void handleConfirmAction()}
+                className={`cursor-pointer rounded-xl px-4 py-2 text-xs font-bold text-white transition-colors disabled:opacity-50 ${
+                  confirmDialog.type === "unlink"
+                    ? "bg-danger hover:opacity-90"
+                    : "bg-primary hover:bg-primary-hover"
+                }`}
+              >
+                {isConfirmLoading
+                  ? "Procesando..."
+                  : confirmDialog.type === "suspend"
+                    ? confirmDialog.member.status === "suspended"
+                      ? "Sí, reactivar acceso"
+                      : "Sí, suspender acceso"
+                    : "Sí, quitar de la empresa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -34,7 +34,7 @@ Cualquier ruta nueva requiere que exista en el artefacto.
 
 Inicio · Calendario · **Ventas** (Clientes, Cotizaciones, Contratos*) · **Operación** (Inventario, Trabajos, Ocurrencias*, Tiempo, Calidad*, Post venta) · **Finanzas** (Cobranzas, Comprobantes, Liquidaciones, Valorizaciones*, Caja y bancos, Rentabilidad) · **Equipo** (Personal*, Pagos al personal, Biblioteca y Academia) · **Crecimiento** (Marketing, Sitio web y reservas) · Reportes · Configuraciones. (*) = badge "Pronto" tal como en el artefacto.
 
-Header: saludo + fecha, Ayuda, Avisos (campana), Comunidad, Configuraciones, **+ Nueva cotización**. Footer del sidebar: Empresa activa ⇄, "Con tecnología Vittkly".
+Header: saludo + fecha, Ayuda, Avisos (campana), Comunidad, Configuraciones, **+ Nueva cotización**. Footer del sidebar: Perfil / Cerrar sesión, Resumen del grupo, "Con tecnología Vittkly" y control de contraer/fijar menú (el selector de empresa activa reside únicamente en la cabecera del sidebar).
 
 ## 5. Páginas "cascarón" (módulos sin implementar)
 

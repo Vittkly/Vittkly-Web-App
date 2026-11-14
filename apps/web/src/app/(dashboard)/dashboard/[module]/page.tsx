@@ -184,7 +184,7 @@ export default async function DynamicModulePage({ params }: ModulePageProps) {
 
   const { userId, active } = await resolveActiveOrganization();
   if (!userId) redirect("/login");
-  if (!active) redirect("/select-org");
+  if (!active) redirect("/accesos");
 
   const context = await getDashboardContext(active.id);
   if (!context) redirect("/login");

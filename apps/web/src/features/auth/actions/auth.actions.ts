@@ -208,8 +208,22 @@ export async function loginAction(
           await supabase.rpc("crear_cuenta_y_empresa", {
             p_nombre_empresa: meta.company_name,
             p_ruc: meta.ruc || null,
-            p_plan_codigo: meta.plan_code || "empresa",
+            p_plan_codigo: meta.plan_code || "crece",
+            p_rubro: meta.rubro || null,
+            p_ciudad: meta.ciudad || null,
+            p_modo: "plan_propio",
+            p_periodo: meta.periodo || "mensual",
           });
+
+          if (meta.tipo_documento && meta.numero_documento) {
+            await supabase
+              .from("usuarios")
+              .update({
+                tipo_documento: meta.tipo_documento,
+                numero_documento: meta.numero_documento,
+              })
+              .eq("id", data.user.id);
+          }
         } catch (provErr) {
           console.warn(
             "[Vittkly Auth] Auto-aprovisionamiento al iniciar sesión:",
@@ -226,7 +240,7 @@ export async function loginAction(
   redirect(
     (await initializeOrganizationContext()) === "ready"
       ? "/dashboard"
-      : "/select-org",
+      : "/accesos",
   );
 }
 
@@ -249,9 +263,14 @@ export async function registerAction(
 ): Promise<AuthActionState> {
   const rawData = {
     fullName: formData.get("fullName")?.toString() || "",
+    tipoDocumento: formData.get("tipoDocumento")?.toString() || "DNI",
+    numeroDocumento: formData.get("numeroDocumento")?.toString() || "",
     companyName: formData.get("companyName")?.toString() || "",
+    rubro: formData.get("rubro")?.toString() || undefined,
+    ciudad: formData.get("ciudad")?.toString() || undefined,
     ruc: formData.get("ruc")?.toString() || undefined,
-    planCode: formData.get("planCode")?.toString() || "empresa",
+    planCode: formData.get("planCode")?.toString() || "crece",
+    periodo: formData.get("periodo")?.toString() || "mensual",
     email: formData.get("email")?.toString() || "",
     password: formData.get("password")?.toString() || "",
     confirmPassword: formData.get("confirmPassword")?.toString() || "",
@@ -276,8 +295,19 @@ export async function registerAction(
     };
   }
 
-  const { fullName, companyName, ruc, planCode, email, password } =
-    validation.data;
+  const {
+    fullName,
+    tipoDocumento,
+    numeroDocumento,
+    companyName,
+    rubro,
+    ciudad,
+    ruc,
+    planCode,
+    periodo,
+    email,
+    password,
+  } = validation.data;
   const cleanEmail = email.toLowerCase();
   const supabase = await createServerClient();
 
@@ -288,16 +318,17 @@ export async function registerAction(
     email: cleanEmail,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/hoy`,
+      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
       data: {
         full_name: fullName,
+        tipo_documento: tipoDocumento,
+        numero_documento: numeroDocumento,
         company_name: companyName,
         ruc: ruc || null,
         plan_code: planCode,
-        rubro: formData.get("rubro")?.toString().trim().slice(0, 80) || null,
-        ciudad: formData.get("ciudad")?.toString().trim().slice(0, 50) || null,
-        telefono_empresa:
-          formData.get("telefono")?.toString().trim().slice(0, 20) || null,
+        periodo,
+        rubro: rubro || null,
+        ciudad: ciudad || null,
       },
     },
   });
@@ -321,18 +352,24 @@ export async function registerAction(
   // 2. Si se estableció sesión activa inmediata
   if (signUpData.session && signUpData.user) {
     try {
+      // Asegurar datos en public.usuarios incluyendo documento de identidad
+      await supabase.from("usuarios").upsert({
+        id: signUpData.user.id,
+        nombre: fullName,
+        correo: cleanEmail,
+        tipo_documento: tipoDocumento,
+        numero_documento: numeroDocumento,
+      });
+
       // Aprovisionar cuenta, suscripción, empresa y membresía admin
       await supabase.rpc("crear_cuenta_y_empresa", {
         p_nombre_empresa: companyName,
         p_ruc: ruc || null,
         p_plan_codigo: planCode,
-      });
-
-      // Asegurar datos en public.usuarios
-      await supabase.from("usuarios").upsert({
-        id: signUpData.user.id,
-        nombre: fullName,
-        correo: cleanEmail,
+        p_rubro: rubro || null,
+        p_ciudad: ciudad || null,
+        p_modo: "plan_propio",
+        p_periodo: periodo,
       });
     } catch (provErr) {
       console.warn(
@@ -344,8 +381,8 @@ export async function registerAction(
     revalidatePath("/", "layout");
     redirect(
       (await initializeOrganizationContext()) === "ready"
-        ? "/hoy"
-        : "/select-org",
+        ? "/dashboard"
+        : "/accesos",
     );
   }
 
@@ -760,6 +797,6 @@ export async function redeemInvitationAction(
   redirect(
     (await initializeOrganizationContext()) === "ready"
       ? "/dashboard"
-      : "/select-org",
+      : "/accesos",
   );
 }

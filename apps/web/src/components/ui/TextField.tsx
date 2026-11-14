@@ -33,7 +33,9 @@ export function TextField({
   const hintId = hint ? `${id}-hint` : undefined;
 
   const sizeClass =
-    controlSize === "lg" ? "h-12 px-3.5 text-sm" : "h-10 px-3 text-sm";
+    controlSize === "lg"
+      ? "h-12 px-3.5 text-base sm:text-sm"
+      : "h-10 px-3 text-base sm:text-sm";
 
   return (
     <div className="flex w-full flex-col gap-1.5 text-left">

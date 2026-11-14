@@ -3,19 +3,31 @@
 import React from "react";
 import { Users, User } from "lucide-react";
 
+export type UsersProfilesTabId =
+  | "personas"
+  | "invitaciones-salidas"
+  | "perfiles"
+  | "equipos"
+  | "aprobaciones"
+  | "actividad";
+
 export interface UsersProfilesHeaderProps {
   companyName?: string;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeTab: UsersProfilesTabId;
+  onTabChange: (tab: UsersProfilesTabId) => void;
 }
 
-export const USERS_PROFILES_TABS = [
+export const USERS_PROFILES_TABS: {
+  id: UsersProfilesTabId;
+  label: string;
+  hasIcon?: boolean;
+}[] = [
   { id: "personas", label: "Personas", hasIcon: true },
+  { id: "invitaciones-salidas", label: "Invitaciones y salidas" },
   { id: "perfiles", label: "Perfiles y permisos" },
   { id: "equipos", label: "Equipos" },
   { id: "aprobaciones", label: "Aprobaciones" },
   { id: "actividad", label: "Actividad" },
-  { id: "cuentas-prueba", label: "Cuentas de prueba" },
 ];
 
 export function UsersProfilesHeader({
@@ -44,7 +56,7 @@ export function UsersProfilesHeader({
           </div>
         </div>
 
-        {/* Pestañas secundarias tipo píldora (Personas activa con ícono) */}
+        {/* Pestañas secundarias tipo píldora (6 pestañas oficiales sin Cuentas de prueba) */}
         <div className="border-line border-t pt-4">
           <div
             role="tablist"
