@@ -1,12 +1,22 @@
 import "server-only";
 import { cache } from "react";
+import {
+  maskDocumentForDisplay,
+  maskEmailAddress,
+  maskPersonName,
+  maskPhoneLocal,
+  type CanonicalDocumentType,
+} from "@vittkly/shared";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   mapFlagsToAccessLabel,
   maskDocumentNumber,
+  type AccessLabel,
   type AccessScope,
   type AuditLogEntry,
   type CompanyProfile,
+  type DocumentLookupResult,
   type DocumentType,
   type ExitRequestRecord,
   type InvitationRecord,
@@ -523,13 +533,24 @@ function describeAuditRecord(
   }
 
   if (tabla === "invitaciones") {
-    const correo = (despues?.correo ?? antes?.correo ?? "") as string;
+    const tipo = (despues?.tipo ?? antes?.tipo ?? "nueva_cuenta") as string;
+    const maskedRaw = (despues?.datos_enmascarados ??
+      antes?.datos_enmascarados ??
+      null) as Record<string, unknown> | null;
+    const rawCorreo = (despues?.correo ?? antes?.correo ?? "") as string;
+    const label =
+      tipo === "cuenta_existente"
+        ? ((maskedRaw?.correo as string | undefined) ??
+          (maskedRaw?.nombre as string | undefined) ??
+          (rawCorreo ? maskEmailAddress(rawCorreo) : "") ??
+          "cuenta existente")
+        : rawCorreo;
     const estado = (despues?.estado ?? "") as string;
     if (accion === "crear") {
-      return `Envió invitación a ${correo || "nuevo colaborador"}`;
+      return `Envió invitación a ${label || "nuevo colaborador"}`;
     }
     if (estado === "anulada") {
-      return `Anuló invitación previa (${correo || "colaborador"})`;
+      return `Anuló invitación previa (${label || "colaborador"})`;
     }
     return `${verbo} invitaciones (${estado || "actualización"})`;
   }
@@ -640,6 +661,7 @@ export const getUsersProfilesBundle = cache(
         numero_documento,
         correo,
         celular,
+        datos_enmascarados,
         perfil_id,
         cargo,
         acceso_web,
@@ -800,7 +822,7 @@ export const getUsersProfilesBundle = cache(
       });
     }
 
-    // Procesar invitaciones y agregar las 'pendiente' a la lista de Personas
+    // Procesar invitaciones y agregar las 'pendiente' (vigentes) a la lista de Personas
     const invitations: InvitationRecord[] = [];
     for (const inv of rawInvitaciones ?? []) {
       const perfilMeta = profileMap.get(inv.perfil_id);
@@ -809,31 +831,82 @@ export const getUsersProfilesBundle = cache(
       const accesoApp = (inv as { acceso_app?: boolean }).acceso_app ?? true;
       const accessLabel = mapFlagsToAccessLabel(accesoWeb, accesoApp);
 
-      const { fullName, firstName, lastName } = splitFullName(
-        inv.correo ?? inv.celular ?? "Invitado",
-        (inv as { nombres?: string | null }).nombres,
-        (inv as { apellidos?: string | null }).apellidos,
-      );
+      const invTipo =
+        (inv as { tipo?: string }).tipo === "cuenta_existente"
+          ? "cuenta_existente"
+          : "nueva_cuenta";
+
+      const maskedRaw = (inv as { datos_enmascarados?: unknown })
+        .datos_enmascarados;
+      const maskedObj =
+        maskedRaw && typeof maskedRaw === "object" && !Array.isArray(maskedRaw)
+          ? (maskedRaw as Record<string, unknown>)
+          : null;
 
       const docType = ((inv as { tipo_documento?: string | null })
         .tipo_documento ?? null) as DocumentType | null;
-      const docNumberMasked = maskDocumentNumber(
-        (inv as { numero_documento?: string | null }).numero_documento ?? null,
-      );
 
-      const invEstado = (inv.estado ||
+      const rawNombres = (inv as { nombres?: string | null }).nombres ?? null;
+      const rawApellidos =
+        (inv as { apellidos?: string | null }).apellidos ?? null;
+      const rawNumeroDoc =
+        (inv as { numero_documento?: string | null }).numero_documento ?? null;
+
+      let resolvedFullName: string;
+      let resolvedFirstName: string;
+      let resolvedLastName: string;
+      let resolvedEmail: string | null;
+      let resolvedPhone: string | null;
+      let docNumberMasked: string | null;
+
+      if (invTipo === "cuenta_existente") {
+        resolvedFullName =
+          (typeof maskedObj?.nombre === "string" && maskedObj.nombre) ||
+          (rawNombres && rawNombres.includes("****")
+            ? rawNombres
+            : maskPersonName(null, rawNombres, rawApellidos));
+        resolvedFirstName = resolvedFullName;
+        resolvedLastName = "";
+        resolvedEmail =
+          (typeof maskedObj?.correo === "string" && maskedObj.correo) ||
+          (inv.correo ? maskEmailAddress(inv.correo) : null);
+        resolvedPhone =
+          (typeof maskedObj?.celular === "string" && maskedObj.celular) ||
+          (inv.celular ? maskPhoneLocal(inv.celular) : null);
+        docNumberMasked =
+          (typeof maskedObj?.documento === "string" && maskedObj.documento) ||
+          (rawNumeroDoc ? maskDocumentForDisplay(rawNumeroDoc) : null);
+      } else {
+        const split = splitFullName(
+          inv.correo ?? inv.celular ?? "Invitado",
+          rawNombres,
+          rawApellidos,
+        );
+        resolvedFullName = split.fullName;
+        resolvedFirstName = split.firstName;
+        resolvedLastName = split.lastName;
+        resolvedEmail = inv.correo;
+        resolvedPhone = inv.celular;
+        docNumberMasked = maskDocumentNumber(rawNumeroDoc);
+      }
+
+      const rawEstado = (inv.estado ||
         "pendiente") as InvitationRecord["estado"];
+      const isExpiredPending =
+        rawEstado === "pendiente" &&
+        Boolean(inv.vence_en) &&
+        new Date(inv.vence_en).getTime() < Date.now();
+      const invEstado: InvitationRecord["estado"] = isExpiredPending
+        ? "vencida"
+        : rawEstado;
 
       invitations.push({
         id: inv.id,
-        tipo:
-          (inv as { tipo?: string }).tipo === "cuenta_existente"
-            ? "cuenta_existente"
-            : "nueva_cuenta",
+        tipo: invTipo,
         usuarioId: (inv as { usuario_id?: string | null }).usuario_id ?? null,
-        fullName,
-        email: inv.correo,
-        phone: inv.celular,
+        fullName: resolvedFullName,
+        email: resolvedEmail,
+        phone: resolvedPhone,
         docType,
         docNumberMasked,
         perfilId: inv.perfil_id,
@@ -866,11 +939,11 @@ export const getUsersProfilesBundle = cache(
             (inv as { usuario_id?: string | null }).usuario_id ??
             `inv-user-${inv.id}`,
           perfilId: inv.perfil_id,
-          fullName,
-          firstName,
-          lastName,
-          email: inv.correo ?? "",
-          phone: inv.celular ?? null,
+          fullName: resolvedFullName,
+          firstName: resolvedFirstName,
+          lastName: resolvedLastName,
+          email: resolvedEmail ?? "",
+          phone: resolvedPhone ?? null,
           avatarUrl: null,
           docType,
           docNumberMasked,
@@ -890,6 +963,7 @@ export const getUsersProfilesBundle = cache(
           statusLabel: "Aún no ingresa",
           jobTitle: (inv as { cargo?: string | null }).cargo ?? null,
           invitationId: inv.id,
+          invitationType: invTipo,
           invitationExpiresAt: inv.vence_en,
           createdAt: inv.creado_en,
         });
@@ -988,3 +1062,268 @@ export const getTeamMembers = cache(
     return bundle.members;
   },
 );
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Respuesta inesperada del servidor de base de datos.");
+  }
+  return value as Record<string, unknown>;
+}
+
+/**
+ * Consulta segura de identidad por documento mediante RPC SECURITY DEFINER.
+ * Nunca expone PII en bruto ni realiza consultas directas a `public.usuarios`.
+ */
+export async function lookupPersonByDocumentInDb(
+  empresaId: string,
+  docType: CanonicalDocumentType,
+  docNumber: string,
+): Promise<DocumentLookupResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("buscar_persona_por_documento", {
+    p_empresa_id: empresaId,
+    p_tipo_documento: docType,
+    p_numero_documento: docNumber,
+  });
+
+  if (error || !data) {
+    throw new Error(
+      error?.message ||
+        "No se pudo verificar el documento en la base de datos.",
+    );
+  }
+
+  const row = asRecord(data);
+  const estado = row.estado;
+
+  if (estado === "ya_es_miembro") {
+    return {
+      status: "ya_es_miembro",
+      maskedName: String(row.nombre_enmascarado ?? "Colaborador"),
+      roleName: String(row.perfil_nombre ?? "Miembro"),
+      membershipStatus:
+        row.estado_membresia === "desactivada" ? "desactivada" : "activa",
+      registeredAt: String(row.registrado_en ?? new Date().toISOString()),
+      daysSinceRegistration: Number(row.dias_desde_registro ?? 0),
+    };
+  }
+
+  if (estado === "invitacion_pendiente") {
+    return {
+      status: "invitacion_pendiente",
+      invitationId: String(row.invitacion_id ?? ""),
+      maskedName: String(row.nombre_enmascarado ?? "Invitado"),
+      roleName: String(row.perfil_nombre ?? "Colaborador"),
+      sentAt: String(row.enviada_en ?? new Date().toISOString()),
+      expiresAt: String(row.vence_en ?? new Date().toISOString()),
+      hoursSinceSent: Number(row.horas_desde_envio ?? 0),
+      daysSinceSent: Number(row.dias_desde_envio ?? 0),
+    };
+  }
+
+  if (estado === "cuenta_existente") {
+    return {
+      status: "cuenta_existente",
+      docType: (row.tipo_documento as DocumentType) ?? docType,
+      maskedName: String(row.nombre_enmascarado ?? "U****"),
+      maskedEmail: String(row.correo_enmascarado ?? "****"),
+      maskedDocNumber: String(row.documento_enmascarado ?? "****"),
+      maskedPhone: String(row.celular_enmascarado ?? "****"),
+    };
+  }
+
+  if (estado === "no_encontrado") {
+    return {
+      status: "no_encontrado",
+      docType: (row.tipo_documento as DocumentType) ?? docType,
+      normalizedDocNumber: String(row.documento_normalizado ?? docNumber),
+    };
+  }
+
+  throw new Error("Estado de verificación documental no reconocido.");
+}
+
+export interface RpcCreatedInvitationResult {
+  invitationId: string;
+  tipo: "nueva_cuenta" | "cuenta_existente";
+  perfilId: string;
+  perfilNombre: string;
+  cargo: string | null;
+  accesoWeb: boolean;
+  accesoApp: boolean;
+  accessLabel: AccessLabel;
+  expiresAt: string;
+  createdAt: string;
+  displayName: string;
+  displayEmail: string | null;
+  displayPhone: string | null;
+  maskedDocument: string | null;
+}
+
+function parseRpcInvitationResult(raw: unknown): RpcCreatedInvitationResult {
+  const row = asRecord(raw);
+  const invitationId =
+    typeof row.invitacion_id === "string" ? row.invitacion_id : "";
+  const perfilId = typeof row.perfil_id === "string" ? row.perfil_id : "";
+
+  if (!invitationId || !perfilId) {
+    throw new Error(
+      "La base de datos no confirmó correctamente la creación de la invitación.",
+    );
+  }
+
+  const accesoWeb = Boolean(row.acceso_web);
+  const accesoApp = Boolean(row.acceso_app);
+  const accessLabel = mapFlagsToAccessLabel(accesoWeb, accesoApp);
+  const tipo =
+    row.tipo === "cuenta_existente" ? "cuenta_existente" : "nueva_cuenta";
+
+  if (tipo === "cuenta_existente") {
+    return {
+      invitationId,
+      tipo,
+      perfilId,
+      perfilNombre: String(row.perfil_nombre ?? "Colaborador"),
+      cargo: typeof row.cargo === "string" ? row.cargo : null,
+      accesoWeb,
+      accesoApp,
+      accessLabel,
+      expiresAt: String(row.vence_en ?? ""),
+      createdAt: String(row.creado_en ?? ""),
+      displayName: String(row.nombre_enmascarado ?? "Usuario Vittkly"),
+      displayEmail:
+        typeof row.correo_enmascarado === "string"
+          ? row.correo_enmascarado
+          : null,
+      displayPhone:
+        typeof row.celular_enmascarado === "string"
+          ? row.celular_enmascarado
+          : null,
+      maskedDocument:
+        typeof row.documento_enmascarado === "string"
+          ? row.documento_enmascarado
+          : null,
+    };
+  }
+
+  return {
+    invitationId,
+    tipo,
+    perfilId,
+    perfilNombre: String(row.perfil_nombre ?? "Colaborador"),
+    cargo: typeof row.cargo === "string" ? row.cargo : null,
+    accesoWeb,
+    accesoApp,
+    accessLabel,
+    expiresAt: String(row.vence_en ?? ""),
+    createdAt: String(row.creado_en ?? ""),
+    displayName: String(row.nombre_completo ?? row.correo ?? "Invitado"),
+    displayEmail: typeof row.correo === "string" ? row.correo : null,
+    displayPhone: typeof row.celular === "string" ? row.celular : null,
+    maskedDocument:
+      typeof row.documento_enmascarado === "string"
+        ? row.documento_enmascarado
+        : null,
+  };
+}
+
+export async function createCompanyInvitationInDb(input: {
+  empresaId: string;
+  docType: CanonicalDocumentType;
+  docNumber: string;
+  perfilId: string;
+  accesoWeb: boolean;
+  accesoApp: boolean;
+  cargo: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phoneE164?: string | null;
+  tokenHash: string;
+}): Promise<RpcCreatedInvitationResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("crear_invitacion_empresa", {
+    p_empresa_id: input.empresaId,
+    p_tipo_documento: input.docType,
+    p_numero_documento: input.docNumber,
+    p_perfil_id: input.perfilId,
+    p_acceso_web: input.accesoWeb,
+    p_acceso_app: input.accesoApp,
+    p_cargo: input.cargo,
+    p_nombres: input.firstName ?? null,
+    p_apellidos: input.lastName ?? null,
+    p_correo: input.email ?? null,
+    p_celular: input.phoneE164 ?? null,
+    p_token_hash: input.tokenHash,
+  });
+
+  if (error || !data) {
+    throw new Error(
+      error?.message ||
+        "No se pudo registrar la invitación en la base de datos.",
+    );
+  }
+
+  return parseRpcInvitationResult(data);
+}
+
+export async function resendCompanyInvitationInDb(
+  invitationId: string,
+  tokenHash: string,
+): Promise<RpcCreatedInvitationResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reenviar_invitacion_empresa", {
+    p_invitacion_id: invitationId,
+    p_token_hash: tokenHash,
+  });
+
+  if (error || !data) {
+    throw new Error(
+      error?.message || "No se pudo generar la nueva invitación.",
+    );
+  }
+
+  return parseRpcInvitationResult(data);
+}
+
+/**
+ * Resuelve exclusivamente en servidor el correo real de una invitación
+ * `cuenta_existente` vía `service_role` para el envío de correo transaccional.
+ * Nunca se retorna al cliente del administrador.
+ */
+export async function getExistingAccountEmailTargetInDb(
+  invitationId: string,
+  empresaId: string,
+): Promise<{ email: string; recipientName: string } | null> {
+  const adminClient = createAdminClient();
+  const { data: invRow } = await adminClient
+    .from("invitaciones")
+    .select("usuario_id")
+    .eq("id", invitationId)
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+
+  if (!invRow?.usuario_id) {
+    return null;
+  }
+
+  const { data: userRow } = await adminClient
+    .from("usuarios")
+    .select("correo, nombre, nombres, apellidos")
+    .eq("id", invRow.usuario_id)
+    .maybeSingle();
+
+  if (!userRow?.correo) {
+    return null;
+  }
+
+  const fullName =
+    `${userRow.nombres ?? ""} ${userRow.apellidos ?? ""}`.trim() ||
+    userRow.nombre ||
+    "Colaborador";
+
+  return {
+    email: userRow.correo,
+    recipientName: fullName,
+  };
+}

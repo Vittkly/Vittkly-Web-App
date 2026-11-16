@@ -116,20 +116,6 @@ export function EmailLoginScreen() {
             Iniciar sesión
           </Button>
 
-          {/* Enlace a Crear cuenta */}
-          <View style={[styles.toggleRow, { gap: spacing.space1 }]}>
-            <Text style={[typography.small, { color: colors.inkMuted }]}>¿No tienes cuenta?</Text>
-            <Pressable
-              testID="login-go-to-signup-btn"
-              accessibilityRole="button"
-              accessibilityLabel="Créala"
-              onPress={() => router.push('/(auth)/login')}
-              style={[styles.inlineLink, { minHeight: control.lg }]}
-            >
-              <Text style={[typography.bodyStrong, { color: colors.primaryInk }]}>Créala</Text>
-            </Pressable>
-          </View>
-
           {/* Botones OAuth */}
           <AuthOAuthButtons disabled />
         </View>
@@ -152,15 +138,6 @@ const styles = StyleSheet.create({
   forgotLink: {
     alignSelf: 'flex-start',
     justifyContent: 'center',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inlineLink: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   legalText: {
     textAlign: 'center',

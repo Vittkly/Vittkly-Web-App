@@ -1,7 +1,7 @@
-import { ArrowLeft } from 'lucide-react-native';
 import React from 'react';
 import { Insets, Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 
+import { BackIcon } from '@/components/icons';
 import { useTheme } from '@/theme';
 
 export interface BackButtonProps {
@@ -11,9 +11,8 @@ export interface BackButtonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const BUTTON_SIZE = 40;
 const ICON_SIZE = 20;
-const HIT_SLOP: Insets = { top: 8, bottom: 8, left: 8, right: 8 };
+const HIT_SLOP: Insets = { top: 4, bottom: 4, left: 4, right: 4 };
 
 export function BackButton({
   onPress,
@@ -21,7 +20,7 @@ export function BackButton({
   accessibilityLabel = 'Volver',
   style,
 }: BackButtonProps) {
-  const { colors, radius } = useTheme();
+  const { colors, control, radius } = useTheme();
 
   return (
     <Pressable
@@ -33,15 +32,15 @@ export function BackButton({
       style={({ pressed }) => [
         styles.button,
         {
-          width: BUTTON_SIZE,
-          height: BUTTON_SIZE,
+          width: control.lg,
+          height: control.lg,
           borderRadius: radius.pill,
           backgroundColor: pressed ? colors.surfaceSunken : 'transparent',
         },
         style,
       ]}
     >
-      <ArrowLeft size={ICON_SIZE} color={colors.ink} />
+      <BackIcon size={ICON_SIZE} color={colors.ink} />
     </Pressable>
   );
 }

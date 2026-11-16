@@ -2,7 +2,9 @@ import React, { useId } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import Svg, { Circle, G, Mask, Path, Rect } from 'react-native-svg';
 
-export type LogoTone = 'color' | 'white' | 'tinta';
+import { useTheme } from '@/theme';
+
+export type LogoTone = 'auto' | 'color' | 'color-dark' | 'white' | 'tinta';
 export type LogoVariant = 'wordmark' | 'monogram';
 
 export interface LogoProps {
@@ -11,6 +13,7 @@ export interface LogoProps {
   height?: number;
   title?: string;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 const WB =
@@ -22,12 +25,6 @@ const MB =
 const MG =
   'M1997 1605 c-59 -36 -103 -60 -138 -74 -4 -2 -12 -5 -18 -8 -20 -8 -40 -15 -65 -24 -14 -4 -20 -7 -22 -10 -2 -3 -2 -1379 0 -1383 3 -5 -3 -5 129 -5 132 0 126 0 129 5 1 2 1 45 1 180 0 172 0 177 2 181 1 2 7 9 12 15 6 6 13 14 17 18 15 17 72 79 78 85 11 12 12 11 44 -41 11 -19 20 -34 36 -59 9 -14 19 -31 23 -37 4 -7 15 -24 24 -39 9 -15 18 -29 20 -32 2 -4 7 -12 11 -18 8 -13 19 -31 37 -60 5 -9 17 -28 26 -42 27 -44 31 -50 39 -62 4 -7 10 -17 13 -22 4 -5 10 -15 14 -21 21 -36 29 -47 32 -49 4 -3 286 -4 294 -2 9 2 8 5 -13 38 -6 9 -15 22 -20 30 -4 7 -13 21 -20 31 -6 10 -16 25 -21 33 -4 7 -11 18 -15 23 -3 5 -15 24 -26 41 -11 17 -28 44 -38 60 -9 15 -19 31 -22 35 -16 25 -65 103 -87 139 -24 37 -40 62 -48 75 -8 13 -21 33 -59 92 -5 8 -13 21 -18 29 -4 7 -12 19 -16 25 -8 12 -9 17 -7 22 2 4 18 22 56 64 10 11 27 31 40 45 12 13 26 29 31 34 4 6 12 14 16 19 4 5 11 12 15 17 4 5 13 14 19 21 32 37 47 54 53 61 8 9 26 30 48 54 13 15 30 34 50 57 6 8 22 25 34 39 29 32 32 36 24 39 -4 2 -284 1 -289 -1 -5 -2 -15 -12 -52 -55 -23 -27 -32 -38 -46 -53 -6 -7 -14 -17 -17 -20 -4 -4 -10 -12 -15 -17 -10 -11 -20 -24 -46 -54 -9 -11 -20 -23 -25 -28 -4 -5 -13 -16 -20 -23 -6 -8 -22 -26 -34 -40 -20 -24 -52 -60 -61 -72 -13 -14 -64 -74 -72 -83 -12 -14 -16 -16 -20 -12 -1 2 -2 11 -2 420 0 387 0 418 -1 420 -3 4 -6 4 -14 -1z';
 
-const TONES: Record<LogoTone, readonly [string, string, string]> = {
-  color: ['#2AA8DE', '#3EC49B', '#3EC49B'],
-  white: ['#FFFFFF', '#FFFFFF', '#FFFFFF'],
-  tinta: ['#0E2A3B', '#0E2A3B', '#0E2A3B'],
-};
-
 /**
  * Logo oficial de Vittkly (wordmark) y monograma v!k como SVG nativo en React Native.
  * Respeta las alturas mínimas: wordmark 24px, monograma 16px.
@@ -38,11 +35,22 @@ export function Logo({
   height,
   title = 'Vittkly',
   style,
+  testID,
 }: LogoProps) {
+  const { colors, isDark } = useTheme();
   const rawId = useId();
   const maskId = 'vk' + rawId.replace(/[^a-zA-Z0-9]/g, '');
   const mono = variant === 'monogram';
-  const c = TONES[tone] ?? TONES.color;
+
+  const resolvedTone = tone === 'auto' ? (isDark ? 'color-dark' : 'color') : tone;
+  const tonesMap: Record<Exclude<LogoTone, 'auto'>, readonly [string, string, string]> = {
+    color: [colors.vitta, colors.kleanly, colors.kleanly],
+    'color-dark': [colors.vitta, colors.kleanly, colors.kleanly],
+    white: [colors.heroInk, colors.heroInk, colors.heroInk],
+    tinta: [colors.ink, colors.ink, colors.ink],
+  };
+  const c = tonesMap[resolvedTone] ?? tonesMap.color;
+  const colorCheckStroke = resolvedTone === 'color-dark' ? colors.heroFrom : colors.heroInk;
 
   const g = mono
     ? {
@@ -76,10 +84,11 @@ export function Logo({
   const defaultHeight = mono ? 40 : 32;
   const resolvedHeight = Math.max(height ?? defaultHeight, minHeight);
   const resolvedWidth = (resolvedHeight * g.w) / g.hh;
-  const knock = tone !== 'color';
+  const knock = resolvedTone === 'white' || resolvedTone === 'tinta';
 
   return (
     <Svg
+      testID={testID}
       viewBox={g.vb}
       width={resolvedWidth}
       height={resolvedHeight}
@@ -120,7 +129,7 @@ export function Logo({
           <Circle fill={c[2]} cx={g.ci[0]} cy={g.ci[1]} r={g.ci[2]} />
           <Path
             d={g.ck}
-            stroke="#FFFFFF"
+            stroke={colorCheckStroke}
             strokeWidth={g.sw}
             fill="none"
             strokeLinecap="round"

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleProp,
   StyleSheet,
@@ -11,9 +11,13 @@ import {
 
 import { useTheme } from '@/theme';
 
+export type FormFieldVariant = 'filled' | 'underline';
+
 export interface FormFieldProps extends Omit<TextInputProps, 'style'> {
   label?: string;
+  hint?: string;
   error?: string;
+  variant?: FormFieldVariant;
   testID?: string;
   leftSlot?: React.ReactNode;
   rightSlot?: React.ReactNode;
@@ -23,7 +27,9 @@ export interface FormFieldProps extends Omit<TextInputProps, 'style'> {
 
 export function FormField({
   label,
+  hint,
   error,
+  variant = 'filled',
   testID,
   leftSlot,
   rightSlot,
@@ -31,11 +37,22 @@ export function FormField({
   style,
   editable = true,
   placeholderTextColor,
+  onFocus,
+  onBlur,
   ...inputProps
 }: FormFieldProps) {
-  const { colors, spacing, radius, control, typography, borderWidth } = useTheme();
+  const { colors, spacing, radius, control, typography, borderWidth, opacity } = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
 
-  const borderColor = error ? colors.dangerInk : colors.line;
+  const isUnderline = variant === 'underline';
+  const borderColor = error
+    ? colors.dangerInk
+    : isFocused
+      ? colors.focus
+      : isUnderline
+        ? colors.lineStrong
+        : colors.line;
+  const activeBorderWidth = error || isFocused ? borderWidth.emphasis : borderWidth.thin;
 
   return (
     <View style={[styles.wrapper, { gap: spacing.space1 }, containerStyle]}>
@@ -46,15 +63,27 @@ export function FormField({
       <View
         style={[
           styles.inputContainer,
-          {
-            minHeight: control.lg,
-            borderRadius: radius.md,
-            backgroundColor: colors.surfaceSunken,
-            borderColor,
-            borderWidth: borderWidth.thin,
-            paddingHorizontal: spacing.space3,
-            gap: spacing.space2,
-          },
+          isUnderline
+            ? {
+                minHeight: control.lg,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                borderBottomColor: borderColor,
+                borderBottomWidth: activeBorderWidth,
+                paddingHorizontal: 0,
+                gap: spacing.space2,
+                opacity: editable ? 1 : opacity.disabled,
+              }
+            : {
+                minHeight: control.lg,
+                borderRadius: radius.md,
+                backgroundColor: colors.surfaceSunken,
+                borderColor,
+                borderWidth: activeBorderWidth,
+                paddingHorizontal: spacing.space3,
+                gap: spacing.space2,
+                opacity: editable ? 1 : opacity.disabled,
+              },
           style,
         ]}
       >
@@ -64,6 +93,14 @@ export function FormField({
           testID={testID}
           editable={editable}
           placeholderTextColor={placeholderTextColor ?? colors.inkMuted}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
           style={[
             typography.body,
             styles.input,
@@ -85,6 +122,8 @@ export function FormField({
         >
           {error}
         </Text>
+      ) : hint ? (
+        <Text style={[typography.small, { color: colors.inkMuted }]}>{hint}</Text>
       ) : null}
     </View>
   );

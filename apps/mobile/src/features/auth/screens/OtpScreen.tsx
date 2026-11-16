@@ -28,9 +28,9 @@ export function OtpScreen() {
 
   const displayPhone = params.phone || targetPhone;
   const subtitle =
-    flow === 'signup' || flow === 'recovery'
+    flow === 'recovery'
       ? `Te enviamos un código de 6 dígitos a ${targetEmail || 'tu correo'}`
-      : `Enviado por WhatsApp al ${displayPhone}`;
+      : `Te enviamos un código de 6 dígitos al ${displayPhone}`;
 
   return (
     <AuthScreenLayout

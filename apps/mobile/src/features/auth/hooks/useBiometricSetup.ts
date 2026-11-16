@@ -16,8 +16,8 @@ export function useBiometricSetup() {
       router.replace('/');
       return;
     }
-    if (tenants.length > 1 && !activeOrganizationId) {
-      router.replace('/(auth)/select-tenant');
+    if (tenants.length === 0 || (tenants.length > 1 && !activeOrganizationId)) {
+      router.replace('/(auth)/org-selector');
       return;
     }
     router.replace('/');
@@ -30,12 +30,12 @@ export function useBiometricSetup() {
     try {
       if (isAvailable) {
         const authenticated = await authenticateWithBiometrics();
-        await setBiometricPreference(authenticated, biometricType);
+        await setBiometricPreference(authenticated, authenticated ? biometricType : 'none');
       } else {
-        await setBiometricPreference(true, 'facial');
+        await setBiometricPreference(false);
       }
     } catch {
-      await setBiometricPreference(true, 'facial');
+      await setBiometricPreference(false);
     } finally {
       setIsActivating(false);
     }

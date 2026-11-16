@@ -1,5 +1,7 @@
 export * from './Button';
 export * from './ConnectionBanner';
+export * from './Header';
+export * from './icons';
 export * from './Logo';
 export * from './MobileTabBar';
 export * from './OtpInput';

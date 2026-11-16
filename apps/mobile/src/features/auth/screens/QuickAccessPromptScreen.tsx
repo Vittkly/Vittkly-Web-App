@@ -26,8 +26,8 @@ export function QuickAccessPromptScreen() {
       router.replace('/');
       return;
     }
-    if (tenants.length > 1 && !activeOrganizationId) {
-      router.replace('/(auth)/select-tenant');
+    if (tenants.length === 0 || (tenants.length > 1 && !activeOrganizationId)) {
+      router.replace('/(auth)/org-selector');
       return;
     }
     router.replace('/');

@@ -9,7 +9,7 @@ import {
   MobileTabBar,
   type NavItem,
 } from '@/components';
-import { useAuth } from '@/features/auth';
+import { useConnectionSyncStatus } from '@/services/offline';
 import { useTheme } from '@/theme';
 
 import { DashboardHeader } from '../components/DashboardHeader';
@@ -18,7 +18,7 @@ import { useSignOutAction } from '../hooks/useSignOutAction';
 
 export function HomeScreen() {
   const { colors, spacing } = useTheme();
-  const { isOffline } = useAuth();
+  const { bannerStatus, totalUnsyncedCount } = useConnectionSyncStatus();
   const [activeTab, setActiveTab] = useState('Hoy');
   const { isLoggingOut, handleSignOut } = useSignOutAction();
 
@@ -29,13 +29,16 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.surface }]}>
-      {isOffline ? (
+      {bannerStatus === 'offline' ? (
         <ConnectionBanner status="offline" />
-      ) : (
+      ) : bannerStatus === 'syncing' ? (
         <View style={{ paddingHorizontal: spacing.space4, paddingTop: spacing.space2 }}>
-          <ConnectionBanner status="syncing" pending={3} />
+          <ConnectionBanner
+            status="syncing"
+            pending={totalUnsyncedCount > 0 ? totalUnsyncedCount : undefined}
+          />
         </View>
-      )}
+      ) : null}
 
       <ScrollView
         contentContainerStyle={{

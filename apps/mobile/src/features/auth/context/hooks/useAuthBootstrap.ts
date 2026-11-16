@@ -10,6 +10,7 @@ import type {
   Tenant,
   UserProfile,
 } from '../../types/auth.types';
+import { syncOrgStoreFromAuth } from '../../utils/tenant-sync';
 import { isNetworkOffline, resolveActiveTenant } from '../auth-state';
 
 export interface UseAuthBootstrapProps {
@@ -36,16 +37,22 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
       const resolvedTenants =
         bootstrap.tenants.length > 0 ? bootstrap.tenants : sqliteSnapshot.tenants;
 
-      // Criterio 1: Entrada directa si tiene una sola empresa
+      // Resolver active_empresa_id priorizando SecureStore (y entrada directa si solo tiene 1 empresa)
       let resolvedOrgId = bootstrap.activeOrganizationId;
       if (resolvedTenants.length === 1 && resolvedTenants[0]) {
         resolvedOrgId = resolvedTenants[0].id;
+        void secureStorageService.setActiveEmpresaId(resolvedOrgId);
         void secureStorageService.saveLastActiveTenantId(resolvedOrgId);
         void offlineSessionService.saveActiveTenantId(resolvedOrgId);
+      } else if (resolvedOrgId && !resolvedTenants.some((t) => t.id === resolvedOrgId)) {
+        resolvedOrgId = null;
       }
 
       const activeTenant = resolveActiveTenant(resolvedTenants, resolvedOrgId);
-      const lastActiveTenantId = bootstrap.lastActiveTenantId ?? resolvedOrgId ?? null;
+      const lastActiveTenantId =
+        bootstrap.lastActiveTenantId ?? resolvedUser?.ultimaEmpresaId ?? resolvedOrgId ?? null;
+
+      syncOrgStoreFromAuth(resolvedTenants, activeTenant, lastActiveTenantId);
 
       let nextStatus: AuthStatus = 'unauthenticated';
       let isLoggedIn = false;
@@ -60,7 +67,6 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
         }
       }
 
-      // Si el bloqueo temporal ya venció, el contador de intentos parte de cero.
       const lockoutExpired =
         bootstrap.pinLockedUntil !== null && Date.now() >= bootstrap.pinLockedUntil;
       const restoredFailedAttempts = lockoutExpired ? 0 : bootstrap.pinFailedAttempts;
@@ -75,13 +81,12 @@ export function useAuthBootstrap({ setState, isMountedRef }: UseAuthBootstrapPro
         sessionToken: bootstrap.sessionToken,
         user: resolvedUser,
         tenants: resolvedTenants,
-        activeOrganizationId: resolvedOrgId,
+        activeOrganizationId: activeTenant?.id ?? null,
         activeTenant,
         lastActiveTenantId,
         pin: {
           ...prev.pin,
           isConfigured: hasPinConfigured,
-          // R1/R4: arranque en frío con sesión + PIN siempre inicia bloqueado (online u offline).
           isLocked: hasSession && hasPinConfigured,
           failedAttempts: restoredFailedAttempts,
           lockedUntil: restoredLockedUntil,

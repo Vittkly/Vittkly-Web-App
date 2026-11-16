@@ -4,7 +4,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Logo } from '@/components/Logo';
 import { AlertBanner } from '@/components/ui/AlertBanner';
-import { FormField } from '@/components/ui/FormField';
 import { PasswordField } from '@/components/ui/PasswordField';
 import { useTheme } from '@/theme';
 
@@ -21,7 +20,6 @@ export function ResetPasswordScreen() {
     setPassword,
     confirmPassword,
     setConfirmPassword,
-    showPassword,
     errors,
     setErrors,
     isSubmitting,
@@ -71,12 +69,12 @@ export function ResetPasswordScreen() {
               ) : null}
             </View>
 
-            <FormField
+            <PasswordField
               testID="reset-password-confirm-input"
+              toggleTestID="reset-password-confirm-toggle-btn"
               label="Confirmar contraseña"
               value={confirmPassword}
               editable={!isSubmitting}
-              secureTextEntry={!showPassword}
               onChangeText={(text) => {
                 setConfirmPassword(text);
                 if (errors.p2) setErrors((prev) => ({ ...prev, p2: undefined }));

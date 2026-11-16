@@ -1,5 +1,5 @@
-import { SelectTenantScreen } from '@/features/auth/screens/SelectTenantScreen';
+import { OrgSelectorScreen } from '@/features/auth/screens/OrgSelectorScreen';
 
 export default function OrgSelectorRoute() {
-  return <SelectTenantScreen />;
+  return <OrgSelectorScreen />;
 }

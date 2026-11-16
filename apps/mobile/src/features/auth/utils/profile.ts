@@ -1,5 +1,7 @@
+import type { MembershipRole } from '../types/auth.types';
+
 /**
- * Obtiene las iniciales de 1 o 2 letras para nombres de usuario u organizaciones.
+ * Obtiene las iniciales de 1 o 2 letras para nombres de usuario o empresas.
  */
 export function getInitials(name?: string | null): string {
   const cleaned = (name ?? '').trim();
@@ -20,13 +22,32 @@ export function getRoleLabel(roleName?: string | null): string {
   if (!roleName) return 'Usuario';
   const lower = roleName.toLowerCase();
   if (lower.includes('admin')) return 'Administrador';
-  if (lower.includes('tech') || lower.includes('tecnic')) return 'Técnico de campo';
+  if (lower.includes('tech') || lower.includes('tecnic') || lower.includes('técnic')) {
+    return 'Técnico de campo';
+  }
   if (lower.includes('coord')) return 'Coordinador';
   return roleName;
 }
 
 /**
- * Formatea el subtítulo corporativo (Rol · Organización).
+ * Formatea el rol visible para una empresa/membresía usando `cargo`, `perfilNombre`, `esPropietario` o `role`.
+ */
+export function formatMembershipRoleLabel(options: {
+  role?: MembershipRole | string;
+  jobTitle?: string | null;
+  perfilNombre?: string | null;
+  esPropietario?: boolean;
+}): string {
+  const { role, jobTitle, perfilNombre, esPropietario } = options;
+  if (jobTitle && jobTitle.trim().length > 0) return jobTitle.trim();
+  if (perfilNombre && perfilNombre.trim().length > 0) return perfilNombre.trim();
+  if (esPropietario || role === 'owner') return 'Titular de Empresa';
+  if (role === 'admin') return 'Supervisor';
+  return 'Técnico de campo';
+}
+
+/**
+ * Formatea el subtítulo corporativo (`Rol · Empresa`).
  */
 export function formatTenantSubtitle(roleName?: string | null, tenantName?: string | null): string {
   const role = getRoleLabel(roleName);

@@ -1,7 +1,7 @@
-import { Building2 } from 'lucide-react-native';
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
+import { BuildingIcon } from '@/components/icons';
 import { tokens, useTheme } from '@/theme';
 
 import type { Tenant } from '../types/auth.types';
@@ -20,8 +20,8 @@ export interface TenantSelectorProps {
 const ICON_SIZE = tokens.spacing.space6;
 
 /**
- * Listado de organizaciones disponibles para usuarios con membresía multi-tenant.
- * Delega la renderización visual de cada item a TenantCard.
+ * Listado de empresas disponibles para usuarios con acceso móvil multi-empresa.
+ * Delega la renderización visual de cada tarjeta a `TenantCard`.
  */
 export function TenantSelector({
   tenants,
@@ -50,13 +50,13 @@ export function TenantSelector({
           style,
         ]}
       >
-        <Building2 size={ICON_SIZE} color={colors.inkMuted} />
+        <BuildingIcon size={ICON_SIZE} color={colors.inkMuted} />
         <Text style={[typography.title3, styles.centerText, { color: colors.ink }]}>
-          Sin organizaciones asignadas
+          Sin empresas con acceso móvil
         </Text>
         <Text style={[typography.small, styles.centerText, { color: colors.inkMuted }]}>
-          Aún no tienes membresías activas. Si tienes un código de invitación VK-XXXX, vincúlalo
-          desde la pantalla de bienvenida.
+          Tu cuenta no tiene membresías activas habilitadas para la App de Campo. Solicita a tu
+          administrador activar tu acceso móvil desde la central web.
         </Text>
       </View>
     );

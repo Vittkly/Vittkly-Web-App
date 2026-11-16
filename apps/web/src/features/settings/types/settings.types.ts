@@ -1,3 +1,5 @@
+import { maskDocumentForDisplay } from "@vittkly/shared";
+
 export type MemberStatus = "active" | "pending" | "suspended";
 
 export type AccessScope = "web" | "mobile" | "both";
@@ -35,8 +37,58 @@ export interface TeamMember {
   statusLabel?: string;
   jobTitle?: string | null;
   invitationId?: string | null;
+  invitationType?: "nueva_cuenta" | "cuenta_existente" | null;
   invitationExpiresAt?: string | null;
   createdAt: string;
+}
+
+export type DocumentLookupResult =
+  | {
+      status: "ya_es_miembro";
+      maskedName: string;
+      roleName: string;
+      membershipStatus: "activa" | "desactivada";
+      registeredAt: string;
+      daysSinceRegistration: number;
+    }
+  | {
+      status: "invitacion_pendiente";
+      invitationId: string;
+      maskedName: string;
+      roleName: string;
+      sentAt: string;
+      expiresAt: string;
+      hoursSinceSent: number;
+      daysSinceSent: number;
+    }
+  | {
+      status: "cuenta_existente";
+      docType: DocumentType;
+      maskedName: string;
+      maskedEmail: string;
+      maskedDocNumber: string;
+      maskedPhone: string;
+    }
+  | {
+      status: "no_encontrado";
+      docType: DocumentType;
+      normalizedDocNumber: string;
+    };
+
+export interface GeneratedInvitationPayload {
+  invitationId: string;
+  tipo: "nueva_cuenta" | "cuenta_existente";
+  recipientName: string;
+  recipientEmail: string | null;
+  recipientPhone: string | null;
+  recipientDocumentMasked: string | null;
+  perfilNombre: string;
+  accessLabel: AccessLabel;
+  expiresAt: string;
+  invitationPath: string | null;
+  emailSent?: boolean;
+  emailError?: string | null;
+  canResend?: boolean;
 }
 
 export interface InvitationRecord {
@@ -276,10 +328,8 @@ export function mapAccessLabelToFlags(label: AccessLabel): {
 }
 
 export function maskDocumentNumber(docNumber?: string | null): string | null {
-  if (!docNumber) return null;
-  const trimmed = docNumber.trim();
-  if (trimmed.length <= 3) return "***";
-  return `***${trimmed.slice(-3)}`;
+  if (!docNumber || !docNumber.trim()) return null;
+  return maskDocumentForDisplay(docNumber);
 }
 
 export type SettingsCategoryKey =

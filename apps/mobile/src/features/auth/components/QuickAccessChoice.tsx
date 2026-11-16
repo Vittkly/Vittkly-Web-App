@@ -1,7 +1,7 @@
-import { ChevronRight, Mail, ShieldCheck } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CheckSquareIcon, ChevronIcon, MailIcon } from '@/components/icons';
 import { Logo } from '@/components/Logo';
 import { tokens, useTheme } from '@/theme';
 
@@ -75,7 +75,7 @@ export function QuickAccessChoice({
                 },
               ]}
             >
-              <ShieldCheck size={CARD_ICON_SIZE} color={colors.primaryInk} />
+              <CheckSquareIcon size={CARD_ICON_SIZE} color={colors.primaryInk} />
             </View>
 
             <View style={[styles.cardTextColumn, { gap: spacing.space1 }]}>
@@ -122,7 +122,7 @@ export function QuickAccessChoice({
               </Text>
             </View>
 
-            <ChevronRight size={CHEVRON_SIZE} color={colors.primaryInk} />
+            <ChevronIcon size={CHEVRON_SIZE} color={colors.primaryInk} />
           </View>
         </Pressable>
 
@@ -157,7 +157,7 @@ export function QuickAccessChoice({
                 },
               ]}
             >
-              <Mail size={CARD_ICON_SIZE} color={colors.inkMuted} />
+              <MailIcon size={CARD_ICON_SIZE} color={colors.inkMuted} />
             </View>
 
             <View style={[styles.cardTextColumn, { gap: spacing.space1 }]}>
@@ -177,7 +177,7 @@ export function QuickAccessChoice({
               </Text>
             </View>
 
-            <ChevronRight size={CHEVRON_SIZE} color={colors.inkMuted} />
+            <ChevronIcon size={CHEVRON_SIZE} color={colors.inkMuted} />
           </View>
         </Pressable>
       </View>

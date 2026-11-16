@@ -10,7 +10,7 @@ export type ForgotMethod = 'email' | 'sms' | 'wsp';
 export function useForgotPassword() {
   const params = useLocalSearchParams<{ email?: string }>();
   const { requestPasswordReset, verifyPasswordResetCode } = useAuth();
-  const { handleBack } = useAuthBackNavigation('/(auth)/login_email');
+  const { handleBack } = useAuthBackNavigation('/(auth)/login');
 
   const [method, setMethod] = useState<ForgotMethod>('email');
   const [step, setStep] = useState<'request' | 'verify'>('request');
@@ -32,7 +32,7 @@ export function useForgotPassword() {
       setError(null);
       return;
     }
-    handleBack('/(auth)/login_email');
+    handleBack('/(auth)/login');
   };
 
   const handleSendCode = async () => {

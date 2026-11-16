@@ -1,10 +1,11 @@
-import { Check, ChevronRight, Shield } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CheckIcon, CheckSquareIcon, ForwardIcon } from '@/components/icons';
 import { tokens, useTheme } from '@/theme';
-import type { MembershipRole, Tenant } from '../types/auth.types';
-import { getInitials } from '../utils/profile';
+
+import type { Tenant } from '../types/auth.types';
+import { formatMembershipRoleLabel, getInitials } from '../utils/profile';
 
 export interface TenantCardProps {
   tenant: Tenant;
@@ -15,16 +16,9 @@ export interface TenantCardProps {
 }
 
 const AVATAR_SIZE = tokens.control.lg; // 48px
-const ICON_SIZE = tokens.spacing.space6; // 24px
+const ICON_SIZE = tokens.spacing.space4 + tokens.spacing.space1; // 20px
 const SMALL_ICON_SIZE = tokens.spacing.space4; // 16px
 const ACTIVE_DOT_SIZE = tokens.spacing.space2; // 8px
-
-function formatRoleLabel(role: MembershipRole, jobTitle?: string | null): string {
-  if (jobTitle && jobTitle.trim().length > 0) return jobTitle;
-  if (role === 'owner') return 'Titular de Empresa';
-  if (role === 'admin') return 'Supervisor';
-  return 'Técnico de Campo';
-}
 
 export function TenantCard({
   tenant,
@@ -35,7 +29,13 @@ export function TenantCard({
 }: TenantCardProps) {
   const { colors, spacing, radius, typography, control, fontFamilies } = useTheme();
 
-  const roleLabel = formatRoleLabel(tenant.role, tenant.jobTitle);
+  const roleLabel = formatMembershipRoleLabel({
+    role: tenant.role,
+    jobTitle: tenant.jobTitle,
+    perfilNombre: tenant.perfilNombre,
+    esPropietario: tenant.esPropietario,
+  });
+  const locationMeta = [tenant.rubro, tenant.ciudad].filter(Boolean).join(' · ');
   const companyInitials = getInitials(tenant.name);
   const isHighlighted = isSelected || isLastActive;
   const badgeLabel = isLastActive ? 'Última activa' : isSelected ? 'Activa' : null;
@@ -44,7 +44,7 @@ export function TenantCard({
     <Pressable
       testID={`tenant-card-${tenant.id}`}
       accessibilityRole="button"
-      accessibilityLabel={`Seleccionar organización ${tenant.name}, rol ${roleLabel}`}
+      accessibilityLabel={`Seleccionar empresa ${tenant.name}, rol ${roleLabel}`}
       accessibilityState={{ selected: isSelected, disabled }}
       disabled={disabled}
       onPress={() => onSelect(tenant)}
@@ -138,6 +138,12 @@ export function TenantCard({
           ) : null}
         </View>
 
+        {locationMeta ? (
+          <Text style={[typography.small, { color: colors.inkMuted }]} numberOfLines={1}>
+            {locationMeta}
+          </Text>
+        ) : null}
+
         <View style={[styles.roleRow, { gap: spacing.space2 }]}>
           <View
             style={[
@@ -151,7 +157,7 @@ export function TenantCard({
               },
             ]}
           >
-            <Shield size={SMALL_ICON_SIZE} color={colors.primaryInk} />
+            <CheckSquareIcon size={SMALL_ICON_SIZE} color={colors.primaryInk} />
             <Text style={[typography.small, { color: colors.inkMuted }]}>{roleLabel}</Text>
           </View>
 
@@ -185,9 +191,9 @@ export function TenantCard({
         ]}
       >
         {isSelected ? (
-          <Check size={SMALL_ICON_SIZE} color={colors.onTenantAccent} />
+          <CheckIcon size={SMALL_ICON_SIZE} color={colors.onTenantAccent} />
         ) : (
-          <ChevronRight size={ICON_SIZE} color={colors.inkMuted} />
+          <ForwardIcon size={ICON_SIZE} color={colors.inkMuted} />
         )}
       </View>
     </Pressable>

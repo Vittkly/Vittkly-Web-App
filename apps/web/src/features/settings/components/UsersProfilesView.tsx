@@ -97,6 +97,7 @@ export function UsersProfilesView({
 
       {/* Modal de Invitación (Enlace de un solo uso · 7 días) */}
       <InvitationDetailsModal
+        key={activeInvitationModal?.invitationId ?? "none"}
         isOpen={Boolean(activeInvitationModal)}
         onClose={() => setActiveInvitationModal(null)}
         companyName={companyName}

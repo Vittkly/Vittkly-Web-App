@@ -9,15 +9,11 @@ import React, {
 } from 'react';
 
 import type {
-  AuthSessionResult,
   AuthState,
   BiometricType,
+  LoginResult,
   SetSessionPayload,
   SignInWithPasswordParams,
-  SignUpParams,
-  SignUpWithEmailResult,
-  Tenant,
-  UserProfile,
   VerifyOtpParams,
 } from '../types/auth.types';
 import {
@@ -33,43 +29,18 @@ import { usePinVault } from './hooks/usePinVault';
 export { MAX_PIN_ATTEMPTS, PIN_LOCKOUT_DURATION_MS, resolveActiveTenant, initialAuthState };
 
 export interface AuthContextValue extends AuthState {
+  activeEmpresaId: string | null;
   isAuthenticated: boolean;
-  /** Cuentas sin correo (acceso por teléfono) deben crear PIN obligatoriamente (R8). */
+  /** Cuentas sin correo (acceso por teléfono) deben crear PIN obligatoriamente. */
   isPinRequired: boolean;
   setSession: (payload: SetSessionPayload) => Promise<void>;
-  loginWithPassword: (params: SignInWithPasswordParams) => Promise<{
-    user: UserProfile;
-    tenants: Tenant[];
-    hasPin: boolean;
-  }>;
-  signUpWithEmail: (params: SignUpParams) => Promise<SignUpWithEmailResult>;
-  signUp: (params: SignUpParams) => Promise<AuthSessionResult | null>;
-  verifySignupOtp: (
-    email: string,
-    token: string,
-  ) => Promise<{
-    user: UserProfile;
-    tenants: Tenant[];
-    hasPin: boolean;
-  }>;
-  resendSignupOtp: (email: string) => Promise<void>;
+  loginWithPassword: (params: SignInWithPasswordParams) => Promise<LoginResult>;
   requestPasswordReset: (email: string) => Promise<void>;
-  verifyRecoveryOtp: (
-    email: string,
-    token: string,
-  ) => Promise<{
-    user: UserProfile;
-    tenants: Tenant[];
-    hasPin: boolean;
-  }>;
+  verifyRecoveryOtp: (email: string, token: string) => Promise<LoginResult>;
   verifyPasswordResetCode: (email: string, token: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   requestPhoneOtp: (phone: string) => Promise<{ normalizedPhone: string }>;
-  verifyPhoneOtp: (params: VerifyOtpParams) => Promise<{
-    user: UserProfile;
-    tenants: Tenant[];
-    hasPin: boolean;
-  }>;
+  verifyPhoneOtp: (params: VerifyOtpParams) => Promise<LoginResult>;
   switchTenant: (organizationId: string) => Promise<void>;
   selectOrganization: (organizationId: string) => Promise<void>;
   selectTenant: (organizationId: string) => Promise<void>;
@@ -117,6 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   } = usePinVault({ state, stateRef, setState });
 
   const sessionActions = useAuthSessionActions({
+    stateRef,
     setState,
     hydrateCloudPin,
   });
@@ -124,6 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const contextValue = useMemo<AuthContextValue>(
     () => ({
       ...state,
+      activeEmpresaId: state.activeOrganizationId,
       isAuthenticated: state.isLoggedIn,
       isPinRequired: !state.user?.email,
       ...sessionActions,

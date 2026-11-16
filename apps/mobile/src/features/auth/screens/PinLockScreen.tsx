@@ -10,7 +10,7 @@ import { PinPadLock } from '../components/PinPadLock';
 import { UserBioHeader } from '../components/UserBioHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useQuickUnlock } from '../hooks/useQuickUnlock';
-import { getInitials } from '../utils/profile';
+import { formatMembershipRoleLabel, getInitials } from '../utils/profile';
 
 export function PinLockScreen() {
   const { colors, spacing, radius, typography, control } = useTheme();
@@ -31,8 +31,8 @@ export function PinLockScreen() {
       router.replace('/');
       return;
     }
-    if (tenants.length > 1 && !activeOrganizationId) {
-      router.replace('/(auth)/select-tenant');
+    if (tenants.length === 0 || (tenants.length > 1 && !activeOrganizationId)) {
+      router.replace('/(auth)/org-selector');
       return;
     }
     router.replace('/');
@@ -63,20 +63,19 @@ export function PinLockScreen() {
   const fullName =
     user?.fullName?.trim() ||
     [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() ||
-    'Rosa Mendoza';
+    'Usuario';
   const initials = getInitials(fullName);
 
   const currentTenant = activeTenant ?? tenants[0] ?? null;
-  const roleLabel =
-    currentTenant?.jobTitle ||
-    (currentTenant?.role === 'owner'
-      ? 'Titular'
-      : currentTenant?.role === 'admin'
-        ? 'Supervisor'
-        : 'Técnica de campo');
+  const roleLabel = formatMembershipRoleLabel({
+    role: currentTenant?.role,
+    jobTitle: currentTenant?.jobTitle,
+    perfilNombre: currentTenant?.perfilNombre,
+    esPropietario: currentTenant?.esPropietario,
+  });
   const accessProfileSubtitle = currentTenant?.name
     ? `${roleLabel} · ${currentTenant.name}`
-    : `${roleLabel} · Vitta Kleanly`;
+    : `${roleLabel} · Vittkly`;
 
   return (
     <SafeAreaView

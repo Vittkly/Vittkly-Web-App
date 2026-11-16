@@ -42,8 +42,8 @@ export function SplashScreen() {
     } else if (status === 'logged_in' || status === 'offline_authenticated') {
       if (!pin.isConfigured && isPinRequired) {
         targetRoute = '/(auth)/pin-setup';
-      } else if (tenants.length > 1 && !activeOrganizationId) {
-        targetRoute = '/(auth)/select-tenant';
+      } else if (tenants.length === 0 || (tenants.length > 1 && !activeOrganizationId)) {
+        targetRoute = '/(auth)/org-selector';
       } else {
         targetRoute = '/';
       }

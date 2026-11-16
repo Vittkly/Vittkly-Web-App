@@ -523,6 +523,7 @@ export interface Database {
           cargo: string | null;
           estado: string;
           activo: boolean;
+          desde: string | null;
           invitacion_id: string | null;
           invitado_por: string | null;
           desvinculada_en: string | null;
@@ -542,6 +543,7 @@ export interface Database {
           cargo?: string | null;
           estado?: string;
           activo?: boolean;
+          desde?: string | null;
           invitacion_id?: string | null;
           invitado_por?: string | null;
           desvinculada_en?: string | null;
@@ -561,6 +563,7 @@ export interface Database {
           cargo?: string | null;
           estado?: string;
           activo?: boolean;
+          desde?: string | null;
           invitacion_id?: string | null;
           invitado_por?: string | null;
           desvinculada_en?: string | null;
@@ -943,6 +946,7 @@ export interface Database {
           numero_documento: string | null;
           correo: string | null;
           celular: string | null;
+          datos_enmascarados: Json | null;
           perfil_id: string;
           cargo: string | null;
           acceso_web: boolean;
@@ -971,6 +975,7 @@ export interface Database {
           numero_documento?: string | null;
           correo?: string | null;
           celular?: string | null;
+          datos_enmascarados?: Json | null;
           perfil_id: string;
           cargo?: string | null;
           acceso_web?: boolean;
@@ -999,6 +1004,7 @@ export interface Database {
           numero_documento?: string | null;
           correo?: string | null;
           celular?: string | null;
+          datos_enmascarados?: Json | null;
           perfil_id?: string;
           cargo?: string | null;
           acceso_web?: boolean;
@@ -1189,6 +1195,483 @@ export interface Database {
         };
         Relationships: [];
       };
+      clientes: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          nombre_completo: string;
+          tipo_persona: 'particular' | 'empresa';
+          documento_tipo: 'DNI' | 'RUC' | 'CE' | 'PASAPORTE' | 'OTRO' | null;
+          documento_numero: string | null;
+          telefono: string | null;
+          correo: string | null;
+          direccion: string | null;
+          distrito: string | null;
+          referencia: string | null;
+          latitud: number | null;
+          longitud: number | null;
+          notas: string | null;
+          activo: boolean;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          nombre_completo: string;
+          tipo_persona?: 'particular' | 'empresa';
+          documento_tipo?: 'DNI' | 'RUC' | 'CE' | 'PASAPORTE' | 'OTRO' | null;
+          documento_numero?: string | null;
+          telefono?: string | null;
+          correo?: string | null;
+          direccion?: string | null;
+          distrito?: string | null;
+          referencia?: string | null;
+          latitud?: number | null;
+          longitud?: number | null;
+          notas?: string | null;
+          activo?: boolean;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          nombre_completo?: string;
+          tipo_persona?: 'particular' | 'empresa';
+          documento_tipo?: 'DNI' | 'RUC' | 'CE' | 'PASAPORTE' | 'OTRO' | null;
+          documento_numero?: string | null;
+          telefono?: string | null;
+          correo?: string | null;
+          direccion?: string | null;
+          distrito?: string | null;
+          referencia?: string | null;
+          latitud?: number | null;
+          longitud?: number | null;
+          notas?: string | null;
+          activo?: boolean;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'clientes_empresa_id_fkey';
+            columns: ['empresa_id'];
+            isOneToOne: false;
+            referencedRelation: 'empresas';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      ordenes_trabajo: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          codigo: string;
+          cliente_id: string;
+          tecnico_id: string | null;
+          tipo: 'servicio' | 'visita';
+          titulo: string;
+          descripcion: string | null;
+          instrucciones: string | null;
+          estado: 'programada' | 'en_ruta' | 'en_curso' | 'completada' | 'pagada' | 'cancelada';
+          fecha_programada: string;
+          hora_inicio_estimada: string | null;
+          duracion_estimada_min: number;
+          direccion_servicio: string | null;
+          distrito: string | null;
+          latitud: number | null;
+          longitud: number | null;
+          en_ruta_eta_min: number | null;
+          frecuencia_recurrencia: string | null;
+          monto_total: number;
+          moneda: string;
+          metodo_pago: 'efectivo' | 'yape_plin' | 'transferencia' | 'tarjeta' | 'pendiente';
+          pagado_en: string | null;
+          iniciado_en: string | null;
+          completado_en: string | null;
+          estado_validacion: 'pendiente' | 'aprobado' | 'observado';
+          validado_por: string | null;
+          validado_en: string | null;
+          observacion_validacion: string | null;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          codigo: string;
+          cliente_id: string;
+          tecnico_id?: string | null;
+          tipo?: 'servicio' | 'visita';
+          titulo: string;
+          descripcion?: string | null;
+          instrucciones?: string | null;
+          estado?: 'programada' | 'en_ruta' | 'en_curso' | 'completada' | 'pagada' | 'cancelada';
+          fecha_programada: string;
+          hora_inicio_estimada?: string | null;
+          duracion_estimada_min?: number;
+          direccion_servicio?: string | null;
+          distrito?: string | null;
+          latitud?: number | null;
+          longitud?: number | null;
+          en_ruta_eta_min?: number | null;
+          frecuencia_recurrencia?: string | null;
+          monto_total?: number;
+          moneda?: string;
+          metodo_pago?: 'efectivo' | 'yape_plin' | 'transferencia' | 'tarjeta' | 'pendiente';
+          pagado_en?: string | null;
+          iniciado_en?: string | null;
+          completado_en?: string | null;
+          estado_validacion?: 'pendiente' | 'aprobado' | 'observado';
+          validado_por?: string | null;
+          validado_en?: string | null;
+          observacion_validacion?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          codigo?: string;
+          cliente_id?: string;
+          tecnico_id?: string | null;
+          tipo?: 'servicio' | 'visita';
+          titulo?: string;
+          descripcion?: string | null;
+          instrucciones?: string | null;
+          estado?: 'programada' | 'en_ruta' | 'en_curso' | 'completada' | 'pagada' | 'cancelada';
+          fecha_programada?: string;
+          hora_inicio_estimada?: string | null;
+          duracion_estimada_min?: number;
+          direccion_servicio?: string | null;
+          distrito?: string | null;
+          latitud?: number | null;
+          longitud?: number | null;
+          en_ruta_eta_min?: number | null;
+          frecuencia_recurrencia?: string | null;
+          monto_total?: number;
+          moneda?: string;
+          metodo_pago?: 'efectivo' | 'yape_plin' | 'transferencia' | 'tarjeta' | 'pendiente';
+          pagado_en?: string | null;
+          iniciado_en?: string | null;
+          completado_en?: string | null;
+          estado_validacion?: 'pendiente' | 'aprobado' | 'observado';
+          validado_por?: string | null;
+          validado_en?: string | null;
+          observacion_validacion?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ordenes_trabajo_empresa_id_fkey';
+            columns: ['empresa_id'];
+            isOneToOne: false;
+            referencedRelation: 'empresas';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ordenes_trabajo_cliente_id_fkey';
+            columns: ['cliente_id'];
+            isOneToOne: false;
+            referencedRelation: 'clientes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ordenes_trabajo_tecnico_id_fkey';
+            columns: ['tecnico_id'];
+            isOneToOne: false;
+            referencedRelation: 'usuarios';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      plantillas_formulario: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          codigo: string;
+          nombre: string;
+          descripcion: string | null;
+          tipo: 'cierre_orden' | 'pre_check' | 'procedimiento';
+          version: number;
+          esquema_campos: Json;
+          activa: boolean;
+          es_predeterminada: boolean;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          codigo?: string;
+          nombre?: string;
+          descripcion?: string | null;
+          tipo?: 'cierre_orden' | 'pre_check' | 'procedimiento';
+          version?: number;
+          esquema_campos?: Json;
+          activa?: boolean;
+          es_predeterminada?: boolean;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          codigo?: string;
+          nombre?: string;
+          descripcion?: string | null;
+          tipo?: 'cierre_orden' | 'pre_check' | 'procedimiento';
+          version?: number;
+          esquema_campos?: Json;
+          activa?: boolean;
+          es_predeterminada?: boolean;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'plantillas_formulario_empresa_id_fkey';
+            columns: ['empresa_id'];
+            isOneToOne: false;
+            referencedRelation: 'empresas';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      respuestas_formulario: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          orden_trabajo_id: string;
+          plantilla_id: string | null;
+          usuario_id: string;
+          estado: 'borrador' | 'completado';
+          paso_actual: number;
+          respuestas: Json;
+          firma_inicio_path: string | null;
+          firma_inicio_en: string | null;
+          firma_conformidad_path: string | null;
+          firma_conformidad_en: string | null;
+          nombre_firmante: string | null;
+          calificacion_csat: number | null;
+          nps_score: number | null;
+          encuesta_omitida: boolean;
+          completado_en: string | null;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          orden_trabajo_id: string;
+          plantilla_id?: string | null;
+          usuario_id: string;
+          estado?: 'borrador' | 'completado';
+          paso_actual?: number;
+          respuestas?: Json;
+          firma_inicio_path?: string | null;
+          firma_inicio_en?: string | null;
+          firma_conformidad_path?: string | null;
+          firma_conformidad_en?: string | null;
+          nombre_firmante?: string | null;
+          calificacion_csat?: number | null;
+          nps_score?: number | null;
+          encuesta_omitida?: boolean;
+          completado_en?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          orden_trabajo_id?: string;
+          plantilla_id?: string | null;
+          usuario_id?: string;
+          estado?: 'borrador' | 'completado';
+          paso_actual?: number;
+          respuestas?: Json;
+          firma_inicio_path?: string | null;
+          firma_inicio_en?: string | null;
+          firma_conformidad_path?: string | null;
+          firma_conformidad_en?: string | null;
+          nombre_firmante?: string | null;
+          calificacion_csat?: number | null;
+          nps_score?: number | null;
+          encuesta_omitida?: boolean;
+          completado_en?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'respuestas_formulario_empresa_id_fkey';
+            columns: ['empresa_id'];
+            isOneToOne: false;
+            referencedRelation: 'empresas';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'respuestas_formulario_orden_trabajo_id_fkey';
+            columns: ['orden_trabajo_id'];
+            isOneToOne: true;
+            referencedRelation: 'ordenes_trabajo';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'respuestas_formulario_plantilla_id_fkey';
+            columns: ['plantilla_id'];
+            isOneToOne: false;
+            referencedRelation: 'plantillas_formulario';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      evidencias_orden: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          orden_trabajo_id: string;
+          usuario_id: string;
+          tipo:
+            'antes' | 'despues' | 'firma_inicio' | 'firma_cliente' | 'comprobante_pago' | 'general';
+          item_codigo: string | null;
+          storage_path: string;
+          nota: string | null;
+          creado_en: string;
+          creado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          orden_trabajo_id: string;
+          usuario_id: string;
+          tipo:
+            'antes' | 'despues' | 'firma_inicio' | 'firma_cliente' | 'comprobante_pago' | 'general';
+          item_codigo?: string | null;
+          storage_path: string;
+          nota?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          orden_trabajo_id?: string;
+          usuario_id?: string;
+          tipo?:
+            'antes' | 'despues' | 'firma_inicio' | 'firma_cliente' | 'comprobante_pago' | 'general';
+          item_codigo?: string | null;
+          storage_path?: string;
+          nota?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'evidencias_orden_empresa_id_fkey';
+            columns: ['empresa_id'];
+            isOneToOne: false;
+            referencedRelation: 'empresas';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'evidencias_orden_orden_trabajo_id_fkey';
+            columns: ['orden_trabajo_id'];
+            isOneToOne: false;
+            referencedRelation: 'ordenes_trabajo';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      registros_tiempo: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          usuario_id: string;
+          orden_trabajo_id: string | null;
+          tipo: 'jornada' | 'visita' | 'traslado' | 'oficina' | 'compra' | 'descanso' | 'general';
+          iniciado_en: string;
+          finalizado_en: string | null;
+          duracion_segundos: number | null;
+          nota: string | null;
+          creado_en: string;
+          creado_por: string | null;
+          actualizado_en: string;
+          actualizado_por: string | null;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          usuario_id: string;
+          orden_trabajo_id?: string | null;
+          tipo: 'jornada' | 'visita' | 'traslado' | 'oficina' | 'compra' | 'descanso' | 'general';
+          iniciado_en: string;
+          finalizado_en?: string | null;
+          duracion_segundos?: number | null;
+          nota?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Update: {
+          id?: string;
+          empresa_id?: string;
+          usuario_id?: string;
+          orden_trabajo_id?: string | null;
+          tipo?: 'jornada' | 'visita' | 'traslado' | 'oficina' | 'compra' | 'descanso' | 'general';
+          iniciado_en?: string;
+          finalizado_en?: string | null;
+          duracion_segundos?: number | null;
+          nota?: string | null;
+          creado_en?: string;
+          creado_por?: string | null;
+          actualizado_en?: string;
+          actualizado_por?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'registros_tiempo_empresa_id_fkey';
+            columns: ['empresa_id'];
+            isOneToOne: false;
+            referencedRelation: 'empresas';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'registros_tiempo_orden_trabajo_id_fkey';
+            columns: ['orden_trabajo_id'];
+            isOneToOne: false;
+            referencedRelation: 'ordenes_trabajo';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       team_people_v: {
@@ -1284,20 +1767,49 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: number;
       };
-      buscar_persona: {
+      puede_gestionar_personas_empresa: {
+        Args: {
+          p_empresa_id: string;
+        };
+        Returns: boolean;
+      };
+      normalizar_tipo_documento: {
+        Args: {
+          p_raw: string;
+        };
+        Returns: string;
+      };
+      buscar_persona_por_documento: {
         Args: {
           p_empresa_id: string;
           p_tipo_documento: string;
           p_numero_documento: string;
         };
-        Returns: {
-          encontrado: boolean;
-          usuario_id: string | null;
-          nombre_mascara: string | null;
-          correo_mascara: string | null;
-          celular_mascara: string | null;
-          ya_es_miembro: boolean;
-        }[];
+        Returns: Json;
+      };
+      crear_invitacion_empresa: {
+        Args: {
+          p_empresa_id: string;
+          p_tipo_documento: string;
+          p_numero_documento: string;
+          p_perfil_id: string;
+          p_acceso_web: boolean;
+          p_acceso_app: boolean;
+          p_cargo?: string | null;
+          p_nombres?: string | null;
+          p_apellidos?: string | null;
+          p_correo?: string | null;
+          p_celular?: string | null;
+          p_token_hash?: string | null;
+        };
+        Returns: Json;
+      };
+      reenviar_invitacion_empresa: {
+        Args: {
+          p_invitacion_id: string;
+          p_token_hash: string;
+        };
+        Returns: Json;
       };
     };
     Enums: {

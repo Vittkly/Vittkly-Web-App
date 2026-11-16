@@ -1,7 +1,7 @@
-import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-react-native';
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
+import { AlertIcon, CheckIcon, InfoIcon } from '@/components/icons';
 import { useTheme } from '@/theme';
 
 export type AlertTone = 'danger' | 'warning' | 'success' | 'info';
@@ -32,25 +32,25 @@ export function AlertBanner({
       bg: colors.dangerSoft,
       border: colors.dangerInk,
       text: colors.dangerInk,
-      icon: AlertCircle,
+      icon: AlertIcon,
     },
     warning: {
       bg: colors.warningSoft,
       border: colors.warningInk,
       text: colors.warningInk,
-      icon: AlertTriangle,
+      icon: AlertIcon,
     },
     success: {
       bg: colors.successSoft,
       border: colors.successInk,
       text: colors.successInk,
-      icon: CheckCircle,
+      icon: CheckIcon,
     },
     info: {
       bg: colors.primarySoft,
       border: colors.primaryInk,
       text: colors.primaryInk,
-      icon: Info,
+      icon: InfoIcon,
     },
   }[tone];
 

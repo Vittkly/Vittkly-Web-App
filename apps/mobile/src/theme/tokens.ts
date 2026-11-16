@@ -111,6 +111,7 @@ export const typography = {
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '400',
+    fontVariant: ['tabular-nums'],
   },
   timerDisplay: {
     fontFamily: fontFamilies.bold,
@@ -120,6 +121,10 @@ export const typography = {
     fontVariant: ['tabular-nums'],
   },
 } as const satisfies Record<string, TextStyle>;
+
+export const tabularNumsStyle = {
+  fontVariant: ['tabular-nums'],
+} as const satisfies TextStyle;
 
 export const shadows: Record<'light' | 'dark', { shadow1: ViewStyle; shadow2: ViewStyle }> = {
   light: {
@@ -180,5 +185,6 @@ export const tokens = {
   duration,
   fontWeights,
   typography,
+  tabularNumsStyle,
   shadows,
 } as const;

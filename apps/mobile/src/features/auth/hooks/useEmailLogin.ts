@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 
+import { sanitizeNetworkError } from '../services/network-error';
 import { isValidEmail } from '../utils/validators';
 import { useAuth } from './useAuth';
 import { useAuthBackNavigation } from './useAuthBackNavigation';
@@ -50,22 +51,25 @@ export function useEmailLogin() {
         password,
       });
 
+      if (result.tenants.length === 0) {
+        router.replace('/(auth)/org-selector');
+        return;
+      }
+
       if (!result.hasPin) {
         router.replace('/(auth)/quick-access-prompt');
         return;
       }
 
-      if (result.tenants.length > 1) {
-        router.replace('/(auth)/select-tenant');
+      if (result.tenants.length > 1 && !result.activeOrganizationId) {
+        router.replace('/(auth)/org-selector');
         return;
       }
 
       router.replace('/');
     } catch (err: unknown) {
       setAuthError(
-        err instanceof Error
-          ? err.message
-          : 'Credenciales inválidas. Verifica tu correo y contraseña.',
+        sanitizeNetworkError(err, 'Credenciales inválidas. Verifica tu correo y contraseña.'),
       );
     } finally {
       setIsSubmitting(false);

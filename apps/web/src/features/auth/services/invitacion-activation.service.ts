@@ -14,6 +14,8 @@ export interface InvitationDetails {
   perfilCodigo: string;
   nombres: string | null;
   apellidos: string | null;
+  tipoDocumento?: string | null;
+  numeroDocumento?: string | null;
   correo: string;
   celular: string | null;
   cargo: string | null;
@@ -66,7 +68,7 @@ export async function getInvitationByToken(
   const { data: invRow, error: invError } = await adminClient
     .from("invitaciones")
     .select(
-      "id, empresa_id, tipo, usuario_id, nombres, apellidos, correo, celular, perfil_id, cargo, acceso_web, acceso_app, codigo_hash, token_hash, vence_en, estado",
+      "id, empresa_id, tipo, usuario_id, nombres, apellidos, tipo_documento, numero_documento, correo, celular, datos_enmascarados, perfil_id, cargo, acceso_web, acceso_app, codigo_hash, token_hash, vence_en, estado",
     )
     .or(
       `token_hash.eq.${hashed},codigo_hash.eq.${hashed},token_hash.eq.${trimmedToken}`,
@@ -83,7 +85,7 @@ export async function getInvitationByToken(
       const { data: invById } = await adminClient
         .from("invitaciones")
         .select(
-          "id, empresa_id, tipo, usuario_id, nombres, apellidos, correo, celular, perfil_id, cargo, acceso_web, acceso_app, codigo_hash, token_hash, vence_en, estado",
+          "id, empresa_id, tipo, usuario_id, nombres, apellidos, tipo_documento, numero_documento, correo, celular, datos_enmascarados, perfil_id, cargo, acceso_web, acceso_app, codigo_hash, token_hash, vence_en, estado",
         )
         .eq("id", trimmedToken)
         .maybeSingle();
@@ -106,8 +108,11 @@ interface InvitationRowData {
   usuario_id: string | null;
   nombres: string | null;
   apellidos: string | null;
+  tipo_documento: string | null;
+  numero_documento: string | null;
   correo: string | null;
   celular: string | null;
+  datos_enmascarados: unknown;
   perfil_id: string;
   cargo: string | null;
   acceso_web: boolean | null;
@@ -153,8 +158,16 @@ async function processInvitationRow(
   const empresaLogoUrl = empresaData?.logo_ruta ?? null;
   const perfilNombre = perfilData?.nombre || "Colaborador";
   const perfilCodigo = perfilData?.codigo || "colaborador";
+  const maskedObj =
+    invRow.datos_enmascarados &&
+    typeof invRow.datos_enmascarados === "object" &&
+    !Array.isArray(invRow.datos_enmascarados)
+      ? (invRow.datos_enmascarados as Record<string, unknown>)
+      : null;
 
   const targetEmail = (invRow.correo || "").trim().toLowerCase();
+  const maskedEmail =
+    typeof maskedObj?.correo === "string" ? maskedObj.correo : "";
 
   const invitation: InvitationDetails = {
     id: invRow.id,
@@ -166,8 +179,13 @@ async function processInvitationRow(
     perfilCodigo,
     nombres: invRow.nombres,
     apellidos: invRow.apellidos,
-    correo: targetEmail,
-    celular: invRow.celular,
+    tipoDocumento: invRow.tipo_documento,
+    numeroDocumento: invRow.numero_documento,
+    correo:
+      invRow.tipo === "cuenta_existente"
+        ? maskedEmail
+        : targetEmail || maskedEmail,
+    celular: invRow.tipo === "cuenta_existente" ? null : invRow.celular,
     cargo: invRow.cargo,
     accesoWeb: Boolean(invRow.acceso_web),
     accesoApp: Boolean(invRow.acceso_app),
@@ -181,11 +199,26 @@ async function processInvitationRow(
   } = await supabase.auth.getUser();
   const isAuthenticated = Boolean(currentUser);
 
-  // Determinar si ya existe una cuenta de usuario registrada con este correo en Vittkly
+  // Determinar si ya existe una cuenta de usuario registrada en Vittkly sin exponer PII a visitantes anónimos
   let existingUserName: string | null = null;
-  let userExists = false;
+  let userExists = invRow.tipo === "cuenta_existente";
 
-  if (targetEmail) {
+  if (invRow.tipo === "cuenta_existente") {
+    if (
+      currentUser &&
+      invRow.usuario_id &&
+      currentUser.id === invRow.usuario_id
+    ) {
+      const { data: userRow } = await adminClient
+        .from("usuarios")
+        .select("nombre")
+        .eq("id", invRow.usuario_id)
+        .maybeSingle();
+      existingUserName = userRow?.nombre ?? null;
+    } else if (typeof maskedObj?.nombre === "string") {
+      existingUserName = maskedObj.nombre;
+    }
+  } else if (targetEmail) {
     const { data: userRow } = await adminClient
       .from("usuarios")
       .select("id, nombre, correo")
@@ -217,7 +250,7 @@ async function processInvitationRow(
   }
 
   // Si la invitación fue marcada explícitamente como 'cuenta_existente' o el usuario ya existe en la BD
-  if (userExists || invRow.tipo === "cuenta_existente") {
+  if (userExists) {
     return {
       status: "valid",
       tipo: "cuenta_existente",

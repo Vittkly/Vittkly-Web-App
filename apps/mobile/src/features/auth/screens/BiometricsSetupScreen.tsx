@@ -1,19 +1,19 @@
-import { ScanFace } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { FaceIdIcon } from '@/components/icons';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { useTheme } from '@/theme';
+import { tokens, useTheme } from '@/theme';
 
 import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useBiometricSetup } from '../hooks/useBiometricSetup';
 
-const SHEET_HANDLE_WIDTH = 36;
-const SHEET_HANDLE_HEIGHT = 4;
-const SHEET_ICON_SIZE = 48;
-const FACE_ICON_SIZE = 24;
+const SHEET_HANDLE_WIDTH = tokens.control.md;
+const SHEET_HANDLE_HEIGHT = tokens.spacing.space1;
+const SHEET_ICON_SIZE = tokens.control.lg;
+const FACE_ICON_SIZE = tokens.spacing.space6;
 
 export function BiometricsSetupScreen() {
   const { colors, spacing, radius, typography } = useTheme();
@@ -54,7 +54,7 @@ export function BiometricsSetupScreen() {
               },
             ]}
           >
-            <ScanFace size={FACE_ICON_SIZE} color={colors.primaryInk} />
+            <FaceIdIcon size={FACE_ICON_SIZE} color={colors.primaryInk} />
           </View>
 
           <Text style={[typography.title2, { color: colors.ink }]}>Activa Face ID o huella</Text>

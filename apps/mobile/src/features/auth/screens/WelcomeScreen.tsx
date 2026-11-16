@@ -1,167 +1,184 @@
 import { router } from 'expo-router';
-import { ScanFace, Users } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { FaceIdIcon, ForwardIcon, MailIcon, PhoneIcon } from '@/components/icons';
 import { Logo } from '@/components/Logo';
-import { BottomSheet } from '@/components/ui/BottomSheet';
-import { useTheme } from '@/theme';
+import { tokens, useTheme } from '@/theme';
 
-import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
-import { useAuth } from '../hooks/useAuth';
-
-const HERO_LOGO_HEIGHT = 60;
-const CARD_ICON_WRAP_SIZE = 32;
-const CARD_ICON_SIZE = 16;
+const LOGO_HERO_HEIGHT = 56;
+const HERO_DECOR_LG = tokens.control.lg * 3 + tokens.spacing.space6;
+const HERO_DECOR_SM = tokens.control.lg * 3;
+const HERO_OFFSET_NEG = -tokens.control.lg;
+const ICON_BOX_SIZE = tokens.control.md;
 
 export function WelcomeScreen() {
-  const { colors, spacing, radius, typography } = useTheme();
-  const { isOffline } = useAuth();
+  const { colors, spacing, radius, typography, control, fontFamilies } = useTheme();
 
   return (
     <SafeAreaView
       testID="welcome-screen"
-      edges={['top']}
-      style={[styles.safeArea, { backgroundColor: colors.surface }]}
+      edges={['top', 'bottom']}
+      style={[styles.safeArea, { backgroundColor: colors.heroFrom }]}
     >
-      <OfflineSessionBanner visible={isOffline} />
-
-      <ScrollView bounces={false} contentContainerStyle={styles.scrollContent}>
-        {/* Bloque Superior */}
+      <ScrollView
+        bounces={false}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Cabecera Hero alineada a screenAcceso() de vittkly-campo-app.html */}
         <View
           style={[
-            styles.authTop,
+            styles.heroTop,
             {
-              backgroundColor: colors.surface,
+              backgroundColor: colors.heroFrom,
               paddingHorizontal: spacing.space6,
-              paddingVertical: spacing.space8,
-              gap: spacing.space3,
+              paddingTop: spacing.space8,
+              paddingBottom: spacing.space8,
+              gap: spacing.space6,
             },
           ]}
         >
-          <Logo variant="wordmark" tone="color" height={HERO_LOGO_HEIGHT} />
-          <View style={[styles.titleBlock, { gap: spacing.space1 }]}>
-            <Text style={[typography.title1, styles.centerText, { color: colors.ink }]}>
+          <View
+            pointerEvents="none"
+            style={[
+              styles.heroGlowTopRight,
+              {
+                width: HERO_DECOR_LG,
+                height: HERO_DECOR_LG,
+                borderRadius: radius.pill,
+                backgroundColor: colors.heroTo,
+                top: HERO_OFFSET_NEG,
+                right: HERO_OFFSET_NEG,
+              },
+            ]}
+          />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.heroGlowBottomLeft,
+              {
+                width: HERO_DECOR_SM,
+                height: HERO_DECOR_SM,
+                borderRadius: radius.pill,
+                backgroundColor: colors.heroTo,
+                bottom: HERO_OFFSET_NEG,
+                left: HERO_OFFSET_NEG,
+              },
+            ]}
+          />
+
+          <Logo variant="wordmark" tone="white" height={LOGO_HERO_HEIGHT} />
+
+          <View style={[styles.heroCopy, { gap: spacing.space2 }]}>
+            <Text style={[typography.display, styles.centerText, { color: colors.heroInk }]}>
               Te damos la bienvenida
             </Text>
-            <Text
-              style={[
-                typography.body,
-                styles.centerText,
-                styles.subtitleWidth,
-                { color: colors.inkMuted },
-              ]}
-            >
+            <Text style={[typography.body, styles.centerText, { color: colors.heroInkSoft }]}>
               Tus visitas, órdenes, cobros y más, todo en un solo lugar.
             </Text>
           </View>
         </View>
 
-        {/* Hoja Inferior */}
-        <BottomSheet testID="welcome-bottom-sheet">
-          {/* Botón 1: Crear cuenta nueva */}
-          <Button
-            testID="welcome-create-account-btn"
-            variant="inverse"
-            shape="pill"
-            block
-            onPress={() => router.push('/(auth)/login')}
+        {/* Panel inferior blanco con las 2 únicas vías aprobadas de acceso móvil */}
+        <View
+          style={[
+            styles.bottomSheet,
+            {
+              backgroundColor: colors.surfaceRaised,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              paddingHorizontal: spacing.space6,
+              paddingTop: spacing.space6,
+              paddingBottom: spacing.space8,
+              gap: spacing.space4,
+            },
+          ]}
+        >
+          {/* Vía 1 (Principal): Soy un técnico -> Flujo celular + OTP + PIN + Biometría */}
+          <Pressable
+            testID="welcome-phone-btn"
+            accessibilityRole="button"
+            accessibilityLabel="Soy un técnico, entra con tu celular"
+            onPress={() => router.push('/(auth)/phone')}
+            style={({ pressed }) => [
+              styles.roleCard,
+              {
+                minHeight: control.lg + spacing.space4,
+                backgroundColor: pressed ? colors.primarySoft : colors.surfaceRaised,
+                borderColor: colors.primary,
+                borderWidth: 1.5,
+                borderRadius: radius.lg,
+                padding: spacing.space4,
+                gap: spacing.space3,
+              },
+            ]}
           >
-            Crear cuenta nueva
-          </Button>
+            <View
+              style={[
+                styles.iconWrap,
+                {
+                  width: ICON_BOX_SIZE,
+                  height: ICON_BOX_SIZE,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.primarySoft,
+                },
+              ]}
+            >
+              <PhoneIcon size={20} color={colors.primaryInk} />
+            </View>
 
-          {/* Botón 2: Iniciar sesión */}
+            <View style={[styles.cardText, { gap: spacing.space1 / 2 }]}>
+              <Text
+                style={[
+                  typography.bodyStrong,
+                  { fontFamily: fontFamilies.bold, color: colors.ink },
+                ]}
+              >
+                Soy un técnico
+              </Text>
+              <Text style={[typography.small, { color: colors.inkMuted }]}>
+                Entra con tu celular y código SMS
+              </Text>
+            </View>
+
+            <ForwardIcon size={20} color={colors.primaryInk} />
+          </Pressable>
+
+          {/* Vía 2 (Correo y contraseña): Supervisores, administradores o técnicos */}
           <Button
             testID="welcome-login-btn"
             variant="secondary"
             shape="pill"
             block
-            onPress={() => router.push('/(auth)/login_email')}
+            size="lg"
+            onPress={() => router.push('/(auth)/login')}
           >
-            Iniciar sesión
+            Iniciar sesión con correo
           </Button>
 
-          {/* Tarjetas de acceso rápido en 2 columnas */}
-          <View
-            style={[styles.accessCardsGrid, { gap: spacing.space3, marginTop: spacing.space2 }]}
-          >
-            {/* Tarjeta 1: Tengo una invitación */}
-            <Pressable
-              testID="welcome-card-invite"
-              accessibilityRole="button"
-              accessibilityLabel="Tengo una invitación, únete al equipo de tu empresa"
-              onPress={() => router.push('/(auth)/invitation')}
-              style={({ pressed }) => [
-                styles.accessCard,
-                {
-                  backgroundColor: pressed ? colors.primarySoft : colors.surfaceSunken,
-                  borderRadius: radius.lg,
-                  paddingHorizontal: spacing.space3,
-                  paddingVertical: spacing.space4,
-                  gap: spacing.space1,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.accessCardIconWrap,
-                  {
-                    width: CARD_ICON_WRAP_SIZE,
-                    height: CARD_ICON_WRAP_SIZE,
-                    borderRadius: radius.pill,
-                    backgroundColor: colors.surfaceRaised,
-                  },
-                ]}
-              >
-                <Users size={CARD_ICON_SIZE} color={colors.ink} />
-              </View>
-              <Text style={[typography.bodyStrong, { color: colors.ink }]}>
-                Tengo una invitación
-              </Text>
+          <View style={[styles.hintRow, { gap: spacing.space2, marginTop: spacing.space1 }]}>
+            <View style={[styles.hintChip, { gap: spacing.space1 }]}>
+              <FaceIdIcon size={14} color={colors.inkMuted} />
               <Text style={[typography.small, { color: colors.inkMuted }]}>
-                Únete al equipo de tu empresa
+                PIN y Biometría offline
               </Text>
-            </Pressable>
-
-            {/* Tarjeta 2: Soy un técnico */}
-            <Pressable
-              testID="welcome-card-technician"
-              accessibilityRole="button"
-              accessibilityLabel="Soy un técnico, entra con tu celular"
-              onPress={() => router.push('/(auth)/phone')}
-              style={({ pressed }) => [
-                styles.accessCard,
-                {
-                  backgroundColor: pressed ? colors.primarySoft : colors.surfaceSunken,
-                  borderRadius: radius.lg,
-                  paddingHorizontal: spacing.space3,
-                  paddingVertical: spacing.space4,
-                  gap: spacing.space1,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.accessCardIconWrap,
-                  {
-                    width: CARD_ICON_WRAP_SIZE,
-                    height: CARD_ICON_WRAP_SIZE,
-                    borderRadius: radius.pill,
-                    backgroundColor: colors.surfaceRaised,
-                  },
-                ]}
-              >
-                <ScanFace size={CARD_ICON_SIZE} color={colors.ink} />
-              </View>
-              <Text style={[typography.bodyStrong, { color: colors.ink }]}>Soy un técnico</Text>
+            </View>
+            <Text style={[typography.small, { color: colors.lineStrong }]}>·</Text>
+            <View style={[styles.hintChip, { gap: spacing.space1 }]}>
+              <MailIcon size={14} color={colors.inkMuted} />
               <Text style={[typography.small, { color: colors.inkMuted }]}>
-                Entra con tu celular
+                Acceso multiempresa
               </Text>
-            </Pressable>
+            </View>
           </View>
-        </BottomSheet>
+
+          <Text style={[typography.small, styles.legalText, { color: colors.inkMuted }]}>
+            Al continuar aceptas los Términos y la Política de privacidad.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -175,30 +192,54 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
   },
-  authTop: {
+  heroTop: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
   },
-  titleBlock: {
+  heroGlowTopRight: {
+    position: 'absolute',
+    opacity: 0.4,
+  },
+  heroGlowBottomLeft: {
+    position: 'absolute',
+    opacity: 0.3,
+  },
+  heroCopy: {
     alignItems: 'center',
+    maxWidth: 320,
   },
   centerText: {
     textAlign: 'center',
   },
-  subtitleWidth: {
-    maxWidth: 280,
+  bottomSheet: {
+    width: '100%',
   },
-  accessCardsGrid: {
+  roleCard: {
     width: '100%',
     flexDirection: 'row',
+    alignItems: 'center',
   },
-  accessCard: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  accessCardIconWrap: {
+  iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardText: {
+    flex: 1,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  hintChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legalText: {
+    textAlign: 'center',
   },
 });

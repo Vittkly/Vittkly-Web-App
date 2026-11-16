@@ -1,7 +1,7 @@
-import { WifiOff } from 'lucide-react-native';
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
+import { WifiOffIcon } from '@/components/icons';
 import { tokens, useTheme } from '@/theme';
 
 export interface OfflineSessionBannerProps {
@@ -60,7 +60,7 @@ export function OfflineSessionBanner({
           },
         ]}
       />
-      <WifiOff size={ICON_SIZE} color={colors.warningInk} />
+      <WifiOffIcon size={ICON_SIZE} color={colors.warningInk} />
       <Text
         testID="offline-session-banner-text"
         style={[

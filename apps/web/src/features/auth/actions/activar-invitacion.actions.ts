@@ -354,7 +354,7 @@ export async function completarActivacionAction(params: {
     authUserId = newAuthUser.user.id;
   }
 
-  // 2. Asegurar fila en public.usuarios
+  // 2. Asegurar fila en public.usuarios (preservando identidad documental)
   const { error: userUpsertError } = await adminClient.from("usuarios").upsert({
     id: authUserId,
     nombre: trimmedName,
@@ -363,6 +363,12 @@ export async function completarActivacionAction(params: {
     correo: normalizedEmail,
     celular: invitation.celular,
     ultima_empresa_id: invitation.empresaId,
+    ...(invitation.tipoDocumento && invitation.numeroDocumento
+      ? {
+          tipo_documento: invitation.tipoDocumento,
+          numero_documento: invitation.numeroDocumento.trim().toUpperCase(),
+        }
+      : {}),
   });
 
   if (userUpsertError) {
@@ -383,6 +389,7 @@ export async function completarActivacionAction(params: {
       acceso_app: invitation.accesoApp,
       estado: "activa",
       activo: true,
+      desde: new Date().toISOString(),
       invitacion_id: invitation.id,
       desvinculada_en: null,
     },

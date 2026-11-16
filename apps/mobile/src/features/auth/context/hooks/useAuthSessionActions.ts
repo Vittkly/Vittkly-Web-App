@@ -1,8 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-import { useOrgStore } from '@/features/tenants';
-import { authService } from '../../services/auth.service';
+import { useOrgStore } from '@/features/tenants/stores/useOrgStore';
+
+import { authRepository } from '../../services/auth.repository';
 import { offlineSessionService } from '../../services/offline-session.service';
 import { secureStorageService } from '../../services/secure-storage.service';
 import { tenantService } from '../../services/tenant.service';
@@ -10,33 +11,45 @@ import type {
   AuthSessionResult,
   AuthState,
   BiometricType,
+  LoginResult,
   SetSessionPayload,
   SignInWithPasswordParams,
-  SignUpParams,
-  SignUpWithEmailResult,
   VerifyOtpParams,
 } from '../../types/auth.types';
+import { syncOrgStoreFromAuth } from '../../utils/tenant-sync';
 import { initialAuthState, resolveActiveTenant } from '../auth-state';
 
 export interface UseAuthSessionActionsProps {
+  stateRef: React.MutableRefObject<AuthState>;
   setState: React.Dispatch<React.SetStateAction<AuthState>>;
   hydrateCloudPin: (cloudPinHash: string | null) => Promise<boolean>;
 }
 
-export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSessionActionsProps) {
+export function useAuthSessionActions({
+  stateRef,
+  setState,
+  hydrateCloudPin,
+}: UseAuthSessionActionsProps) {
   const queryClient = useQueryClient();
 
   const setSession = useCallback(
     async (payload: SetSessionPayload) => {
       const tenants = payload.tenants ?? [];
       let resolvedOrgId = payload.activeOrganizationId ?? null;
+
       if (tenants.length === 1 && tenants[0]) {
         resolvedOrgId = tenants[0].id;
-        await secureStorageService.saveLastActiveTenantId(resolvedOrgId);
-        await offlineSessionService.saveActiveTenantId(resolvedOrgId);
+        await Promise.all([
+          secureStorageService.saveLastActiveTenantId(resolvedOrgId),
+          offlineSessionService.saveActiveTenantId(resolvedOrgId),
+        ]);
       }
 
       const activeTenant = resolveActiveTenant(tenants, resolvedOrgId);
+      const lastActiveTenantId =
+        payload.user.ultimaEmpresaId ??
+        (await secureStorageService.getLastActiveTenantId()) ??
+        resolvedOrgId;
 
       await Promise.all([
         secureStorageService.setSessionJwt(payload.token),
@@ -44,9 +57,11 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
         secureStorageService.setCachedTenants(tenants),
         offlineSessionService.saveOfflineSnapshot(payload.user, tenants),
         resolvedOrgId
-          ? secureStorageService.setActiveOrganizationId(resolvedOrgId)
-          : secureStorageService.removeActiveOrganizationId(),
+          ? secureStorageService.setActiveEmpresaId(resolvedOrgId)
+          : secureStorageService.removeActiveEmpresaId(),
       ]);
+
+      syncOrgStoreFromAuth(tenants, activeTenant, lastActiveTenantId);
 
       setState((prev) => ({
         ...prev,
@@ -56,103 +71,67 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
         sessionToken: payload.token,
         user: payload.user,
         tenants,
-        activeOrganizationId: resolvedOrgId,
+        activeOrganizationId: activeTenant?.id ?? null,
         activeTenant,
+        lastActiveTenantId,
       }));
     },
     [setState],
   );
 
   const establishUserSession = useCallback(
-    async (sessionResult: AuthSessionResult) => {
-      const tenants = await tenantService.fetchUserTenants(sessionResult.user.id);
-      const lastActiveId = await secureStorageService.getLastActiveTenantId();
+    async (sessionResult: AuthSessionResult): Promise<LoginResult> => {
+      const tenants =
+        sessionResult.tenants.length > 0
+          ? sessionResult.tenants
+          : await tenantService.fetchUserTenants(sessionResult.user.id);
 
       let activeOrgId: string | null = null;
       if (tenants.length === 1 && tenants[0]) {
-        // Criterio 1: Entrada directa si tiene una sola empresa
+        // Criterio 1: Entrada directa si tiene 1 sola empresa con acceso móvil
         activeOrgId = tenants[0].id;
-        await secureStorageService.saveLastActiveTenantId(activeOrgId);
-        await offlineSessionService.saveActiveTenantId(activeOrgId);
-      } else if (tenants.length > 1) {
-        // Criterio 2: Si tiene varias, activeOrgId queda null para elegir en select-tenant
-        activeOrgId = null;
+        await Promise.all([
+          secureStorageService.saveLastActiveTenantId(activeOrgId),
+          offlineSessionService.saveActiveTenantId(activeOrgId),
+          authRepository.updateLastActiveEmpresa(sessionResult.user.id, activeOrgId),
+        ]);
       }
 
       await setSession({
-        token: sessionResult.accessToken,
+        token: sessionResult.token,
         user: sessionResult.user,
         tenants,
         activeOrganizationId: activeOrgId,
       });
 
-      // Sincroniza con el store de Zustand de organizaciones
-      useOrgStore.getState().setOrganizations(tenants);
-      if (activeOrgId) {
-        const found = tenants.find((t) => t.id === activeOrgId) ?? null;
-        useOrgStore.getState().setActiveOrg(found);
-      }
-      if (lastActiveId) {
-        useOrgStore.getState().setLastOrgId(lastActiveId);
-      }
-
-      if (lastActiveId) {
-        setState((prev) => ({ ...prev, lastActiveTenantId: lastActiveId }));
-      }
-
-      const hasPin = await hydrateCloudPin(sessionResult.pinHash ?? null);
+      const hasPin = await hydrateCloudPin(sessionResult.cloudPinHash ?? null);
 
       return {
         user: sessionResult.user,
         tenants,
         hasPin,
+        activeOrganizationId: activeOrgId,
+        needsTenantSelection: tenants.length > 1 || tenants.length === 0,
       };
     },
-    [hydrateCloudPin, setSession, setState],
+    [hydrateCloudPin, setSession],
   );
 
   const loginWithPassword = useCallback(
-    async (params: SignInWithPasswordParams) => {
-      const sessionResult = await authService.signInWithPassword(params);
+    async (params: SignInWithPasswordParams): Promise<LoginResult> => {
+      const sessionResult = await authRepository.signInWithPassword(params);
       return establishUserSession(sessionResult);
     },
     [establishUserSession],
   );
-
-  const signUpWithEmail = useCallback(
-    async (params: SignUpParams): Promise<SignUpWithEmailResult> => {
-      const result = await authService.signUpWithEmail(params);
-      if (result.session) {
-        await establishUserSession(result.session);
-      }
-      return result;
-    },
-    [establishUserSession],
-  );
-
-  const signUp = useCallback(async (params: SignUpParams): Promise<AuthSessionResult | null> => {
-    return authService.signUp(params);
-  }, []);
-
-  const verifySignupOtp = useCallback(
-    async (email: string, token: string) => {
-      const sessionResult = await authService.verifySignupOtp(email, token);
-      return establishUserSession(sessionResult);
-    },
-    [establishUserSession],
-  );
-
-  const resendSignupOtp = useCallback(async (email: string) => {
-    await authService.resendSignupOtp(email);
-  }, []);
 
   const requestPasswordReset = useCallback(async (email: string) => {
-    await authService.resetPasswordForEmail(email);
+    await authRepository.resetPasswordForEmail(email);
   }, []);
 
   const verifyRecoveryOtp = useCallback(
-    async (email: string, token: string) => {
-      const sessionResult = await authService.verifyRecoveryOtp(email, token);
+    async (email: string, token: string): Promise<LoginResult> => {
+      const sessionResult = await authRepository.verifyRecoveryOtp(email, token);
       return establishUserSession(sessionResult);
     },
     [establishUserSession],
@@ -166,16 +145,16 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
   );
 
   const updatePassword = useCallback(async (newPassword: string) => {
-    await authService.updatePassword(newPassword);
+    await authRepository.updatePassword(newPassword);
   }, []);
 
   const requestPhoneOtp = useCallback(async (phone: string) => {
-    return authService.signInWithOtp(phone);
+    return authRepository.signInWithOtp(phone);
   }, []);
 
   const verifyPhoneOtp = useCallback(
-    async (params: VerifyOtpParams) => {
-      const sessionResult = await authService.verifyOtp(params);
+    async (params: VerifyOtpParams): Promise<LoginResult> => {
+      const sessionResult = await authRepository.verifyOtp(params);
       return establishUserSession(sessionResult);
     },
     [establishUserSession],
@@ -183,15 +162,20 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
 
   const switchTenant = useCallback(
     async (organizationId: string) => {
-      // 1. Persistir en SecureStore y SQLite
+      const currentUserId = stateRef.current.user?.id;
+
       await Promise.all([
+        secureStorageService.setActiveEmpresaId(organizationId),
         secureStorageService.saveLastActiveTenantId(organizationId),
         offlineSessionService.saveActiveTenantId(organizationId),
+        currentUserId
+          ? authRepository.updateLastActiveEmpresa(currentUserId, organizationId)
+          : Promise.resolve(),
       ]);
 
-      // 2. Actualizar estado en AuthContext
       setState((prev) => {
         const activeTenant = resolveActiveTenant(prev.tenants, organizationId);
+        syncOrgStoreFromAuth(prev.tenants, activeTenant, organizationId);
         return {
           ...prev,
           activeOrganizationId: organizationId,
@@ -200,13 +184,9 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
         };
       });
 
-      // 3. Sincronizar Zustand store
-      await useOrgStore.getState().switchOrg(organizationId);
-
-      // 4. Criterio 4: Aislamiento estricto de datos — purgar caché de consultas previas
       queryClient.clear();
     },
-    [queryClient, setState],
+    [queryClient, setState, stateRef],
   );
 
   const selectOrganization = switchTenant;
@@ -225,9 +205,14 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
   );
 
   const signOut = useCallback(async () => {
-    await authService.signOut();
+    await Promise.all([
+      authRepository.signOut(),
+      secureStorageService.clearAllAuthStorage(),
+      offlineSessionService.clearOfflineSession(),
+    ]);
 
     useOrgStore.getState().reset();
+    queryClient.clear();
 
     setState((prev) => ({
       ...initialAuthState,
@@ -236,15 +221,11 @@ export function useAuthSessionActions({ setState, hydrateCloudPin }: UseAuthSess
       isOffline: prev.isOffline,
       biometricType: prev.biometricType,
     }));
-  }, [setState]);
+  }, [queryClient, setState]);
 
   return {
     setSession,
     loginWithPassword,
-    signUpWithEmail,
-    signUp,
-    verifySignupOtp,
-    resendSignupOtp,
     requestPasswordReset,
     verifyRecoveryOtp,
     verifyPasswordResetCode,

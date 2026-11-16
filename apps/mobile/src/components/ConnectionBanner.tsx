@@ -1,55 +1,65 @@
-import { RefreshCw, WifiOff } from 'lucide-react-native';
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
+import { SyncIcon, WifiOffIcon } from '@/components/icons';
 import { useTheme } from '@/theme/useTheme';
 
 export type ConnectionStatus = 'offline' | 'syncing';
+export type ConnectionBannerVariant = 'surface' | 'hero';
 
 export interface ConnectionBannerProps {
   status?: ConnectionStatus;
+  variant?: ConnectionBannerVariant;
   pending?: number;
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 /**
  * Aviso de conexión de la app del técnico:
  * - `status="offline"`: franja ámbar a todo el ancho bajo la barra de estado.
  *   Es un aviso, no un error: el técnico puede seguir trabajando.
- * - `status="syncing"` con `pending`: chip "3 cambios por enviar".
+ * - `status="syncing"` con `pending`: chip "3 cambios por enviar" (`variant="hero"` usa chip translúcido sobre el hero).
  * - NUNCA rojo: la falta de señal es normal en campo.
  */
 export function ConnectionBanner({
   status = 'offline',
+  variant = 'surface',
   pending = 0,
   children,
   style,
+  testID,
 }: ConnectionBannerProps) {
-  const { colors, spacing, radius, fontFamilies } = useTheme();
+  const { colors, spacing, radius, fontFamilies, tabularNums } = useTheme();
 
   if (status === 'syncing') {
     const syncLabel = pending === 1 ? '1 cambio por enviar' : `${pending} cambios por enviar`;
+    const isHero = variant === 'hero';
+    const chipBg = isHero ? colors.heroChipBg : colors.warningSoft;
+    const chipFg = isHero ? colors.heroInk : colors.warningInk;
 
     return (
       <View
+        testID={testID}
         accessibilityRole="text"
         accessibilityLiveRegion="polite"
         style={[
           styles.syncChip,
           {
-            backgroundColor: colors.warningSoft,
+            backgroundColor: chipBg,
             borderRadius: radius.pill,
           },
           style,
         ]}
       >
-        <RefreshCw size={14} color={colors.warningInk} strokeWidth={2} />
+        <SyncIcon size={14} color={chipFg} strokeWidth={2} />
         <Text
           style={[
             styles.syncText,
+            tabularNums,
             {
-              color: colors.warningInk,
+              color: chipFg,
               fontFamily: fontFamilies.bold,
             },
           ]}
@@ -62,6 +72,7 @@ export function ConnectionBanner({
 
   return (
     <View
+      testID={testID}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
       style={[
@@ -75,7 +86,7 @@ export function ConnectionBanner({
         style,
       ]}
     >
-      <WifiOff size={16} color={colors.warningInk} strokeWidth={2} />
+      <WifiOffIcon size={16} color={colors.warningInk} strokeWidth={2} />
       <Text
         style={[
           styles.offlineText,

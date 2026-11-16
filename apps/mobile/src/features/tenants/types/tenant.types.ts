@@ -1,20 +1,23 @@
-import type {
-  AccessScope,
-  MembershipRole,
-  SubscriptionStatus,
-} from '@/features/auth/types/auth.types';
+import type { AccessScope, MembershipRole } from '@/features/auth/types/auth.types';
 
 export interface Organization {
   id: string;
   name: string;
   slug?: string;
+  rubro?: string | null;
+  ciudad?: string | null;
   logoUrl?: string | null;
+  brandColor?: string | null;
   role?: MembershipRole | string;
   roleName?: string | null;
+  perfilNombre?: string | null;
+  esPropietario?: boolean;
   jobTitle?: string | null;
   accessScope?: AccessScope;
-  subscriptionStatus?: SubscriptionStatus;
   canViewPrices?: boolean;
+  validaServicios?: boolean;
+  canRegisterPayments?: boolean;
+  permisos?: string[];
   activeModules?: string[];
 }
 

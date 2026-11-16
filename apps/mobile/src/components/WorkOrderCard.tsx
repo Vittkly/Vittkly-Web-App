@@ -1,7 +1,7 @@
-import { Clock, MapPin, User } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
+import { ClockIcon, PinIcon, UserIcon } from '@/components/icons';
 import { useTheme } from '@/theme/useTheme';
 
 import { StatusBadge, WorkOrderStatus } from './StatusBadge';
@@ -14,9 +14,11 @@ export interface WorkOrderCardProps {
   time?: string;
   technician?: string;
   amount?: string;
+  hideAmount?: boolean;
   onPress?: () => void;
   onClick?: () => void;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 /**
@@ -32,17 +34,21 @@ export function WorkOrderCard({
   time,
   technician,
   amount,
+  hideAmount = false,
   onPress,
   onClick,
   style,
+  testID,
 }: WorkOrderCardProps) {
-  const { colors, spacing, radius, typography, fontFamilies } = useTheme();
+  const { colors, spacing, radius, typography, fontFamilies, tabularNums, isDark, shadows } =
+    useTheme();
   const handlePress = onPress ?? onClick;
+  const baseBorderColor = isDark ? colors.line : colors.cardBorderSubtle;
 
   const content = (
     <>
       <View style={[styles.topRow, { gap: spacing.space2 }]}>
-        <Text style={[typography.code, { color: colors.inkMuted }]}>{code}</Text>
+        <Text style={[typography.code, tabularNums, { color: colors.inkMuted }]}>{code}</Text>
         <StatusBadge status={status} />
       </View>
 
@@ -60,31 +66,34 @@ export function WorkOrderCard({
         >
           {address ? (
             <View style={[styles.metaItem, { gap: spacing.space1 }]}>
-              <MapPin size={16} color={colors.inkMuted} strokeWidth={2} />
+              <PinIcon size={16} color={colors.inkMuted} strokeWidth={2} />
               <Text style={[typography.small, { color: colors.inkMuted }]}>{address}</Text>
             </View>
           ) : null}
 
           {time ? (
             <View style={[styles.metaItem, { gap: spacing.space1 }]}>
-              <Clock size={16} color={colors.inkMuted} strokeWidth={2} />
-              <Text style={[typography.small, { color: colors.inkMuted }]}>{time}</Text>
+              <ClockIcon size={16} color={colors.inkMuted} strokeWidth={2} />
+              <Text style={[typography.small, tabularNums, { color: colors.inkMuted }]}>
+                {time}
+              </Text>
             </View>
           ) : null}
 
           {technician ? (
             <View style={[styles.metaItem, { gap: spacing.space1 }]}>
-              <User size={16} color={colors.inkMuted} strokeWidth={2} />
+              <UserIcon size={16} color={colors.inkMuted} strokeWidth={2} />
               <Text style={[typography.small, { color: colors.inkMuted }]}>{technician}</Text>
             </View>
           ) : null}
         </View>
       ) : null}
 
-      {amount ? (
+      {!hideAmount && amount ? (
         <Text
           style={[
             styles.amount,
+            tabularNums,
             {
               color: colors.ink,
               fontFamily: fontFamilies.bold,
@@ -102,13 +111,16 @@ export function WorkOrderCard({
   if (handlePress) {
     return (
       <Pressable
+        testID={testID}
         accessibilityRole="button"
+        accessibilityLabel={`${code}, ${title}`}
         onPress={handlePress}
         style={({ pressed }) => [
           styles.card,
+          shadows.shadow1,
           {
-            backgroundColor: colors.surfaceRaised,
-            borderColor: pressed ? colors.lineStrong : colors.line,
+            backgroundColor: pressed ? colors.surfaceSunken : colors.surfaceRaised,
+            borderColor: pressed ? colors.lineStrong : baseBorderColor,
             borderRadius: radius.lg,
             padding: spacing.space4,
             gap: spacing.space2,
@@ -123,11 +135,13 @@ export function WorkOrderCard({
 
   return (
     <View
+      testID={testID}
       style={[
         styles.card,
+        shadows.shadow1,
         {
           backgroundColor: colors.surfaceRaised,
-          borderColor: colors.line,
+          borderColor: baseBorderColor,
           borderRadius: radius.lg,
           padding: spacing.space4,
           gap: spacing.space2,

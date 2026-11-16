@@ -1,8 +1,8 @@
-import { Check } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { getInitials } from '@/features/auth/utils/profile';
+import { CheckIcon } from '@/components/icons';
+import { formatMembershipRoleLabel, getInitials } from '@/features/auth/utils/profile';
 import { useTheme } from '@/theme';
 import type { Organization } from '../types/tenant.types';
 
@@ -17,13 +17,13 @@ export function OrgSwitchItem({ org, isSelected, isLastActive, onSelect }: OrgSw
   const { colors, spacing, radius, typography, fontFamilies, control } = useTheme();
 
   const initials = getInitials(org.name);
-  const roleDisplay =
-    org.jobTitle ||
-    (org.role === 'owner'
-      ? 'Titular de Empresa'
-      : org.role === 'admin'
-        ? 'Supervisor'
-        : 'Técnico de Campo');
+  const roleDisplay = formatMembershipRoleLabel({
+    role: org.role,
+    jobTitle: org.jobTitle,
+    perfilNombre: org.perfilNombre ?? org.roleName,
+    esPropietario: org.esPropietario,
+  });
+  const locationMeta = [org.rubro, org.ciudad].filter(Boolean).join(' · ');
 
   return (
     <Pressable
@@ -123,7 +123,7 @@ export function OrgSwitchItem({ org, isSelected, isLastActive, onSelect }: OrgSw
         </View>
 
         <Text style={[typography.small, { color: colors.inkMuted }]} numberOfLines={1}>
-          {roleDisplay}
+          {locationMeta ? `${roleDisplay} · ${locationMeta}` : roleDisplay}
         </Text>
       </View>
 
@@ -137,7 +137,7 @@ export function OrgSwitchItem({ org, isSelected, isLastActive, onSelect }: OrgSw
             },
           ]}
         >
-          <Check size={16} color={colors.onTenantAccent} strokeWidth={2.5} />
+          <CheckIcon size={16} color={colors.onTenantAccent} strokeWidth={2.5} />
         </View>
       ) : null}
     </Pressable>

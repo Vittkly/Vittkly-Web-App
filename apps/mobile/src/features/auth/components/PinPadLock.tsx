@@ -1,4 +1,3 @@
-import { Fingerprint, ScanFace } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import {
   Platform,
@@ -11,6 +10,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { FaceIdIcon } from '@/components/icons';
 import { NumericKeypad } from '@/components/ui/NumericKeypad';
 import { PinDots } from '@/components/ui/PinDots';
 import { useTheme } from '@/theme';
@@ -87,7 +87,6 @@ export function PinPadLock({
     onBiometricPress();
   };
 
-  const BiometricIcon = biometricType === 'facial' ? ScanFace : Fingerprint;
   const biometricAccessibilityLabel =
     biometricType === 'facial'
       ? 'Desbloquear con reconocimiento facial'
@@ -119,11 +118,7 @@ export function PinPadLock({
           },
         ]}
       >
-        <BiometricIcon
-          size={ICON_SIZE}
-          color={colors.primary}
-          strokeWidth={biometricType === 'facial' ? 2 : 1.75}
-        />
+        <FaceIdIcon size={ICON_SIZE} color={colors.primary} strokeWidth={1.9} />
       </Pressable>
     );
   };

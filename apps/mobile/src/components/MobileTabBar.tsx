@@ -1,17 +1,17 @@
-import {
-  BarChart3,
-  Calendar,
-  ClipboardList,
-  Home,
-  Settings,
-  User,
-  Users,
-  Wallet,
-} from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  BarChartIcon,
+  CalendarIcon,
+  CardIcon,
+  HomeIcon,
+  ListIcon,
+  SettingsIcon,
+  UserIcon,
+  UsersIcon,
+} from '@/components/icons';
 import { useTheme } from '@/theme/useTheme';
 
 export type NavIconName =
@@ -24,6 +24,7 @@ export interface NavItem {
   active?: boolean;
   count?: number;
   onPress?: () => void;
+  testID?: string;
 }
 
 export interface MobileTabBarProps {
@@ -36,14 +37,14 @@ const ICON_MAP: Record<
   NavIconName,
   React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
 > = {
-  home: Home,
-  calendar: Calendar,
-  list: ClipboardList,
-  user: User,
-  users: Users,
-  chart: BarChart3,
-  wallet: Wallet,
-  settings: Settings,
+  home: HomeIcon,
+  calendar: CalendarIcon,
+  list: ListIcon,
+  user: UserIcon,
+  users: UsersIcon,
+  chart: BarChartIcon,
+  wallet: CardIcon,
+  settings: SettingsIcon,
 };
 
 export const DEFAULT_TECHNICIAN_TABS: NavItem[] = [
@@ -55,7 +56,7 @@ export const DEFAULT_TECHNICIAN_TABS: NavItem[] = [
 /**
  * Barra inferior de navegación de la app del técnico/supervisor.
  * - Cada pestaña mide al menos `control-lg` (48 px) de alto.
- * - Íconos de 24 px con etiqueta siempre visible.
+ * - Íconos con píldora activa (`34 × 26 px`) y etiqueta siempre visible.
  * - Pestañas base por defecto: Hoy, Agenda, Perfil.
  */
 export function MobileTabBar({
@@ -77,20 +78,22 @@ export function MobileTabBar({
           borderTopColor: colors.line,
           paddingTop: spacing.space1,
           paddingHorizontal: spacing.space2,
-          paddingBottom: spacing.space1 + insets.bottom,
+          paddingBottom: Math.max(spacing.space1, insets.bottom),
         },
         style,
       ]}
     >
       {items.map((item, idx) => {
-        const Icon = ICON_MAP[item.icon ?? 'home'] ?? Home;
+        const Icon = ICON_MAP[item.icon ?? 'home'] ?? HomeIcon;
         const isActive = !!item.active;
         const tint = isActive ? colors.primaryInk : colors.inkMuted;
 
         return (
           <Pressable
             key={item.label}
+            testID={item.testID}
             accessibilityRole="tab"
+            accessibilityLabel={item.label}
             accessibilityState={{ selected: isActive }}
             onPress={() => {
               item.onPress?.();
@@ -105,14 +108,24 @@ export function MobileTabBar({
               },
             ]}
           >
-            <Icon size={24} color={tint} strokeWidth={2} />
+            <View
+              style={[
+                styles.iconPill,
+                {
+                  borderRadius: radius.pill,
+                  backgroundColor: isActive ? colors.primarySoft : 'transparent',
+                },
+              ]}
+            >
+              <Icon size={22} color={tint} strokeWidth={2} />
+            </View>
             <Text
               numberOfLines={1}
               style={[
                 styles.label,
                 {
                   color: tint,
-                  fontFamily: fontFamilies.semiBold,
+                  fontFamily: isActive ? fontFamilies.bold : fontFamilies.semiBold,
                 },
               ]}
             >
@@ -137,6 +150,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
     paddingVertical: 4,
+  },
+  iconPill: {
+    width: 34,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
     fontSize: 12,

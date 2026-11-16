@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { X } from 'lucide-react-native';
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CloseIcon } from '@/components/icons';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useAuth } from '@/features/auth';
 import { useTheme } from '@/theme';
@@ -19,7 +19,7 @@ export interface OrgSwitchSheetProps {
 export function OrgSwitchSheet({ visible, onClose, onSwitched }: OrgSwitchSheetProps) {
   const { colors, spacing, radius, typography } = useTheme();
   const { tenants, activeTenant, lastActiveTenantId, switchTenant } = useAuth();
-  const { activeOrg, organizations, switchOrg, lastOrgId } = useOrgStore();
+  const { activeOrg, organizations, lastOrgId } = useOrgStore();
 
   const orgList: Organization[] =
     organizations.length > 0
@@ -42,7 +42,6 @@ export function OrgSwitchSheet({ visible, onClose, onSwitched }: OrgSwitchSheetP
     onClose();
 
     if (org.id !== currentActiveId) {
-      await switchOrg(org.id);
       await switchTenant(org.id);
       if (onSwitched) {
         onSwitched(org.id);
@@ -85,7 +84,7 @@ export function OrgSwitchSheet({ visible, onClose, onSwitched }: OrgSwitchSheetP
                 },
               ]}
             >
-              <X size={22} color={colors.ink} />
+              <CloseIcon size={22} color={colors.ink} />
             </Pressable>
           </View>
 

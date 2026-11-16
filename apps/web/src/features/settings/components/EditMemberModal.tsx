@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { sanitizeDocumentInput } from "@vittkly/shared";
 import { updateMemberDetailsAction } from "../actions/users-profiles.actions";
 import type {
   AccessLabel,
@@ -41,6 +42,12 @@ export function EditMemberModal({
 
   if (!isOpen || !member) return null;
 
+  const isMemberActive = member.sourceType === "membresia";
+  const isExistingAccountPending =
+    member.sourceType === "invitacion" &&
+    member.invitationType === "cuenta_existente";
+  const isIdentityLocked = isMemberActive || isExistingAccountPending;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -51,11 +58,11 @@ export function EditMemberModal({
       sourceType: member.sourceType,
       userId: member.userId,
       invitationId: member.invitationId ?? null,
-      firstName: firstName.trim(),
-      lastName: lastName.trim() || firstName.trim(),
-      phone: phone.trim(),
-      docType,
-      docNumber: docNumber.trim(),
+      firstName: isIdentityLocked ? "" : firstName.trim(),
+      lastName: isIdentityLocked ? "" : lastName.trim() || firstName.trim(),
+      phone: isIdentityLocked ? "" : phone.trim(),
+      docType: isIdentityLocked ? null : docType,
+      docNumber: isIdentityLocked ? "" : docNumber.trim(),
       perfilId: member.isOwner ? member.perfilId : perfilId,
       jobTitle: jobTitle.trim(),
       accessLabel: member.isOwner ? "Web y app" : accessLabel,
@@ -69,8 +76,6 @@ export function EditMemberModal({
       setError(res.error || "No se pudieron guardar los cambios.");
     }
   };
-
-  const isMemberActive = member.sourceType === "membresia";
 
   return (
     <div
@@ -107,15 +112,17 @@ export function EditMemberModal({
           </button>
         </div>
 
-        {isMemberActive && (
+        {isIdentityLocked && (
           <div className="border-primary/20 bg-primary-soft/50 text-ink mt-3.5 rounded-xl border p-3 text-xs leading-relaxed">
             <span className="text-primary-ink font-bold">
-              Cuenta personal Vittkly:
+              {isExistingAccountPending
+                ? "Cuenta existente protegida:"
+                : "Cuenta personal Vittkly:"}
             </span>{" "}
             Los datos personales (nombres, correo, celular y documento)
-            pertenecen a la cuenta global del colaborador y solo él puede
-            editarlos desde su perfil. Aquí defines su rol y accesos en tu
-            empresa.
+            pertenecen a la cuenta global del colaborador y permanecen ocultos y
+            bloqueados por privacidad. Aquí defines únicamente su rol, cargo y
+            accesos en tu empresa.
           </div>
         )}
 
@@ -132,16 +139,16 @@ export function EditMemberModal({
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="text-ink-muted text-xs font-semibold tracking-wider uppercase">
-                Nombres {isMemberActive && "(Cuenta personal)"}
+                Nombres {isIdentityLocked && "(Protegido)"}
               </label>
               <input
                 type="text"
-                required
-                disabled={isMemberActive}
+                required={!isIdentityLocked}
+                disabled={isIdentityLocked}
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 className={`border-line rounded-xl border px-3.5 py-2 text-xs outline-none ${
-                  isMemberActive
+                  isIdentityLocked
                     ? "bg-surface-sunken/60 text-ink-muted cursor-not-allowed"
                     : "bg-surface-sunken text-ink focus:border-primary focus:bg-surface-raised"
                 }`}
@@ -150,16 +157,16 @@ export function EditMemberModal({
 
             <div className="flex flex-col gap-1.5">
               <label className="text-ink-muted text-xs font-semibold tracking-wider uppercase">
-                Apellidos {isMemberActive && "(Cuenta personal)"}
+                Apellidos {isIdentityLocked && "(Protegido)"}
               </label>
               <input
                 type="text"
-                required
-                disabled={isMemberActive}
+                required={!isIdentityLocked}
+                disabled={isIdentityLocked}
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className={`border-line rounded-xl border px-3.5 py-2 text-xs outline-none ${
-                  isMemberActive
+                  isIdentityLocked
                     ? "bg-surface-sunken/60 text-ink-muted cursor-not-allowed"
                     : "bg-surface-sunken text-ink focus:border-primary focus:bg-surface-raised"
                 }`}
@@ -173,7 +180,7 @@ export function EditMemberModal({
                 Correo (Fijado)
               </label>
               <input
-                type="email"
+                type="text"
                 value={member.email}
                 disabled
                 className="border-line bg-surface-sunken/50 text-ink-muted cursor-not-allowed rounded-xl border px-3.5 py-2 font-mono text-xs"
@@ -182,16 +189,16 @@ export function EditMemberModal({
 
             <div className="flex flex-col gap-1.5">
               <label className="text-ink-muted text-xs font-semibold tracking-wider uppercase">
-                Celular {isMemberActive && "(Cuenta personal)"}
+                Celular {isIdentityLocked && "(Protegido)"}
               </label>
               <input
                 type="tel"
-                disabled={isMemberActive}
+                disabled={isIdentityLocked}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+51 987 654 321"
                 className={`border-line rounded-xl border px-3.5 py-2 font-mono text-xs tabular-nums outline-none ${
-                  isMemberActive
+                  isIdentityLocked
                     ? "bg-surface-sunken/60 text-ink-muted cursor-not-allowed"
                     : "bg-surface-sunken text-ink focus:border-primary focus:bg-surface-raised"
                 }`}
@@ -202,14 +209,18 @@ export function EditMemberModal({
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="text-ink-muted text-xs font-semibold tracking-wider uppercase">
-                Tipo de documento {isMemberActive && "(Fijo)"}
+                Tipo de documento {isIdentityLocked && "(Fijo)"}
               </label>
               <select
-                disabled={isMemberActive}
+                disabled={isIdentityLocked}
                 value={docType}
-                onChange={(e) => setDocType(e.target.value as DocumentType)}
+                onChange={(e) => {
+                  const next = e.target.value as DocumentType;
+                  setDocType(next);
+                  setDocNumber((prev) => sanitizeDocumentInput(next, prev));
+                }}
                 className={`border-line rounded-xl border px-3 py-2 text-xs outline-none ${
-                  isMemberActive
+                  isIdentityLocked
                     ? "bg-surface-sunken/60 text-ink-muted cursor-not-allowed"
                     : "bg-surface-sunken text-ink focus:border-primary"
                 }`}
@@ -229,16 +240,18 @@ export function EditMemberModal({
               </label>
               <input
                 type="text"
-                disabled={isMemberActive}
+                disabled={isIdentityLocked}
                 value={docNumber}
-                onChange={(e) => setDocNumber(e.target.value)}
+                onChange={(e) =>
+                  setDocNumber(sanitizeDocumentInput(docType, e.target.value))
+                }
                 placeholder={
-                  isMemberActive
+                  isIdentityLocked
                     ? member.docNumberMasked || "Protegido por privacidad"
                     : "Número de documento"
                 }
                 className={`border-line rounded-xl border px-3.5 py-2 font-mono text-xs tabular-nums outline-none ${
-                  isMemberActive
+                  isIdentityLocked
                     ? "bg-surface-sunken/60 text-ink-muted cursor-not-allowed"
                     : "bg-surface-sunken text-ink focus:border-primary"
                 }`}

@@ -195,8 +195,7 @@ export function InvitationsExitsTab({
 
                       <td className="px-4 py-3.5 text-right whitespace-nowrap">
                         {(inv.estado === "pendiente" ||
-                          inv.estado === "vencida" ||
-                          inv.estado === "rechazada") && (
+                          inv.estado === "vencida") && (
                           <div className="inline-flex items-center gap-1.5">
                             <button
                               type="button"

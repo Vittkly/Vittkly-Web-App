@@ -7,12 +7,21 @@ import { useEffect } from 'react';
 
 import { fontAssets } from '@/assets';
 import { AuthProvider, InactivityLockGate } from '@/features/auth';
+import { OfflineSyncGate } from '@/services/offline';
 import { queryClient } from '@/services/queryClient';
-import { useTheme } from '@/theme';
+import { useTheme, VittklyThemeProvider } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  return (
+    <VittklyThemeProvider>
+      <RootLayoutContent />
+    </VittklyThemeProvider>
+  );
+}
+
+function RootLayoutContent() {
   const { isDark, colors } = useTheme();
   const [loaded, error] = useFonts(fontAssets);
 
@@ -54,6 +63,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <InactivityLockGate />
+        <OfflineSyncGate />
         <ThemeProvider value={navigationTheme}>
           <StatusBar style={isDark ? 'light' : 'dark'} />
           <Stack screenOptions={{ headerShown: false }}>

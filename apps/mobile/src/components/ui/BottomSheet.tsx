@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme';
 
@@ -11,6 +12,8 @@ export interface BottomSheetProps {
 
 export function BottomSheet({ children, style, testID = 'bottom-sheet' }: BottomSheetProps) {
   const { colors, spacing, radius, shadows } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(spacing.space8, insets.bottom + spacing.space4);
 
   return (
     <View
@@ -24,7 +27,7 @@ export function BottomSheet({ children, style, testID = 'bottom-sheet' }: Bottom
           borderTopRightRadius: radius.xl,
           paddingHorizontal: spacing.space6,
           paddingTop: spacing.space6,
-          paddingBottom: spacing.space8,
+          paddingBottom: bottomPadding,
           gap: spacing.space3,
         },
         style,

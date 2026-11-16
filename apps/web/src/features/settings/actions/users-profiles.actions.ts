@@ -3,16 +3,39 @@
 import { createHash, randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import {
+  createMemberInvitationSchema,
+  isValidE164Phone,
+  lookupDocumentInputSchema,
+  maskDocumentForDisplay,
+  maskEmailAddress,
+  maskPersonName,
+  maskPhoneLocal,
+  newAccountPersonDetailsSchema,
+  normalizeDocumentNumber,
+  normalizeDocumentType,
+  normalizePhoneToE164,
+} from "@vittkly/shared";
 import { createClient } from "@/lib/supabase/server";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 import type { Database, Json } from "@vittkly/db-types";
 import { sendInvitationEmail } from "../services/invitation-mailer";
 import {
+  createCompanyInvitationInDb,
+  getExistingAccountEmailTargetInDb,
+  lookupPersonByDocumentInDb,
+  resendCompanyInvitationInDb,
+  type RpcCreatedInvitationResult,
+} from "../services/users-profiles.repository";
+import {
   mapAccessLabelToFlags,
-  type AccessLabel,
+  type DocumentLookupResult,
   type DocumentType,
+  type GeneratedInvitationPayload,
   type ProfileConfiguration,
 } from "../types/settings.types";
+
+export type { DocumentLookupResult, GeneratedInvitationPayload };
 
 function hashToken(rawToken: string): string {
   return createHash("sha256")
@@ -24,44 +47,97 @@ function generateInvitationToken(): string {
   return randomBytes(16).toString("hex");
 }
 
-function maskWord(word?: string | null): string {
-  const clean = (word ?? "").trim();
-  if (!clean) return "";
-  if (clean.length <= 1) return `${clean}***`;
-  return `${clean[0]}***`;
-}
-
-function maskEmail(email?: string | null): string {
-  if (!email || !email.includes("@")) return "***";
-  const [local, domain] = email.split("@");
-  const prefix = local.slice(0, Math.min(3, local.length));
-  return `${prefix}***@${domain}`;
-}
-
 function revalidateUsersProfiles() {
   revalidatePath("/dashboard/configuraciones/usuarios-perfiles");
   revalidatePath("/dashboard/configuraciones");
 }
 
-// ---------------------------------------------------------------------
-// 1. Búsqueda de persona por documento (enmascarada)
-// ---------------------------------------------------------------------
-const lookupDocumentSchema = z.object({
-  docType: z.enum(["DNI", "carné de extranjería", "pasaporte"]),
-  docNumber: z.string().min(4, "Ingresa un número de documento válido"),
-});
+async function dispatchInvitationEmailServerOnly(params: {
+  rpcRes: RpcCreatedInvitationResult;
+  empresaId: string;
+  empresaNombre: string;
+  invitadorNombre: string;
+  rawToken: string;
+}): Promise<{ emailSent: boolean; emailError: string | null }> {
+  let targetEmail: string | null = null;
+  let targetName = params.rpcRes.displayName;
 
-export interface DocumentLookupResult {
-  found: boolean;
-  usuarioId: string | null;
-  maskedName: string | null;
-  maskedEmail: string | null;
-  maskedPhone: string | null;
-  alreadyMember: boolean;
+  if (params.rpcRes.tipo === "cuenta_existente") {
+    const resolved = await getExistingAccountEmailTargetInDb(
+      params.rpcRes.invitationId,
+      params.empresaId,
+    );
+    if (resolved) {
+      targetEmail = resolved.email;
+      targetName = resolved.recipientName;
+    }
+  } else {
+    targetEmail = params.rpcRes.displayEmail;
+  }
+
+  if (!targetEmail) {
+    return {
+      emailSent: false,
+      emailError: "No se encontró un correo de destino.",
+    };
+  }
+
+  const emailResult = await sendInvitationEmail({
+    email: targetEmail,
+    recipientName: targetName,
+    empresaNombre: params.empresaNombre,
+    perfilNombre: params.rpcRes.perfilNombre,
+    invitadorNombre: params.invitadorNombre,
+    rawToken: params.rawToken,
+    tipoInvitacion: params.rpcRes.tipo,
+  });
+
+  if (!emailResult.success && emailResult.error) {
+    console.warn(
+      "[ACTION] No se pudo despachar el correo de invitación:",
+      emailResult.error,
+    );
+  }
+
+  return {
+    emailSent: emailResult.success,
+    emailError: emailResult.error ?? null,
+  };
 }
 
+function mapRpcResultToModalPayload(
+  rpcRes: RpcCreatedInvitationResult,
+  rawToken: string,
+  emailStatus: { emailSent: boolean; emailError: string | null },
+): GeneratedInvitationPayload {
+  return {
+    invitationId: rpcRes.invitationId,
+    tipo: rpcRes.tipo,
+    recipientName: rpcRes.displayName,
+    recipientEmail: rpcRes.displayEmail,
+    recipientPhone:
+      rpcRes.tipo === "cuenta_existente"
+        ? rpcRes.displayPhone
+        : rpcRes.displayPhone,
+    recipientDocumentMasked: rpcRes.maskedDocument,
+    perfilNombre: rpcRes.perfilNombre,
+    accessLabel: rpcRes.accessLabel,
+    expiresAt: rpcRes.expiresAt,
+    invitationPath:
+      rpcRes.tipo === "cuenta_existente"
+        ? null
+        : `/activar-invitacion?token=${rawToken}`,
+    emailSent: emailStatus.emailSent,
+    emailError: emailStatus.emailError,
+    canResend: true,
+  };
+}
+
+// ---------------------------------------------------------------------
+// 1. Búsqueda de persona por documento (enmascarada, exclusivamente por RPC)
+// ---------------------------------------------------------------------
 export async function lookupPersonByDocumentAction(input: {
-  docType: DocumentType;
+  docType: DocumentType | string;
   docNumber: string;
 }): Promise<{
   success: boolean;
@@ -69,129 +145,41 @@ export async function lookupPersonByDocumentAction(input: {
   error?: string;
 }> {
   try {
-    const validated = lookupDocumentSchema.parse(input);
+    const validated = lookupDocumentInputSchema.parse(input);
     const { active, userId } = await resolveActiveOrganization();
     if (!userId || !active) {
       return { success: false, error: "No hay sesión de empresa activa." };
     }
 
-    const supabase = await createClient();
-    const { data: rpcRows, error: rpcError } = await supabase.rpc(
-      "buscar_persona",
-      {
-        p_empresa_id: active.id,
-        p_tipo_documento: validated.docType,
-        p_numero_documento: validated.docNumber.trim(),
-      },
+    const data = await lookupPersonByDocumentInDb(
+      active.id,
+      validated.docType,
+      validated.docNumber,
     );
-
-    if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
-      const first = rpcRows[0];
-      return {
-        success: true,
-        data: {
-          found: Boolean(first.encontrado),
-          usuarioId: first.usuario_id ?? null,
-          maskedName: first.nombre_mascara ?? null,
-          maskedEmail: first.correo_mascara ?? null,
-          maskedPhone: first.celular_mascara ?? null,
-          alreadyMember: Boolean(first.ya_es_miembro),
-        },
-      };
-    }
-
-    // Fallback seguro sobre usuarios si el RPC aún no está desplegado en la nube
-    const { data: userRow } = await supabase
-      .from("usuarios")
-      .select("id, nombre, nombres, apellidos, correo, celular")
-      .eq("tipo_documento", validated.docType)
-      .eq("numero_documento", validated.docNumber.trim())
-      .maybeSingle();
-
-    if (!userRow) {
-      return {
-        success: true,
-        data: {
-          found: false,
-          usuarioId: null,
-          maskedName: null,
-          maskedEmail: null,
-          maskedPhone: null,
-          alreadyMember: false,
-        },
-      };
-    }
-
-    const { data: existingMembership } = await supabase
-      .from("membresias")
-      .select("id, estado")
-      .eq("empresa_id", active.id)
-      .eq("usuario_id", userRow.id)
-      .neq("estado", "desvinculada")
-      .maybeSingle();
-
-    const firstPart =
-      userRow.nombres || userRow.nombre.split(/\s+/)[0] || "Usuario";
-    const secondPart =
-      userRow.apellidos || userRow.nombre.split(/\s+/)[1] || "";
-
-    return {
-      success: true,
-      data: {
-        found: true,
-        usuarioId: userRow.id,
-        maskedName: `${maskWord(firstPart)} ${maskWord(secondPart)}`.trim(),
-        maskedEmail: maskEmail(userRow.correo),
-        maskedPhone: userRow.celular
-          ? `***${userRow.celular.slice(-3)}`
-          : "***",
-        alreadyMember: Boolean(existingMembership),
-      },
-    };
+    return { success: true, data };
   } catch (err) {
     if (err instanceof z.ZodError) {
       return {
         success: false,
-        error: err.issues[0]?.message || "Documento inválido",
+        error: err.issues[0]?.message || "Documento inválido.",
       };
     }
     return {
       success: false,
-      error: "No se pudo verificar el documento en este momento.",
+      error:
+        err instanceof Error
+          ? err.message
+          : "No se pudo verificar el documento en este momento.",
     };
   }
 }
 
 // ---------------------------------------------------------------------
-// 2. Registrar y enviar invitación (nueva cuenta o cuenta existente)
+// 2. Registrar y enviar invitación (tipo derivado en servidor)
 // ---------------------------------------------------------------------
-const createInvitationSchema = z.object({
-  tipo: z.enum(["nueva_cuenta", "cuenta_existente"]),
-  usuarioId: z.string().uuid().nullable().optional(),
-  docType: z.enum(["DNI", "carné de extranjería", "pasaporte"]),
-  docNumber: z.string().min(4, "Número de documento obligatorio"),
-  firstName: z.string().optional().default(""),
-  lastName: z.string().optional().default(""),
-  email: z.string().optional().default(""),
-  phone: z.string().optional().default(""),
-  perfilId: z.string().uuid("Selecciona un perfil válido"),
-  jobTitle: z.string().optional().default(""),
-  accessLabel: z.enum(["Solo web", "Solo app", "Web y app"]),
-  notifyNow: z.boolean().optional().default(true),
-});
-
-export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
-
-export interface GeneratedInvitationPayload {
-  invitationId: string;
-  recipientName: string;
-  recipientEmail: string | null;
-  recipientPhone: string | null;
-  perfilNombre: string;
-  accessLabel: AccessLabel;
-  expiresAt: string;
-  invitationPath: string;
-}
+export type CreateInvitationInput = z.input<
+  typeof createMemberInvitationSchema
+>;
 
 export async function createInvitationAction(
   input: CreateInvitationInput,
@@ -201,7 +189,7 @@ export async function createInvitationAction(
   error?: string;
 }> {
   try {
-    const validated = createInvitationSchema.parse(input);
+    const validated = createMemberInvitationSchema.parse(input);
     const { active, userId } = await resolveActiveOrganization();
 
     if (!userId || !active) {
@@ -211,150 +199,111 @@ export async function createInvitationAction(
       };
     }
 
-    if (validated.tipo === "nueva_cuenta") {
-      if (
-        !validated.firstName.trim() ||
-        !validated.lastName.trim() ||
-        !validated.email.trim()
-      ) {
+    const lookup = await lookupPersonByDocumentInDb(
+      active.id,
+      validated.docType,
+      validated.docNumber,
+    );
+
+    if (lookup.status === "ya_es_miembro") {
+      return {
+        success: false,
+        error: `Esta persona ya pertenece a la empresa con el perfil de ${lookup.roleName}.`,
+      };
+    }
+
+    if (lookup.status === "invitacion_pendiente") {
+      return {
+        success: false,
+        error: `Ya existe una invitación pendiente para esta persona (perfil ${lookup.roleName}).`,
+      };
+    }
+
+    let firstName: string | null = null;
+    let lastName: string | null = null;
+    let email: string | null = null;
+    let phoneE164: string | null = null;
+
+    if (lookup.status === "no_encontrado") {
+      const details = newAccountPersonDetailsSchema.parse({
+        firstName: validated.firstName,
+        lastName: validated.lastName,
+        email: validated.email,
+        countryPrefix: validated.countryPrefix,
+        phone: validated.phone,
+      });
+
+      const e164 = normalizePhoneToE164(details.countryPrefix, details.phone);
+      if (!isValidE164Phone(e164)) {
         return {
           success: false,
           error:
-            "Nombres, apellidos y correo son obligatorios para una cuenta nueva.",
+            details.countryPrefix === "+51"
+              ? "Ingresa un celular válido de Perú (9 dígitos iniciando en 9)."
+              : "Ingresa un número de celular válido en formato internacional.",
         };
       }
-    }
 
-    const supabase = await createClient();
-
-    const { data: profileRow } = await supabase
-      .from("perfiles")
-      .select("id, nombre")
-      .eq("id", validated.perfilId)
-      .eq("empresa_id", active.id)
-      .maybeSingle();
-
-    if (!profileRow) {
-      return {
-        success: false,
-        error: "El perfil seleccionado no pertenece a esta empresa.",
-      };
+      firstName = details.firstName;
+      lastName = details.lastName;
+      email = details.email;
+      phoneE164 = e164;
     }
 
     const { accesoWeb, accesoApp } = mapAccessLabelToFlags(
       validated.accessLabel,
     );
     const rawToken = generateInvitationToken();
-    const hashed = hashToken(rawToken);
-    const expiresAt = new Date(
-      Date.now() + 7 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const tokenHash = hashToken(rawToken);
 
-    const normalizedPhone = validated.phone.trim()
-      ? validated.phone.trim().startsWith("+")
-        ? validated.phone.trim().replace(/\s+/g, "")
-        : `+51${validated.phone.trim().replace(/\s+/g, "")}`
-      : null;
-
-    const normalizedEmail = validated.email.trim()
-      ? validated.email.trim().toLowerCase()
-      : null;
-
-    const { data: inserted, error: insertError } = await supabase
-      .from("invitaciones")
-      .insert({
-        empresa_id: active.id,
-        tipo: validated.tipo,
-        usuario_id: validated.usuarioId ?? null,
-        nombres: validated.firstName.trim() || null,
-        apellidos: validated.lastName.trim() || null,
-        tipo_documento: validated.docType,
-        numero_documento: validated.docNumber.trim(),
-        correo: normalizedEmail,
-        celular: normalizedPhone,
-        perfil_id: validated.perfilId,
-        cargo: validated.jobTitle.trim() || null,
-        acceso_web: accesoWeb,
-        acceso_app: accesoApp,
-        codigo_hash: hashed,
-        token_hash: hashed,
-        vence_en: expiresAt,
-        estado: "pendiente",
-        creado_por: userId,
-      })
-      .select("id, vence_en")
-      .single();
-
-    if (insertError || !inserted) {
-      return {
-        success: false,
-        error:
-          insertError?.message ||
-          "No se pudo registrar la invitación en la base de datos.",
-      };
-    }
+    const rpcRes = await createCompanyInvitationInDb({
+      empresaId: active.id,
+      docType: validated.docType,
+      docNumber: validated.docNumber,
+      perfilId: validated.perfilId,
+      accesoWeb,
+      accesoApp,
+      cargo: validated.jobTitle || null,
+      firstName,
+      lastName,
+      email,
+      phoneE164,
+      tokenHash,
+    });
 
     revalidateUsersProfiles();
 
-    const recipientName =
-      `${validated.firstName.trim()} ${validated.lastName.trim()}`.trim() ||
-      normalizedEmail ||
-      `Documento ${validated.docType}`;
-
-    const invitationPath =
-      validated.tipo === "cuenta_existente"
-        ? "/accesos"
-        : `/activar-invitacion?token=${rawToken}`;
-
-    // Despacho real de correo transaccional
-    if (normalizedEmail) {
-      const emailResult = await sendInvitationEmail({
-        email: normalizedEmail,
-        recipientName,
-        empresaNombre: active.name || "Vittkly",
-        perfilNombre: profileRow.nombre,
-        invitadorNombre: active.roleName || "El Administrador",
-        rawToken,
-        tipoInvitacion: validated.tipo,
-      });
-
-      if (!emailResult.success && emailResult.error) {
-        console.warn(
-          "[ACTION] No se pudo despachar el correo de invitación:",
-          emailResult.error,
-        );
-      }
-    }
+    const emailStatus = await dispatchInvitationEmailServerOnly({
+      rpcRes,
+      empresaId: active.id,
+      empresaNombre: active.name || "Vittkly",
+      invitadorNombre: active.roleName || "El Administrador",
+      rawToken,
+    });
 
     return {
       success: true,
-      data: {
-        invitationId: inserted.id,
-        recipientName,
-        recipientEmail: normalizedEmail,
-        recipientPhone: normalizedPhone,
-        perfilNombre: profileRow.nombre,
-        accessLabel: validated.accessLabel,
-        expiresAt: inserted.vence_en,
-        invitationPath,
-      },
+      data: mapRpcResultToModalPayload(rpcRes, rawToken, emailStatus),
     };
   } catch (err) {
     if (err instanceof z.ZodError) {
       return {
         success: false,
-        error: err.issues[0]?.message || "Datos de invitación inválidos",
+        error: err.issues[0]?.message || "Datos de invitación inválidos.",
       };
     }
     return {
       success: false,
-      error: "Ocurrió un error al registrar la invitación.",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error al registrar la invitación.",
     };
   }
 }
 
 // ---------------------------------------------------------------------
-// 3. Reenviar invitación (anula la anterior y genera nuevo enlace de 7 días)
+// 3. Reenviar invitación (atómica, anula la anterior y emite nueva de 7 días)
 // ---------------------------------------------------------------------
 export async function resendInvitationAction(invitationId: string): Promise<{
   success: boolean;
@@ -370,140 +319,32 @@ export async function resendInvitationAction(invitationId: string): Promise<{
       };
     }
 
-    const supabase = await createClient();
-
-    const { data: prevInv, error: fetchError } = await supabase
-      .from("invitaciones")
-      .select(
-        "id, empresa_id, tipo, usuario_id, nombres, apellidos, tipo_documento, numero_documento, correo, celular, perfil_id, cargo, acceso_web, acceso_app",
-      )
-      .eq("id", invitationId)
-      .eq("empresa_id", active.id)
-      .maybeSingle();
-
-    if (fetchError || !prevInv) {
-      return {
-        success: false,
-        error: "No se encontró la invitación seleccionada.",
-      };
-    }
-
-    // 1. Anular la invitación anterior
-    const { error: voidError } = await supabase
-      .from("invitaciones")
-      .update({ estado: "anulada" })
-      .eq("id", prevInv.id)
-      .eq("empresa_id", active.id);
-
-    if (voidError) {
-      return {
-        success: false,
-        error: voidError.message || "No se pudo anular la invitación anterior.",
-      };
-    }
-
-    // 2. Emitir nueva invitación con enlace nuevo y vigencia de 7 días
     const rawToken = generateInvitationToken();
-    const hashed = hashToken(rawToken);
-    const expiresAt = new Date(
-      Date.now() + 7 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const tokenHash = hashToken(rawToken);
 
-    const { data: newInv, error: createError } = await supabase
-      .from("invitaciones")
-      .insert({
-        empresa_id: active.id,
-        tipo: prevInv.tipo || "nueva_cuenta",
-        usuario_id: prevInv.usuario_id,
-        nombres: prevInv.nombres,
-        apellidos: prevInv.apellidos,
-        tipo_documento: prevInv.tipo_documento,
-        numero_documento: prevInv.numero_documento,
-        correo: prevInv.correo,
-        celular: prevInv.celular,
-        perfil_id: prevInv.perfil_id,
-        cargo: prevInv.cargo,
-        acceso_web: prevInv.acceso_web,
-        acceso_app: prevInv.acceso_app,
-        codigo_hash: hashed,
-        token_hash: hashed,
-        vence_en: expiresAt,
-        estado: "pendiente",
-        creado_por: userId,
-      })
-      .select("id, vence_en")
-      .single();
-
-    if (createError || !newInv) {
-      return {
-        success: false,
-        error:
-          createError?.message ||
-          "No se pudo generar el nuevo enlace de invitación.",
-      };
-    }
-
-    const { data: profileRow } = await supabase
-      .from("perfiles")
-      .select("nombre")
-      .eq("id", prevInv.perfil_id)
-      .maybeSingle();
+    const rpcRes = await resendCompanyInvitationInDb(invitationId, tokenHash);
 
     revalidateUsersProfiles();
 
-    const accessLabel: AccessLabel =
-      prevInv.acceso_web && !prevInv.acceso_app
-        ? "Solo web"
-        : !prevInv.acceso_web && prevInv.acceso_app
-          ? "Solo app"
-          : "Web y app";
-
-    const recipientName =
-      `${prevInv.nombres ?? ""} ${prevInv.apellidos ?? ""}`.trim() ||
-      prevInv.correo ||
-      "Invitado";
-
-    const isCuentaExistente = prevInv.tipo === "cuenta_existente";
-    const invitationPath = isCuentaExistente
-      ? "/accesos"
-      : `/activar-invitacion?token=${rawToken}`;
-
-    if (prevInv.correo) {
-      const emailResult = await sendInvitationEmail({
-        email: prevInv.correo,
-        recipientName,
-        empresaNombre: active.name || "Vittkly",
-        perfilNombre: profileRow?.nombre ?? "Colaborador",
-        invitadorNombre: active.roleName || "El Administrador",
-        rawToken,
-        tipoInvitacion: isCuentaExistente ? "cuenta_existente" : "nueva_cuenta",
-      });
-
-      if (!emailResult.success && emailResult.error) {
-        console.warn(
-          "[ACTION] No se pudo reenviar el correo de invitación:",
-          emailResult.error,
-        );
-      }
-    }
+    const emailStatus = await dispatchInvitationEmailServerOnly({
+      rpcRes,
+      empresaId: active.id,
+      empresaNombre: active.name || "Vittkly",
+      invitadorNombre: active.roleName || "El Administrador",
+      rawToken,
+    });
 
     return {
       success: true,
-      data: {
-        invitationId: newInv.id,
-        recipientName,
-        recipientEmail: prevInv.correo,
-        recipientPhone: prevInv.celular,
-        perfilNombre: profileRow?.nombre ?? "Colaborador",
-        accessLabel,
-        expiresAt: newInv.vence_en,
-        invitationPath,
-      },
+      data: mapRpcResultToModalPayload(rpcRes, rawToken, emailStatus),
     };
-  } catch {
+  } catch (err) {
     return {
       success: false,
-      error: "Ocurrió un error al reenviar la invitación.",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error al reenviar la invitación.",
     };
   }
 }
@@ -635,8 +476,8 @@ const updateMemberDetailsSchema = z.object({
   sourceType: z.enum(["membresia", "invitacion"]),
   userId: z.string().min(1),
   invitationId: z.string().uuid().nullable().optional(),
-  firstName: z.string().min(1, "El nombre es obligatorio"),
-  lastName: z.string().min(1, "El apellido es obligatorio"),
+  firstName: z.string().optional().default(""),
+  lastName: z.string().optional().default(""),
   phone: z.string().optional().default(""),
   docType: z
     .enum(["DNI", "carné de extranjería", "pasaporte"])
@@ -648,7 +489,7 @@ const updateMemberDetailsSchema = z.object({
   accessLabel: z.enum(["Solo web", "Solo app", "Web y app"]),
 });
 
-export type UpdateMemberDetailsInput = z.infer<
+export type UpdateMemberDetailsInput = z.input<
   typeof updateMemberDetailsSchema
 >;
 
@@ -668,49 +509,116 @@ export async function updateMemberDetailsAction(
     const { accesoWeb, accesoApp } = mapAccessLabelToFlags(
       validated.accessLabel,
     );
-    const normalizedPhone = validated.phone.trim()
-      ? validated.phone.trim().startsWith("+")
-        ? validated.phone.trim().replace(/\s+/g, "")
-        : `+51${validated.phone.trim().replace(/\s+/g, "")}`
-      : null;
-
     const supabase = await createClient();
 
     if (validated.sourceType === "invitacion") {
       const targetInvId =
         validated.invitationId ?? validated.id.replace(/^inv-/, "");
-      const updatePayload: Database["public"]["Tables"]["invitaciones"]["Update"] =
-        {
-          nombres: validated.firstName.trim(),
-          apellidos: validated.lastName.trim(),
-          celular: normalizedPhone,
-          perfil_id: validated.perfilId,
-          cargo: validated.jobTitle.trim() || null,
-          acceso_web: accesoWeb,
-          acceso_app: accesoApp,
-        };
-      if (validated.docType && validated.docNumber.trim()) {
-        updatePayload.tipo_documento = validated.docType;
-        updatePayload.numero_documento = validated.docNumber.trim();
+
+      const { data: currentInv } = await supabase
+        .from("invitaciones")
+        .select("id, tipo, correo, tipo_documento, numero_documento")
+        .eq("id", targetInvId)
+        .eq("empresa_id", active.id)
+        .maybeSingle();
+
+      if (!currentInv) {
+        return { success: false, error: "No se encontró la invitación." };
       }
 
-      const { error } = await supabase
-        .from("invitaciones")
-        .update(updatePayload)
-        .eq("id", targetInvId)
-        .eq("empresa_id", active.id);
+      if (currentInv.tipo === "cuenta_existente") {
+        // Blindaje PII: una invitación de cuenta existente solo permite editar perfil, cargo y canales.
+        const { error } = await supabase
+          .from("invitaciones")
+          .update({
+            perfil_id: validated.perfilId,
+            cargo: validated.jobTitle.trim() || null,
+            acceso_web: accesoWeb,
+            acceso_app: accesoApp,
+          })
+          .eq("id", targetInvId)
+          .eq("empresa_id", active.id);
 
-      if (error) {
-        return {
-          success: false,
-          error:
-            error.message || "No se pudieron actualizar los datos del invitado",
-        };
+        if (error) {
+          return {
+            success: false,
+            error:
+              error.message ||
+              "No se pudieron actualizar los permisos de la invitación",
+          };
+        }
+      } else {
+        const cleanFirst = validated.firstName.trim();
+        const cleanLast = validated.lastName.trim();
+        if (cleanFirst.length < 2 || cleanLast.length < 2) {
+          return {
+            success: false,
+            error:
+              "Nombres y apellidos son obligatorios (mínimo 2 caracteres).",
+          };
+        }
+
+        const rawPhone = validated.phone.trim();
+        let normalizedPhone: string | null = null;
+        if (rawPhone) {
+          const e164 = normalizePhoneToE164("+51", rawPhone);
+          if (!isValidE164Phone(e164)) {
+            return {
+              success: false,
+              error: "El número de celular ingresado no es válido.",
+            };
+          }
+          normalizedPhone = e164;
+        }
+
+        const nextDocType = validated.docType
+          ? normalizeDocumentType(validated.docType)
+          : ((currentInv.tipo_documento as DocumentType | null) ?? null);
+        const nextDocNumber =
+          nextDocType && validated.docNumber.trim()
+            ? normalizeDocumentNumber(nextDocType, validated.docNumber)
+            : (currentInv.numero_documento ?? null);
+
+        const updatePayload: Database["public"]["Tables"]["invitaciones"]["Update"] =
+          {
+            nombres: cleanFirst,
+            apellidos: cleanLast,
+            celular: normalizedPhone,
+            perfil_id: validated.perfilId,
+            cargo: validated.jobTitle.trim() || null,
+            acceso_web: accesoWeb,
+            acceso_app: accesoApp,
+            datos_enmascarados: {
+              nombre: maskPersonName(null, cleanFirst, cleanLast),
+              correo: maskEmailAddress(currentInv.correo),
+              documento: maskDocumentForDisplay(nextDocNumber),
+              celular: maskPhoneLocal(normalizedPhone),
+              tipo_documento: nextDocType,
+            },
+          };
+
+        if (nextDocType && nextDocNumber) {
+          updatePayload.tipo_documento = nextDocType;
+          updatePayload.numero_documento = nextDocNumber;
+        }
+
+        const { error } = await supabase
+          .from("invitaciones")
+          .update(updatePayload)
+          .eq("id", targetInvId)
+          .eq("empresa_id", active.id);
+
+        if (error) {
+          return {
+            success: false,
+            error:
+              error.message ||
+              "No se pudieron actualizar los datos del invitado",
+          };
+        }
       }
     } else {
-      // Regla de Identidad Global (PDF 13 nov 2026):
-      // Los datos personales en public.usuarios pertenecen a la cuenta global del usuario.
-      // El administrador de la empresa solo tiene potestad sobre los atributos de la relación en public.membresias.
+      // Regla de Identidad Global: solo atributos de membresía.
       const { error: memError } = await supabase
         .from("membresias")
         .update({

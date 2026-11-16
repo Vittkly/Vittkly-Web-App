@@ -6,19 +6,18 @@ import { visitsService, type VisitRecord } from '../services/visits.service';
 export type { VisitRecord };
 
 export function useTodayVisits() {
-  const { activeTenant } = useAuth();
-  const activeTenantId = activeTenant?.id ?? 'default';
-  const activeTenantName = activeTenant?.name ?? 'Vitta Kleanly';
+  const { activeOrganizationId, activeTenant } = useAuth();
+  const empresaId = activeOrganizationId ?? activeTenant?.id ?? null;
 
   return useQuery<VisitRecord[]>({
-    queryKey: ['work-orders', 'today', activeTenantId],
+    queryKey: ['work-orders', 'today', empresaId ?? 'none'],
     queryFn: async () => {
-      if (!activeTenant?.id) {
+      if (!empresaId) {
         return [];
       }
-      return visitsService.fetchTodayVisits(activeTenant.id, activeTenantName);
+      return visitsService.fetchTodayVisits(empresaId);
     },
-    enabled: Boolean(activeTenant?.id),
+    enabled: Boolean(empresaId),
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 }

@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 
+import { sanitizeNetworkError } from '../services/network-error';
 import { useAuth } from './useAuth';
 import { useAuthBackNavigation } from './useAuthBackNavigation';
 
@@ -24,10 +25,6 @@ export function usePhoneEntry() {
   const { handleBack } = useAuthBackNavigation('/(auth)/welcome');
 
   const params = useLocalSearchParams<{
-    invitationCode?: string;
-    organizationName?: string;
-    jobTitle?: string;
-    invitedName?: string;
     phone?: string;
   }>();
 
@@ -53,27 +50,28 @@ export function usePhoneEntry() {
     setIsSubmitting(true);
 
     const fullPhone = `${selectedCountry.dial} ${digits}`;
-    const normalizedPhone = `${selectedCountry.dial}${digits}`;
+    const targetPhone = `${selectedCountry.dial}${digits}`;
 
     try {
-      await requestPhoneOtp(normalizedPhone);
-    } catch {
-      // Continuar al paso OTP en entorno demo si el proveedor no está activo
+      const { normalizedPhone } = await requestPhoneOtp(targetPhone);
+      router.push({
+        pathname: '/(auth)/otp',
+        params: {
+          flow: 'phone',
+          phone: fullPhone,
+          normalizedPhone,
+        },
+      });
+    } catch (err: unknown) {
+      setError(
+        sanitizeNetworkError(
+          err,
+          'No pudimos enviar el código de verificación. Verifica tu número e intenta nuevamente.',
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
-
-    router.push({
-      pathname: '/(auth)/otp',
-      params: {
-        phone: fullPhone,
-        normalizedPhone,
-        invitationCode: params.invitationCode ?? '',
-        organizationName: params.organizationName ?? '',
-        jobTitle: params.jobTitle ?? '',
-        invitedName: params.invitedName ?? '',
-      },
-    });
   };
 
   return {

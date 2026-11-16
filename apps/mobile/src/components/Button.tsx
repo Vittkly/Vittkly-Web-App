@@ -15,7 +15,7 @@ import { BUTTON_ICON_MAP, ButtonIconName } from './button-icons';
 
 export type { ButtonIconName };
 export type ButtonVariant =
-  'primary' | 'secondary' | 'ghost' | 'danger' | 'tenant' | 'option' | 'inverse';
+  'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'tenant' | 'option' | 'inverse';
 export type ButtonAccent = 'vitta' | 'kleanly' | 'tinta';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 export type ButtonShape = 'rounded' | 'pill';
@@ -26,6 +26,7 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   size?: ButtonSize;
   shape?: ButtonShape;
   block?: boolean;
+  inAuthSheet?: boolean;
   icon?: ButtonIconName;
   isLoading?: boolean;
   onClick?: () => void;
@@ -43,38 +44,38 @@ export function Button({
   size = 'lg',
   shape = 'rounded',
   block = false,
+  inAuthSheet = false,
   icon,
   disabled = false,
   isLoading = false,
   onPress,
   onClick,
+  accessibilityLabel,
+  hitSlop,
   children,
   style,
   testID,
   ...rest
 }: ButtonProps) {
-  const { colors, control, spacing, radius, fontFamilies, isDark, opacity } = useTheme();
+  const { colors, control, spacing, radius, fontFamilies, isDark, opacity, borderWidth } =
+    useTheme();
 
-  const heightMap: Record<ButtonSize, number> = {
-    sm: control.sm,
-    md: control.md,
-    lg: control.lg,
-  };
-
+  const heightMap: Record<ButtonSize, number> = { sm: control.sm, md: control.md, lg: control.lg };
   const paddingHorizontalMap: Record<ButtonSize, number> = {
     sm: spacing.space3,
     md: spacing.space4,
     lg: spacing.space6,
   };
-
-  const fontSizeMap: Record<ButtonSize, number> = {
-    sm: 13,
-    md: 15,
-    lg: 16,
-  };
+  const fontSizeMap: Record<ButtonSize, number> = { sm: 13, md: 15, lg: 16 };
+  const minHitPad = Math.max(0, (control.lg - heightMap[size]) / 2);
+  const resolvedHitSlop =
+    hitSlop ?? (minHitPad > 0 ? { top: minHitPad, bottom: minHitPad } : undefined);
 
   const IconComponent = icon ? BUTTON_ICON_MAP[icon] : null;
   const iconSize = size === 'sm' ? 16 : 18;
+  const resolvedLabel =
+    accessibilityLabel ??
+    (typeof children === 'string' || typeof children === 'number' ? String(children) : undefined);
 
   const resolveColors = (pressed: boolean) => {
     switch (variant) {
@@ -82,7 +83,7 @@ export function Button({
         return {
           backgroundColor: pressed ? colors.primaryHover : colors.primary,
           borderColor: 'transparent',
-          borderWidth: 1,
+          borderWidth: borderWidth.thin,
           textColor: colors.onPrimary,
           iconColor: colors.onPrimary,
         };
@@ -101,10 +102,26 @@ export function Button({
           iconColor: isDark ? colors.onPrimary : colors.surface,
         };
       case 'secondary':
+        return inAuthSheet
+          ? {
+              backgroundColor: pressed ? colors.sheetCardActive : colors.sheetCard,
+              borderColor: 'transparent',
+              borderWidth: 0,
+              textColor: colors.ink,
+              iconColor: colors.ink,
+            }
+          : {
+              backgroundColor: pressed ? colors.surfaceSunken : colors.surfaceRaised,
+              borderColor: colors.lineStrong,
+              borderWidth: borderWidth.thin,
+              textColor: colors.ink,
+              iconColor: colors.ink,
+            };
+      case 'outline':
         return {
-          backgroundColor: pressed ? colors.surfaceSunken : colors.surfaceRaised,
+          backgroundColor: pressed ? colors.surfaceSunken : 'transparent',
           borderColor: colors.lineStrong,
-          borderWidth: 1,
+          borderWidth: borderWidth.thin,
           textColor: colors.ink,
           iconColor: colors.ink,
         };
@@ -112,7 +129,7 @@ export function Button({
         return {
           backgroundColor: pressed ? colors.primarySoft : 'transparent',
           borderColor: 'transparent',
-          borderWidth: 1,
+          borderWidth: borderWidth.thin,
           textColor: colors.primaryInk,
           iconColor: colors.primaryInk,
         };
@@ -120,7 +137,7 @@ export function Button({
         return {
           backgroundColor: colors.danger,
           borderColor: 'transparent',
-          borderWidth: 1,
+          borderWidth: borderWidth.thin,
           textColor: colors.onDanger,
           iconColor: colors.onDanger,
         };
@@ -128,7 +145,7 @@ export function Button({
         return {
           backgroundColor: colors.tenantAccent,
           borderColor: 'transparent',
-          borderWidth: 1,
+          borderWidth: borderWidth.thin,
           textColor: colors.onTenantAccent,
           iconColor: colors.onTenantAccent,
         };
@@ -145,7 +162,7 @@ export function Button({
         return {
           backgroundColor: colors.surfaceRaised,
           borderColor: pressed ? optionBorder : colors.line,
-          borderWidth: 1.5,
+          borderWidth: borderWidth.emphasis,
           textColor: pressed ? optionText : colors.ink,
           iconColor: pressed ? optionText : colors.inkMuted,
         };
@@ -157,7 +174,9 @@ export function Button({
     <Pressable
       testID={testID}
       accessibilityRole="button"
+      accessibilityLabel={resolvedLabel}
       accessibilityState={{ disabled: !!disabled || isLoading, busy: isLoading }}
+      hitSlop={resolvedHitSlop}
       disabled={disabled || isLoading}
       onPress={onPress ?? onClick}
       style={({ pressed }) => {

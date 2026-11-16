@@ -1,7 +1,12 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-import type { AuthBootstrapData, Tenant, UserProfile } from '../types/auth.types';
+import type {
+  AuthBootstrapData,
+  PinAttemptsRecord,
+  Tenant,
+  UserProfile,
+} from '../types/auth.types';
 
 /**
  * Claves de almacenamiento seguro en Keychain (iOS) / Keystore (Android).
@@ -9,6 +14,7 @@ import type { AuthBootstrapData, Tenant, UserProfile } from '../types/auth.types
 export const SECURE_STORAGE_KEYS = {
   SESSION_JWT: 'vittkly.auth.session_jwt',
   PIN_HASH: 'vittkly.auth.pin_hash',
+  ACTIVE_EMPRESA_ID: 'vittkly.auth.active_empresa_id',
   ACTIVE_ORGANIZATION_ID: 'vittkly.auth.active_organization_id',
   LAST_ACTIVE_TENANT_ID: 'vittkly.auth.last_active_tenant_id',
   USER_PROFILE: 'vittkly.auth.user_profile',
@@ -18,11 +24,6 @@ export const SECURE_STORAGE_KEYS = {
   PIN_CLOUD_SYNC_PENDING: 'vittkly.auth.pin_cloud_sync_pending',
   PIN_ATTEMPTS: 'vittkly.auth.pin_attempts',
 } as const;
-
-export interface PinAttemptsRecord {
-  failedAttempts: number;
-  lockedUntil: number | null;
-}
 
 type SecureStorageKey = (typeof SECURE_STORAGE_KEYS)[keyof typeof SECURE_STORAGE_KEYS];
 
@@ -196,6 +197,43 @@ export const secureStorageService = {
   /**
    * Obtiene la lista de organizaciones (tenants) en caché.
    */
+  /**
+   * Obtiene el identificador canónico de la empresa activa (`active_empresa_id`),
+   * con respaldo de migración desde la clave previa `active_organization_id`.
+   */
+  async getActiveEmpresaId(): Promise<string | null> {
+    const empresaId = await getRawItem(SECURE_STORAGE_KEYS.ACTIVE_EMPRESA_ID);
+    if (empresaId) return empresaId;
+    const legacyId = await this.getActiveOrganizationId();
+    if (legacyId) {
+      await setRawItem(SECURE_STORAGE_KEYS.ACTIVE_EMPRESA_ID, legacyId);
+    }
+    return legacyId;
+  },
+
+  /**
+   * Persiste `active_empresa_id` de forma segura en SecureStore y actualiza la clave de compatibilidad.
+   */
+  async setActiveEmpresaId(empresaId: string): Promise<void> {
+    await Promise.all([
+      setRawItem(SECURE_STORAGE_KEYS.ACTIVE_EMPRESA_ID, empresaId),
+      this.setActiveOrganizationId(empresaId),
+    ]);
+  },
+
+  /**
+   * Elimina `active_empresa_id` de SecureStore.
+   */
+  async removeActiveEmpresaId(): Promise<void> {
+    await Promise.all([
+      removeRawItem(SECURE_STORAGE_KEYS.ACTIVE_EMPRESA_ID),
+      this.removeActiveOrganizationId(),
+    ]);
+  },
+
+  /**
+   * Obtiene la lista de organizaciones (tenants) en caché seguro.
+   */
   async getCachedTenants(): Promise<Tenant[]> {
     const raw = await getRawItem(SECURE_STORAGE_KEYS.TENANTS);
     if (!raw) return [];
@@ -340,7 +378,7 @@ export const secureStorageService = {
     ] = await Promise.all([
       this.getSessionJwt(),
       this.getPinHash(),
-      this.getActiveOrganizationId(),
+      this.getActiveEmpresaId(),
       this.getLastActiveTenantId(),
       this.getCachedUserProfile(),
       this.getCachedTenants(),
@@ -368,7 +406,7 @@ export const secureStorageService = {
     await Promise.all([
       this.removeSessionJwt(),
       this.removePinHash(),
-      this.removeActiveOrganizationId(),
+      this.removeActiveEmpresaId(),
       this.removeCachedUserProfile(),
       this.removeCachedTenants(),
       removeRawItem(SECURE_STORAGE_KEYS.BIOMETRIC_ENABLED),

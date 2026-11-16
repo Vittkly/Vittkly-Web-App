@@ -1,20 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 
+import { sanitizeNetworkError } from '../services/network-error';
 import type { OtpFlowType } from '../types/auth.types';
 import { useAuth } from './useAuth';
 import { useAuthBackNavigation } from './useAuthBackNavigation';
 
 export function useOtpVerification() {
-  const {
-    verifySignupOtp,
-    resendSignupOtp,
-    verifyRecoveryOtp,
-    requestPasswordReset,
-    verifyPhoneOtp,
-    setSession,
-    requestPhoneOtp,
-  } = useAuth();
+  const { verifyRecoveryOtp, requestPasswordReset, verifyPhoneOtp, requestPhoneOtp } = useAuth();
   const { handleBack } = useAuthBackNavigation('/(auth)/phone');
 
   const params = useLocalSearchParams<{
@@ -22,25 +15,17 @@ export function useOtpVerification() {
     email?: string;
     phone?: string;
     normalizedPhone?: string;
-    invitationCode?: string;
-    organizationName?: string;
-    jobTitle?: string;
-    invitedName?: string;
   }>();
 
   const [otpCode, setOtpCode] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
-  const flow: OtpFlowType = params.flow ?? 'phone';
+  const flow: OtpFlowType = params.flow === 'recovery' ? 'recovery' : 'phone';
   const targetEmail = params.email?.trim().toLowerCase() || '';
-  const targetPhone = params.normalizedPhone || params.phone || '+51987654321';
+  const targetPhone = params.normalizedPhone || params.phone?.replace(/\s+/g, '') || '';
 
   const handleBackPress = () => {
-    if (flow === 'signup') {
-      handleBack('/(auth)/login');
-      return;
-    }
     if (flow === 'recovery') {
       handleBack('/(auth)/forgot');
       return;
@@ -59,59 +44,28 @@ export function useOtpVerification() {
     setError(null);
 
     try {
-      if (flow === 'signup') {
-        await verifySignupOtp(targetEmail, cleanToken);
-        router.replace('/(auth)/signup-done');
-        return;
-      }
-
       if (flow === 'recovery') {
         await verifyRecoveryOtp(targetEmail, cleanToken);
         router.replace('/(auth)/reset-password');
         return;
       }
 
-      // Flujo de teléfono / invitación de campo
-      try {
-        await verifyPhoneOtp({
-          phone: targetPhone,
-          token: cleanToken,
-        });
-      } catch {
-        const techName = params.invitedName || 'Jorge Injante';
-        const orgName = params.organizationName || 'Vitta Kleanly';
-        const jobTitle = params.jobTitle || 'Técnico de campo';
-
-        await setSession({
-          token: `vk-tech-session-${Date.now()}`,
-          user: {
-            id: 'tech-local-user',
-            email: null,
-            phone: targetPhone,
-            firstName: techName.split(' ')[0] ?? 'Jorge',
-            lastName: techName.split(' ').slice(1).join(' ') || 'Injante',
-            fullName: techName,
-          },
-          tenants: [
-            {
-              id: 'org-vitta-kleanly',
-              name: orgName,
-              slug: 'vitta-kleanly',
-              role: 'member',
-              jobTitle,
-              accessScope: 'app',
-            },
-          ],
-          activeOrganizationId: 'org-vitta-kleanly',
-        });
+      if (!targetPhone) {
+        setError('Falta el número de celular. Regresa e ingrésalo nuevamente.');
+        return;
       }
+
+      await verifyPhoneOtp({
+        phone: targetPhone,
+        token: cleanToken,
+      });
 
       router.replace({
         pathname: '/(auth)/pin-setup',
         params: { flow: 'phone' },
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Código incorrecto o expirado');
+      setError(sanitizeNetworkError(err, 'Código incorrecto o expirado.'));
       setOtpCode('');
     } finally {
       setIsVerifying(false);
@@ -121,15 +75,13 @@ export function useOtpVerification() {
   const handleResendCode = async () => {
     setError(null);
     try {
-      if (flow === 'signup') {
-        await resendSignupOtp(targetEmail);
-      } else if (flow === 'recovery') {
+      if (flow === 'recovery') {
         await requestPasswordReset(targetEmail);
       } else {
         await requestPhoneOtp(targetPhone);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo reenviar el código.');
+      setError(sanitizeNetworkError(err, 'No se pudo reenviar el código.'));
     }
   };
 

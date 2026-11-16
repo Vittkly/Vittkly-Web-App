@@ -1,7 +1,7 @@
-import { ArrowLeft } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
+import { BackIcon } from '@/components/icons';
 import { Logo, type LogoVariant } from '@/components/Logo';
 import { tokens, useTheme } from '@/theme';
 
@@ -120,7 +120,7 @@ export function AuthHeader({
               },
             ]}
           >
-            <ArrowLeft size={BACK_ICON_SIZE} color={isHero ? colors.heroInk : colors.ink} />
+            <BackIcon size={BACK_ICON_SIZE} color={isHero ? colors.heroInk : colors.ink} />
           </Pressable>
         </View>
       ) : null}

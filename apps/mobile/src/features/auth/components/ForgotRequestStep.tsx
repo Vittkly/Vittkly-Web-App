@@ -1,8 +1,8 @@
-import { ChevronDown } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { ChevronIcon } from '@/components/icons';
 import { Logo } from '@/components/Logo';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { FormField } from '@/components/ui/FormField';
@@ -136,7 +136,9 @@ export function ForgotRequestStep({
                 ]}
               >
                 <Text style={[typography.bodyStrong, { color: colors.ink }]}>+51</Text>
-                <ChevronDown size={CHEVRON_SIZE} color={colors.inkMuted} />
+                <View style={styles.rotateDown}>
+                  <ChevronIcon size={CHEVRON_SIZE} color={colors.inkMuted} />
+                </View>
               </View>
               <TextInput
                 testID="forgot-phone-input"
@@ -225,5 +227,8 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  rotateDown: {
+    transform: [{ rotate: '90deg' }],
   },
 });

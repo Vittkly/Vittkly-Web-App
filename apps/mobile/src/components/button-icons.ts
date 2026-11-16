@@ -1,47 +1,9 @@
-import {
-  ArrowLeft,
-  ArrowRight,
-  Calendar,
-  Check,
-  Grid3x3,
-  List,
-  Mail,
-  MapPin,
-  Plus,
-  User,
-  Users,
-  X,
-} from 'lucide-react-native';
-import type React from 'react';
+import { VITTKLY_ICON_COMPONENTS, type VittklyIconName } from './icons';
 
-export type ButtonIconName =
-  | 'plus'
-  | 'check'
-  | 'calendar'
-  | 'pin'
-  | 'user'
-  | 'list'
-  | 'x'
-  | 'grid'
-  | 'forward'
-  | 'back'
-  | 'mail'
-  | 'users';
+export type ButtonIconName = VittklyIconName;
 
-export const BUTTON_ICON_MAP: Record<
-  ButtonIconName,
-  React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
-> = {
-  plus: Plus,
-  check: Check,
-  calendar: Calendar,
-  pin: MapPin,
-  user: User,
-  list: List,
-  x: X,
-  grid: Grid3x3,
-  forward: ArrowRight,
-  back: ArrowLeft,
-  mail: Mail,
-  users: Users,
-};
+/**
+ * Mapa tipado de íconos disponibles para `<Button icon="..." />`
+ * conectado directamente con los SVG vectoriales del sistema Vittkly.
+ */
+export const BUTTON_ICON_MAP = VITTKLY_ICON_COMPONENTS;

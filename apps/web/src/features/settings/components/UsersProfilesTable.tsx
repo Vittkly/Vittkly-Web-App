@@ -10,6 +10,7 @@ import {
   Check,
   ShieldAlert,
   Send,
+  Eye,
   UserMinus,
   Power,
 } from "lucide-react";
@@ -161,42 +162,42 @@ export function UsersProfilesTable({
     }
   };
 
-  const handleViewOrResendInvitation = async (member: TeamMember) => {
+  const handleViewInvitation = (member: TeamMember) => {
     setActiveMenuId(null);
     setFeedbackError(null);
 
-    if (member.invitationId) {
-      const res = await resendInvitationAction(member.invitationId);
-      if (res.success && res.data) {
-        onOpenInvitationModal(res.data);
-        return;
-      }
-      // Si el usuario solo quiere inspeccionar los datos actuales
-      onOpenInvitationModal({
-        invitationId: member.invitationId,
-        recipientName: member.fullName,
-        recipientEmail: member.email || null,
-        recipientPhone: member.phone,
-        perfilNombre: member.role,
-        accessLabel: member.accessLabel,
-        expiresAt:
-          member.invitationExpiresAt ??
-          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        invitationPath: `/invitado?empresa=${encodeURIComponent(companyName)}`,
-      });
-      return;
-    }
+    if (!member.invitationId) return;
 
     onOpenInvitationModal({
-      invitationId: member.id,
+      invitationId: member.invitationId,
+      tipo: member.invitationType ?? "nueva_cuenta",
       recipientName: member.fullName,
       recipientEmail: member.email || null,
       recipientPhone: member.phone,
+      recipientDocumentMasked: member.docNumberMasked ?? null,
       perfilNombre: member.role,
       accessLabel: member.accessLabel,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      invitationPath: `/invitado?empresa=${encodeURIComponent(companyName)}`,
+      expiresAt:
+        member.invitationExpiresAt ??
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      invitationPath: null,
+      canResend: true,
     });
+  };
+
+  const handleResendInvitation = async (member: TeamMember) => {
+    setActiveMenuId(null);
+    setFeedbackError(null);
+
+    if (!member.invitationId) return;
+
+    const res = await resendInvitationAction(member.invitationId);
+    if (res.success && res.data) {
+      onOpenInvitationModal(res.data);
+      return;
+    }
+
+    setFeedbackError(res.error || "No se pudo reenviar la invitación.");
   };
 
   const handleConfirmAction = async () => {
@@ -606,16 +607,32 @@ export function UsersProfilesTable({
 
                               {activeMenuId === member.id && (
                                 <div className="border-line bg-surface-raised animate-sc-in absolute top-full right-0 z-30 mt-1 w-52 rounded-xl border p-1.5 text-left text-xs shadow-xl">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      void handleViewOrResendInvitation(member)
-                                    }
-                                    className="hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold"
-                                  >
-                                    <Send className="text-primary-ink h-3.5 w-3.5" />
-                                    <span>Ver o reenviar invitación</span>
-                                  </button>
+                                  {member.sourceType === "invitacion" &&
+                                    member.invitationId && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleViewInvitation(member)
+                                          }
+                                          className="hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold"
+                                        >
+                                          <Eye className="text-primary-ink h-3.5 w-3.5" />
+                                          <span>Ver invitación</span>
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            void handleResendInvitation(member)
+                                          }
+                                          className="hover:bg-surface-sunken text-ink flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold"
+                                        >
+                                          <Send className="text-primary-ink h-3.5 w-3.5" />
+                                          <span>Reenviar invitación</span>
+                                        </button>
+                                      </>
+                                    )}
 
                                   {member.sourceType === "membresia" && (
                                     <button

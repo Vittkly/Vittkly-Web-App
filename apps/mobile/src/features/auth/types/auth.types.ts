@@ -1,21 +1,16 @@
-/**
- * Tipos de dominio para el módulo de Autenticación y Acceso (Entregable 1).
- * Alineados con la arquitectura Multi-Tenant de Vittkly SaaS.
- */
+export type AuthStatus =
+  'loading' | 'unauthenticated' | 'logged_in' | 'offline_locked' | 'offline_authenticated';
 
 export type MembershipRole = 'owner' | 'admin' | 'member';
 
-export type AccessScope = 'app' | 'web' | 'both';
+export type AccessScope = 'web' | 'app' | 'both';
 
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
+export type OtpFlowType = 'phone' | 'recovery';
 
-export type BiometricType = 'none' | 'fingerprint' | 'facial' | 'iris';
-
-export type AuthStatus =
-  'loading' | 'unauthenticated' | 'offline_locked' | 'offline_authenticated' | 'logged_in';
+export type BiometricType = 'facial' | 'fingerprint' | 'iris' | 'none';
 
 /**
- * Perfil del usuario autenticado (mapeado de public.profiles).
+ * Perfil del usuario autenticado mapeado desde `public.usuarios` y metadatos de Supabase Auth.
  */
 export interface UserProfile {
   id: string;
@@ -23,32 +18,84 @@ export interface UserProfile {
   phone: string | null;
   firstName: string | null;
   lastName: string | null;
-  fullName: string;
+  fullName: string | null;
   avatarUrl?: string | null;
-  updatedAt?: string;
+  ultimaEmpresaId?: string | null;
 }
 
 /**
- * Organización / Tenant al que pertenece el usuario (public.organizations + public.memberships + mi_contexto()).
+ * Empresa / Membresía móvil activa mapeada desde `mis_accesos()`,
+ * `public.membresias`, `public.empresas`, `public.perfiles` y `public.perfil_permisos`.
  */
 export interface Tenant {
   id: string;
+  membresiaId?: string;
   name: string;
+  razonSocial?: string;
   slug: string;
+  rubro?: string | null;
+  ciudad?: string | null;
   logoUrl?: string | null;
+  brandColor?: string | null;
+  modeloOperacion?: string | null;
   role: MembershipRole;
+  esPropietario?: boolean;
+  perfilId?: string | null;
+  perfilCodigo?: string | null;
+  perfilNombre?: string | null;
   jobTitle?: string | null;
   accessScope: AccessScope;
-  subscriptionStatus?: SubscriptionStatus;
-  stdKey?: string | null;
+  accesoWeb?: boolean;
+  accesoApp?: boolean;
   canViewPrices?: boolean;
   validaServicios?: boolean;
+  canRegisterPayments?: boolean;
+  permisos?: string[];
   activeModules?: string[];
+  stdKey?: string | null;
 }
 
-/**
- * Estado del PIN de seguridad local para operación en campo y modo offline.
- */
+export type EmpresaAcceso = Tenant;
+
+export interface SignInWithPasswordParams {
+  email: string;
+  password: string;
+}
+
+export interface SignInWithOtpParams {
+  phone: string;
+}
+
+export interface VerifyOtpParams {
+  phone: string;
+  token: string;
+}
+
+export interface AuthSessionResult {
+  token: string;
+  user: UserProfile;
+  tenants: Tenant[];
+  hasCloudPin?: boolean;
+  cloudPinHash?: string | null;
+}
+
+export interface LoginResult {
+  user: UserProfile;
+  tenants: Tenant[];
+  hasPin: boolean;
+  activeOrganizationId: string | null;
+  needsTenantSelection: boolean;
+}
+
+export interface SetSessionPayload {
+  token: string;
+  user: UserProfile;
+  tenants?: Tenant[];
+  activeOrganizationId?: string | null;
+}
+
+export type SetSessionParams = SetSessionPayload;
+
 export interface PinState {
   isConfigured: boolean;
   isLocked: boolean;
@@ -56,9 +103,6 @@ export interface PinState {
   lockedUntil: number | null;
 }
 
-/**
- * Estado global de autenticación y conectividad provisto por AuthContext.
- */
 export interface AuthState {
   status: AuthStatus;
   isLoading: boolean;
@@ -75,98 +119,19 @@ export interface AuthState {
   isBiometricEnabled: boolean;
 }
 
-/**
- * Payload para hidratar o establecer una nueva sesión autenticada.
- */
-export interface SetSessionPayload {
-  token: string;
-  user: UserProfile;
-  tenants?: Tenant[];
-  activeOrganizationId?: string | null;
+export interface PinAttemptsRecord {
+  failedAttempts: number;
+  lockedUntil: number | null;
 }
 
-/**
- * Datos iniciales recuperados desde el almacenamiento seguro durante el arranque.
- */
 export interface AuthBootstrapData {
   sessionToken: string | null;
   pinHash: string | null;
   activeOrganizationId: string | null;
-  lastActiveTenantId?: string | null;
+  lastActiveTenantId: string | null;
   user: UserProfile | null;
   tenants: Tenant[];
   isBiometricEnabled: boolean;
   pinFailedAttempts: number;
   pinLockedUntil: number | null;
-}
-
-/**
- * Credenciales de inicio de sesión con correo y contraseña.
- */
-export interface SignInWithPasswordParams {
-  email: string;
-  password: string;
-}
-
-/**
- * Datos para registro de nueva cuenta de usuario (Flujo de 2 pasos).
- */
-export interface SignUpParams {
-  email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string;
-  phone?: string;
-  companyName?: string;
-  businessActivity?: string;
-  city?: string;
-  whatsapp?: string;
-}
-
-/**
- * Parámetros para verificación de código OTP por SMS o WhatsApp.
- */
-export interface VerifyOtpParams {
-  phone: string;
-  token: string;
-}
-
-export type OtpFlowType = 'phone' | 'signup' | 'recovery';
-
-export interface SignUpWithEmailResult {
-  requiresEmailConfirmation: boolean;
-  email: string;
-  session: AuthSessionResult | null;
-}
-
-/**
- * Resultado de sesión autenticada devuelto por authService.
- */
-export interface AuthSessionResult {
-  accessToken: string;
-  refreshToken?: string;
-  user: UserProfile;
-  /** Hash del PIN recuperado de `user_metadata.pin_hash` (nube), si existe. */
-  pinHash?: string | null;
-  /** Indica si el usuario tiene el acceso rápido por PIN habilitado en la nube. */
-  pinEnabled?: boolean;
-}
-
-/**
- * Información de una invitación corporativa validada mediante código VK-XXXX.
- */
-export interface InvitationValidationResult {
-  isValid: boolean;
-  code: string;
-  organizationId: string | null;
-  organizationName: string | null;
-  organizationSlug: string | null;
-  role: MembershipRole;
-  jobTitle: string | null;
-  invitedName?: string | null;
-  invitedEmail: string | null;
-  invitedPhone: string | null;
-  expiresAt: string | null;
-  errorMessage?: string | null;
 }

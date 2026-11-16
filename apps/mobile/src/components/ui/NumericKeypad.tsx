@@ -1,4 +1,3 @@
-import { Delete } from 'lucide-react-native';
 import React from 'react';
 import {
   Platform,
@@ -11,6 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
+import { BackspaceIcon } from '@/components/icons';
 import { useTheme } from '@/theme';
 
 export interface KeypadSlotAction {
@@ -59,7 +59,7 @@ export function NumericKeypad({
   testIDPrefix = 'pin-pad',
   style,
 }: NumericKeypadProps) {
-  const { colors, spacing, radius, typography, fontWeights, opacity } = useTheme();
+  const { colors, spacing, radius, typography, fontWeights, opacity, tabularNums } = useTheme();
 
   const handleDigit = (digit: string) => {
     if (disabled) return;
@@ -96,7 +96,7 @@ export function NumericKeypad({
           },
         ]}
       >
-        <Delete size={ICON_SIZE} color={colors.inkMuted} />
+        <BackspaceIcon size={ICON_SIZE} color={colors.inkMuted} />
       </Pressable>
     );
   };
@@ -127,6 +127,7 @@ export function NumericKeypad({
               <Text
                 style={[
                   typography.title1,
+                  tabularNums,
                   styles.digitText,
                   {
                     color: colors.ink,
@@ -166,6 +167,7 @@ export function NumericKeypad({
           <Text
             style={[
               typography.title1,
+              tabularNums,
               styles.digitText,
               {
                 color: colors.ink,

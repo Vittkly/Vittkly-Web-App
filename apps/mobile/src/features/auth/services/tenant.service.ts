@@ -1,23 +1,15 @@
-import type { InvitationValidationResult, Tenant } from '../types/auth.types';
-import { formatInvitationCode, invitationService } from './invitation.service';
+import type { Tenant } from '../types/auth.types';
 import { sanitizeNetworkError } from './network-error';
 import { tenantRepository } from './tenant.repository';
 
-export { formatInvitationCode, sanitizeNetworkError, tenantRepository, invitationService };
+export { sanitizeNetworkError, tenantRepository };
 
 /**
- * Servicio de Organizaciones y Permisos Multi-Tenant (Fachada unificada).
+ * Servicio de acceso multi-empresa para la app móvil.
+ * Opera sobre el esquema canónico Etapa 0 (`mis_accesos`, `membresias`, `empresas`, `perfiles`).
  */
 export const tenantService = {
-  fetchUserTenants(userId?: string): Promise<Tenant[]> {
+  async fetchUserTenants(userId: string): Promise<Tenant[]> {
     return tenantRepository.fetchUserTenants(userId);
-  },
-
-  validateInvitationCode(rawCode: string): Promise<InvitationValidationResult> {
-    return invitationService.validateInvitationCode(rawCode);
-  },
-
-  redeemInvitationCode(rawCode: string): Promise<InvitationValidationResult> {
-    return invitationService.redeemInvitationCode(rawCode);
   },
 };

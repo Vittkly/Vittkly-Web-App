@@ -1,14 +1,14 @@
 import { router } from 'expo-router';
-import { Check } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import { useTheme } from '@/theme';
+import { CheckIcon } from '@/components/icons';
+import { tokens, useTheme } from '@/theme';
 
-const ICON_CIRCLE_SIZE = 48;
-const CHECK_ICON_SIZE = 24;
+const ICON_CIRCLE_SIZE = tokens.control.lg;
+const CHECK_ICON_SIZE = tokens.spacing.space6;
 
 export function PasswordUpdatedScreen() {
   const { colors, spacing, radius, typography } = useTheme();
@@ -36,7 +36,7 @@ export function PasswordUpdatedScreen() {
           },
         ]}
       >
-        <Check size={CHECK_ICON_SIZE} color={colors.primaryInk} />
+        <CheckIcon size={CHECK_ICON_SIZE} color={colors.primaryInk} />
       </View>
 
       <Text style={[typography.title2, styles.centerText, { color: colors.ink }]}>
@@ -59,7 +59,7 @@ export function PasswordUpdatedScreen() {
         variant="inverse"
         shape="pill"
         block
-        onPress={() => router.replace('/(auth)/login_email')}
+        onPress={() => router.replace('/(auth)/login')}
       >
         Ir a iniciar sesión
       </Button>

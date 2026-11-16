@@ -20,6 +20,7 @@ export interface OtpInputProps {
   onChange?: (code: string) => void;
   onComplete?: (code: string) => void;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 /**
@@ -37,8 +38,9 @@ export function OtpInput({
   onChange,
   onComplete,
   style,
+  testID = 'otp-input',
 }: OtpInputProps) {
-  const { colors, spacing, radius, fontFamilies } = useTheme();
+  const { colors, spacing, radius, fontFamilies, tabularNums } = useTheme();
   const inputRefs = useRef<(TextInputInstance | null)[]>([]);
   const [internalDigits, setInternalDigits] = useState<string[]>(() => {
     const initial = defaultValue.replace(/\D/g, '').slice(0, length).split('');
@@ -96,6 +98,7 @@ export function OtpInput({
 
   return (
     <View
+      testID={testID}
       accessibilityLabel={label}
       style={[
         styles.row,
@@ -113,6 +116,7 @@ export function OtpInput({
             ref={(el) => {
               inputRefs.current[i] = el;
             }}
+            testID={`${testID}-digit-${i}`}
             value={digits[i] ?? ''}
             onChangeText={(txt) => handleChangeText(i, txt)}
             onKeyPress={(e) => handleKeyPress(i, e)}
@@ -127,6 +131,7 @@ export function OtpInput({
             accessibilityLabel={`Dígito ${i + 1}`}
             style={[
               styles.box,
+              tabularNums,
               {
                 borderRadius: radius.md,
                 fontFamily: fontFamilies.bold,

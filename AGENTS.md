@@ -33,7 +33,8 @@ pnpm typecheck       # Ejecuta tsc --noEmit en todos los workspaces
 pnpm test            # Ejecuta vitest en paquetes y web
 pnpm check           # Verificación completa (lint + typecheck + test)
 pnpm build           # Compilación de paquetes y apps
-
+#Validar workspace en cd apps/web
+pnpm exec opennextjs-cloudflare build && pnpm exec wrangler deploy --dry-run --env=staging
 # Base de datos
 pnpm sync:db-types   # Regenera packages/db-types/src/database.types.ts desde Supabase Cloud
 ```

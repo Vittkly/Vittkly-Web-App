@@ -149,13 +149,24 @@ export function ActivarInvitacionView({
               <span>Ya tienes una cuenta registrada en Vittkly</span>
             </div>
             <p className="text-ink-muted text-[11px] leading-relaxed">
-              Detectamos que el correo{" "}
-              <strong className="text-ink font-mono">
-                {invitation.correo}
-              </strong>{" "}
-              ya cuenta con un usuario en la plataforma. Para responder a esta
-              invitación de manera segura, ingresa a tu pantalla de{" "}
-              <strong className="text-ink">Accesos a empresa</strong>.
+              {invitation.correo ? (
+                <>
+                  Detectamos que el correo{" "}
+                  <strong className="text-ink font-mono">
+                    {invitation.correo}
+                  </strong>{" "}
+                  ya cuenta con un usuario en la plataforma. Para responder a
+                  esta invitación de manera segura, ingresa a tu pantalla de{" "}
+                  <strong className="text-ink">Accesos a empresa</strong>.
+                </>
+              ) : (
+                <>
+                  Detectamos que tu documento ya cuenta con un usuario
+                  registrado en la plataforma. Para responder a esta invitación
+                  de manera segura, ingresa a tu pantalla de{" "}
+                  <strong className="text-ink">Accesos a empresa</strong>.
+                </>
+              )}
             </p>
           </div>
 
