@@ -1,9 +1,18 @@
 import "server-only";
 
+import {
+  CANONICAL_MODULES,
+  getPlanModuleCodes,
+  getRequiredPlanBadgeLabel,
+  isTenantAdminRole,
+  normalizeModuleCodesToCanonical,
+  type CanonicalModuleCode,
+  type PlanCode,
+} from "@vittkly/shared";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 
-export type PlanCodigo = "inicia" | "crece" | "empresa";
+export type PlanCodigo = PlanCode;
 
 export interface ModulePermissionDetail {
   code: string;
@@ -20,7 +29,7 @@ export interface EnrichedModule {
   disponible: boolean;
   orden: number;
   permissions: ModulePermissionDetail[];
-  permissionSummary: string; // ej. "Lectura y Edición", "Solo Lectura", "Acceso Total"
+  permissionSummary: string;
 }
 
 export interface DashboardContextResult {
@@ -63,6 +72,9 @@ export interface DashboardContextResult {
     canEditConfig: boolean;
     canManageUsers: boolean;
   };
+  canAccessConfig: boolean;
+  allowedModules: CanonicalModuleCode[];
+  allowedByPlanModules: CanonicalModuleCode[];
   enabledModules: EnrichedModule[];
   planLockedModules: Array<{
     codigo: string;
@@ -88,521 +100,59 @@ export interface DashboardContextResult {
   }>;
 }
 
-const MASTER_MODULES_FALLBACK: Database["public"]["Tables"]["modulos"]["Row"][] =
-  [
-    // Comunes (20)
-    {
-      codigo: "empresa_usuarios",
-      nombre: "Empresa, usuarios y perfiles",
-      grupo: "configuracion",
-      modelo: "comun",
-      etapa: 0,
-      disponible: true,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "clientes",
-      nombre: "Clientes y CRM",
-      grupo: "ventas",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "tarifario",
-      nombre: "Tarifario y servicios",
-      grupo: "configuracion",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 2,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "calendario_trabajos",
-      nombre: "Calendario y Trabajos",
-      grupo: "operacion",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "app_campo",
-      nombre: "App de campo",
-      grupo: "operacion",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "ocurrencias",
-      nombre: "Ocurrencias e incidencias",
-      grupo: "operacion",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 2,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "personal",
-      nombre: "Personal y habilidades",
-      grupo: "equipo",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "tiempo",
-      nombre: "Tiempo y asistencia",
-      grupo: "operacion",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 3,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "inventario",
-      nombre: "Inventario y repuestos",
-      grupo: "operacion",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 4,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "equipos_cliente",
-      nombre: "Equipos del cliente",
-      grupo: "operacion",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 5,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "biblioteca",
-      nombre: "Biblioteca",
-      grupo: "equipo",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 3,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "academia",
-      nombre: "Academia",
-      grupo: "equipo",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 4,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "cobranzas_comprobantes",
-      nombre: "Cobranzas y comprobantes",
-      grupo: "finanzas",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "convenios",
-      nombre: "Convenios y liquidaciones",
-      grupo: "finanzas",
-      modelo: "comun",
-      etapa: 1,
-      disponible: false,
-      orden: 2,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "caja_bancos",
-      nombre: "Caja y bancos",
-      grupo: "finanzas",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 3,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "reportes",
-      nombre: "Reportes y Dashboard",
-      grupo: "reportes",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "configuraciones",
-      nombre: "Configuraciones",
-      grupo: "configuracion",
-      modelo: "comun",
-      etapa: 0,
-      disponible: true,
-      orden: 3,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "cuenta_vittkly",
-      nombre: "Cuenta Vittkly",
-      grupo: "configuracion",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 4,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "panel_plataforma",
-      nombre: "Panel de la plataforma",
-      grupo: "plataforma",
-      modelo: "comun",
-      etapa: 0,
-      disponible: true,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "soporte_comunidad",
-      nombre: "Soporte, Comunidad y Centro de ayuda",
-      grupo: "plataforma",
-      modelo: "comun",
-      etapa: 2,
-      disponible: false,
-      orden: 2,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    // Por visita (4)
-    {
-      codigo: "cotizaciones",
-      nombre: "Cotizaciones",
-      grupo: "ventas",
-      modelo: "visita",
-      etapa: 1,
-      disponible: false,
-      orden: 2,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "post_venta",
-      nombre: "Post venta",
-      grupo: "operacion",
-      modelo: "visita",
-      etapa: 2,
-      disponible: false,
-      orden: 6,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "sitio_web",
-      nombre: "Sitio web y reservas",
-      grupo: "crecimiento",
-      modelo: "visita",
-      etapa: 3,
-      disponible: false,
-      orden: 1,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "marketing",
-      nombre: "Marketing",
-      grupo: "crecimiento",
-      modelo: "visita",
-      etapa: 3,
-      disponible: false,
-      orden: 2,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    // Por contrato (11)
-    {
-      codigo: "sedes_areas",
-      nombre: "Sedes y áreas",
-      grupo: "ventas",
-      modelo: "contrato",
-      etapa: 4,
-      disponible: false,
-      orden: 3,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "contratos",
-      nombre: "Contratos y adendas",
-      grupo: "ventas",
-      modelo: "contrato",
-      etapa: 4,
-      disponible: false,
-      orden: 4,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "puestos_turnos",
-      nombre: "Puestos y turnos",
-      grupo: "operacion",
-      modelo: "contrato",
-      etapa: 4,
-      disponible: false,
-      orden: 7,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "asistencia_sede",
-      nombre: "Asistencia en sede",
-      grupo: "operacion",
-      modelo: "contrato",
-      etapa: 4,
-      disponible: false,
-      orden: 8,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "rutinas",
-      nombre: "Rutinas y planes de trabajo",
-      grupo: "operacion",
-      modelo: "contrato",
-      etapa: 5,
-      disponible: false,
-      orden: 9,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "inspecciones",
-      nombre: "Inspecciones y calidad",
-      grupo: "operacion",
-      modelo: "contrato",
-      etapa: 5,
-      disponible: false,
-      orden: 10,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "pedidos_adicionales",
-      nombre: "Pedidos y adicionales",
-      grupo: "operacion",
-      modelo: "contrato",
-      etapa: 5,
-      disponible: false,
-      orden: 11,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "aprobaciones",
-      nombre: "Aprobaciones",
-      grupo: "operacion",
-      modelo: "contrato",
-      etapa: 5,
-      disponible: false,
-      orden: 12,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "portal_b2b",
-      nombre: "Portal del cliente B2B",
-      grupo: "configuracion",
-      modelo: "contrato",
-      etapa: 5,
-      disponible: false,
-      orden: 5,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "valorizaciones",
-      nombre: "Valorización y conformidad",
-      grupo: "finanzas",
-      modelo: "contrato",
-      etapa: 4,
-      disponible: false,
-      orden: 4,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "inventario_sede_sst",
-      nombre: "Inventario por sede y SST",
-      grupo: "operacion",
-      modelo: "contrato",
-      etapa: 5,
-      disponible: false,
-      orden: 13,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    // Sector público (2)
-    {
-      codigo: "licitaciones",
-      nombre: "Licitaciones",
-      grupo: "ventas",
-      modelo: "publico",
-      etapa: 6,
-      disponible: false,
-      orden: 5,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "contratos_estado",
-      nombre: "Contratos con el Estado",
-      grupo: "ventas",
-      modelo: "publico",
-      etapa: 6,
-      disponible: false,
-      orden: 6,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    // Crecimiento (2)
-    {
-      codigo: "api_integraciones",
-      nombre: "API e integraciones",
-      grupo: "configuracion",
-      modelo: "crecimiento",
-      etapa: 7,
-      disponible: false,
-      orden: 6,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-    {
-      codigo: "multi_pais",
-      nombre: "Multi país",
-      grupo: "configuracion",
-      modelo: "crecimiento",
-      etapa: 7,
-      disponible: false,
-      orden: 7,
-      creado_en: "",
-      creado_por: null,
-      actualizado_en: "",
-      actualizado_por: null,
-    },
-  ];
+const CANONICAL_DB_FALLBACK: Database["public"]["Tables"]["modulos"]["Row"][] =
+  CANONICAL_MODULES.map((m) => ({
+    codigo: m.code,
+    nombre: m.label,
+    grupo:
+      m.process === "root"
+        ? m.code === "reportes"
+          ? "reportes"
+          : "sin_grupo"
+        : m.process,
+    modelo:
+      m.code === "cotizaciones" ||
+      m.code === "post_venta" ||
+      m.code === "marketing" ||
+      m.code === "sitio_web_reservas"
+        ? "visita"
+        : "comun",
+    etapa: m.minPlan === "inicia" ? 1 : m.minPlan === "crece" ? 2 : 3,
+    disponible: !m.isPronto,
+    orden: m.orden,
+    creado_en: "",
+    creado_por: null,
+    actualizado_en: "",
+    actualizado_por: null,
+  }));
+
+function normalizePlanCodigo(raw?: string | null): PlanCodigo {
+  const clean = (raw ?? "").trim().toLowerCase();
+  if (clean === "inicia" || clean === "crece" || clean === "empresa") {
+    return clean;
+  }
+  return "empresa";
+}
+
+function resolveUserAllowedModuleSet(
+  userPermissionsMap: Map<string, { alcance: string | null; desc?: string }>,
+): Set<CanonicalModuleCode> {
+  const rawModuleViewCodes: string[] = [];
+  for (const [permCode, meta] of userPermissionsMap.entries()) {
+    if (
+      permCode.endsWith(".ver") &&
+      permCode !== "precios.ver" &&
+      permCode !== "usuarios.ver" &&
+      permCode !== "auditoria.ver" &&
+      permCode !== "costeo.ver" &&
+      permCode !== "cotizaciones.ver_montos" &&
+      meta.alcance !== "ninguna"
+    ) {
+      rawModuleViewCodes.push(permCode.slice(0, -4));
+    }
+  }
+  return new Set(normalizeModuleCodesToCanonical(rawModuleViewCodes));
+}
 
 export async function getDashboardContext(
   selectedEmpresaId?: string,
@@ -656,7 +206,6 @@ export async function getDashboardContext(
           p_plan_codigo: meta.plan_code || "empresa",
         });
 
-        // Re-consultar membresías
         const recheck = await supabase
           .from("membresias")
           .select(
@@ -688,7 +237,7 @@ export async function getDashboardContext(
     return null;
   }
 
-  // Filtrar las membresías con acceso web (o todas si es admin)
+  // Filtrar membresías con acceso web (mantener respaldo si solo tiene app y no admin)
   const webMemberships = rawMemberships.filter((m) => m.acceso_web);
   const activeMembershipsList =
     webMemberships.length > 0 ? webMemberships : rawMemberships;
@@ -744,8 +293,7 @@ export async function getDashboardContext(
       subPruebaHasta = suscripcion.prueba_hasta || null;
       if (suscripcion.planes) {
         planId = suscripcion.planes.id;
-        activePlanCodigo =
-          (suscripcion.planes.codigo as PlanCodigo) || "empresa";
+        activePlanCodigo = normalizePlanCodigo(suscripcion.planes.codigo);
         planNombre = suscripcion.planes.nombre || "Empresa";
         planUsuarios = suscripcion.planes.usuarios_incluidos || 15;
       }
@@ -754,8 +302,8 @@ export async function getDashboardContext(
     console.warn("[Vittkly Dashboard] Error obteniendo cuenta/plan:", err);
   }
 
-  // 6. Consultar los Módulos Permitidos por el Plan (public.plan_modulos)
-  let allowedByPlanCodes = new Set<string>();
+  // 6. Consultar Módulos Permitidos por el Plan (public.plan_modulos -> fallback matriz 10/16/19)
+  let allowedByPlanSet = new Set<CanonicalModuleCode>();
 
   if (planId) {
     const { data: planModulosRows } = await supabase
@@ -764,37 +312,24 @@ export async function getDashboardContext(
       .eq("plan_id", planId);
 
     if (planModulosRows && planModulosRows.length > 0) {
-      allowedByPlanCodes = new Set(planModulosRows.map((r) => r.modulo_codigo));
+      const normalized = normalizeModuleCodesToCanonical(
+        planModulosRows.map((r) => r.modulo_codigo),
+      );
+      if (normalized.length > 0) {
+        allowedByPlanSet = new Set(normalized);
+      }
     }
   }
 
-  // Fallback si la tabla no devolvió registros (según seed.sql)
-  if (allowedByPlanCodes.size === 0) {
-    const iniciaExcluidos = new Set([
-      "inventario",
-      "equipos_cliente",
-      "biblioteca",
-      "academia",
-      "convenios",
-    ]);
-    MASTER_MODULES_FALLBACK.forEach((m) => {
-      if (m.modelo === "comun" || m.modelo === "visita") {
-        if (activePlanCodigo === "inicia") {
-          if (!iniciaExcluidos.has(m.codigo)) allowedByPlanCodes.add(m.codigo);
-        } else {
-          allowedByPlanCodes.add(m.codigo);
-        }
-      }
-      if (
-        activePlanCodigo === "empresa" &&
-        (m.modelo === "publico" || m.modelo === "crecimiento")
-      ) {
-        allowedByPlanCodes.add(m.codigo);
-      }
-    });
+  if (allowedByPlanSet.size === 0) {
+    allowedByPlanSet = new Set(getPlanModuleCodes(activePlanCodigo));
   }
 
-  // 7. Consultar Perfiles de la Empresa (para asignación o previsualización)
+  const allowedByPlanModules = CANONICAL_MODULES.filter((m) =>
+    allowedByPlanSet.has(m.code),
+  ).map((m) => m.code);
+
+  // 7. Consultar Perfiles de la Empresa (para previsualización admin)
   const { data: empresaPerfiles } = await supabase
     .from("perfiles")
     .select("*")
@@ -803,11 +338,16 @@ export async function getDashboardContext(
   const assignedPerfilRow =
     activeMembership.perfiles as unknown as Database["public"]["Tables"]["perfiles"]["Row"];
 
+  const assignedIsAdmin = isTenantAdminRole(
+    activeMembership.es_propietario,
+    assignedPerfilRow?.codigo,
+  );
+
   let activePerfilRow = assignedPerfilRow;
   let isSimulated = false;
 
-  // Simulación de perfil: solo para administradores reales (evita escalada de privilegios en UI).
-  if (previewPerfilCodigo && assignedPerfilRow?.codigo === "admin") {
+  // Simulación solo permitida para propietario/admin real
+  if (previewPerfilCodigo && assignedIsAdmin) {
     const simulated = (empresaPerfiles || []).find(
       (p) => p.codigo === previewPerfilCodigo,
     );
@@ -817,10 +357,14 @@ export async function getDashboardContext(
     }
   }
 
-  const activePerfilCodigo = activePerfilRow?.codigo || "admin";
-  const isAdmin = activePerfilCodigo === "admin";
+  // Nunca asignar "admin" por defecto cuando codigo es null (perfiles personalizados)
+  const activePerfilCodigo = activePerfilRow?.codigo ?? "";
+  const effectiveIsOwner = isSimulated
+    ? false
+    : activeMembership.es_propietario;
+  const isAdmin = isTenantAdminRole(effectiveIsOwner, activePerfilCodigo);
 
-  // 8. Consultar Permisos del Perfil Activo (public.perfil_permisos + public.permisos)
+  // 8. Consultar Permisos del Perfil Activo (public.perfil_permisos)
   let userPermisosRows: Array<{
     permiso_codigo: string;
     alcance: string | null;
@@ -849,28 +393,30 @@ export async function getDashboardContext(
     });
   });
 
-  // Capacidades globales del perfil
+  // Configuraciones exclusivo para Propietario o Admin ('admin' / 'administrador')
+  const canAccessConfig = isAdmin;
   const canViewPrices = isAdmin || userPermissionsMap.has("precios.ver");
   const canValidateServices =
     isAdmin || userPermissionsMap.has("servicios.validar");
-  const canEditConfig =
-    isAdmin || userPermissionsMap.has("configuracion.editar");
-  const canManageUsers = isAdmin || userPermissionsMap.has("usuarios.editar");
+  const canEditConfig = isAdmin;
+  const canManageUsers = isAdmin;
 
-  // 9. Consultar Catálogo Completo de Módulos (public.modulos)
-  let allModules: Database["public"]["Tables"]["modulos"]["Row"][] = [];
+  // 9. Consultar Catálogo de Módulos en BD para estado `disponible` / orden
   const { data: dbModulos } = await supabase
     .from("modulos")
     .select("*")
     .order("orden", { ascending: true });
 
-  if (dbModulos && dbModulos.length > 0) {
-    allModules = dbModulos;
-  } else {
-    allModules = MASTER_MODULES_FALLBACK;
-  }
+  const dbModuloByCode = new Map(
+    (dbModulos && dbModulos.length > 0 ? dbModulos : CANONICAL_DB_FALLBACK).map(
+      (m) => [m.codigo, m],
+    ),
+  );
 
-  // 10. FILTRADO TRIPLE (Plan + Área/Perfil + Permisos)
+  // 10. Filtrado Estricto: Plan (para todos, incluido Owner/Admin) + Perfil (perfil_permisos)
+  const profileAllowedSet = resolveUserAllowedModuleSet(userPermissionsMap);
+
+  const allowedModules: CanonicalModuleCode[] = [];
   const enabledModules: EnrichedModule[] = [];
   const planLockedModules: Array<{
     codigo: string;
@@ -884,34 +430,29 @@ export async function getDashboardContext(
     grupo: string;
   }> = [];
 
-  for (const m of allModules) {
-    const isAllowedByPlan = allowedByPlanCodes.has(m.codigo);
-    const hasViewPermission =
-      isAdmin || userPermissionsMap.has(`${m.codigo}.ver`);
+  for (const modMeta of CANONICAL_MODULES) {
+    const dbRow = dbModuloByCode.get(modMeta.code);
+    const grupo =
+      modMeta.process === "root"
+        ? modMeta.code === "reportes"
+          ? "reportes"
+          : "sin_grupo"
+        : modMeta.process;
+    const isAllowedByPlan = allowedByPlanSet.has(modMeta.code);
+    const hasViewPermission = isAdmin || profileAllowedSet.has(modMeta.code);
 
     if (isAllowedByPlan && hasViewPermission) {
-      const viewScope = userPermissionsMap.get(`${m.codigo}.ver`)?.alcance;
-      if (!isAdmin && viewScope === "ninguna") {
-        roleRestrictedModules.push({
-          codigo: m.codigo,
-          nombre: m.nombre,
-          grupo: m.grupo,
-        });
-        continue;
-      }
+      allowedModules.push(modMeta.code);
 
-      // Recolectar permisos granulares de este módulo para el perfil
-      const modulePermissions: ModulePermissionDetail[] = [];
+      const modulePermissions: ModulePermissionDetail[] = [
+        {
+          code: `${modMeta.code}.ver`,
+          description: `Entrar a ${modMeta.label}`,
+          scope: isAdmin ? "todas" : null,
+        },
+      ];
 
-      // Permiso de acceso base
-      modulePermissions.push({
-        code: `${m.codigo}.ver`,
-        description: "Entrar y ver módulo",
-        scope: isAdmin ? "todas" : null,
-      });
-
-      // Permisos específicos asociados
-      if (m.codigo === "cotizaciones") {
+      if (modMeta.code === "cotizaciones") {
         if (isAdmin || userPermissionsMap.has("cotizaciones.editar")) {
           modulePermissions.push({
             code: "cotizaciones.editar",
@@ -932,8 +473,8 @@ export async function getDashboardContext(
         }
       }
 
-      if (m.codigo === "calendario_trabajos") {
-        if (canValidateServices) {
+      if (modMeta.code === "calendario" || modMeta.code === "trabajos") {
+        if (canValidateServices && modMeta.code === "trabajos") {
           modulePermissions.push({
             code: "servicios.validar",
             description: "Validar servicios cerrados",
@@ -951,7 +492,7 @@ export async function getDashboardContext(
       }
 
       if (
-        m.codigo === "cobranzas_comprobantes" &&
+        modMeta.code === "cobranzas" &&
         (isAdmin || userPermissionsMap.has("pagos.registrar"))
       ) {
         modulePermissions.push({
@@ -961,40 +502,28 @@ export async function getDashboardContext(
         });
       }
 
-      if (m.codigo === "configuraciones" && canEditConfig) {
+      if (
+        modMeta.code === "rentabilidad" &&
+        (isAdmin || userPermissionsMap.has("costeo.ver"))
+      ) {
         modulePermissions.push({
-          code: "configuracion.editar",
-          description: "Editar datos de empresa",
+          code: "costeo.ver",
+          description: "Ver márgenes y rentabilidad",
           scope: null,
         });
       }
 
-      if (m.codigo === "empresa_usuarios" && canManageUsers) {
+      if (
+        modMeta.code === "reportes" &&
+        (isAdmin || userPermissionsMap.has("datos.exportar"))
+      ) {
         modulePermissions.push({
-          code: "usuarios.editar",
-          description: "Invitar y gestionar personas",
+          code: "datos.exportar",
+          description: "Exportar reportes a Excel",
           scope: null,
         });
       }
 
-      if (m.codigo === "reportes") {
-        if (isAdmin || userPermissionsMap.has("datos.exportar")) {
-          modulePermissions.push({
-            code: "datos.exportar",
-            description: "Exportar reportes a Excel",
-            scope: null,
-          });
-        }
-        if (isAdmin || userPermissionsMap.has("costeo.ver")) {
-          modulePermissions.push({
-            code: "costeo.ver",
-            description: "Ver márgenes y rentabilidad",
-            scope: null,
-          });
-        }
-      }
-
-      // Resumen amigable de permisos
       let summary = "Solo Lectura";
       if (isAdmin) {
         summary = "Control Total (Administrador)";
@@ -1009,34 +538,28 @@ export async function getDashboardContext(
       }
 
       enabledModules.push({
-        codigo: m.codigo,
-        nombre: m.nombre,
-        grupo: m.grupo,
-        modelo: m.modelo,
-        etapa: m.etapa,
-        disponible: m.disponible,
-        orden: m.orden,
+        codigo: modMeta.code,
+        nombre: modMeta.label,
+        grupo,
+        modelo: dbRow?.modelo ?? "comun",
+        etapa: dbRow?.etapa ?? 1,
+        disponible: dbRow ? dbRow.disponible : !modMeta.isPronto,
+        orden: modMeta.orden,
         permissions: modulePermissions,
         permissionSummary: summary,
       });
     } else if (!isAllowedByPlan) {
-      const req =
-        m.modelo === "contrato"
-          ? "Complemento Contratos"
-          : m.modelo === "publico" || m.modelo === "crecimiento"
-            ? "Plan Empresa"
-            : "Plan Crece";
       planLockedModules.push({
-        codigo: m.codigo,
-        nombre: m.nombre,
-        grupo: m.grupo,
-        requiredPlan: req,
+        codigo: modMeta.code,
+        nombre: modMeta.label,
+        grupo,
+        requiredPlan: getRequiredPlanBadgeLabel(modMeta.minPlan),
       });
-    } else if (!hasViewPermission) {
+    } else {
       roleRestrictedModules.push({
-        codigo: m.codigo,
-        nombre: m.nombre,
-        grupo: m.grupo,
+        codigo: modMeta.code,
+        nombre: modMeta.label,
+        grupo,
       });
     }
   }
@@ -1052,15 +575,16 @@ export async function getDashboardContext(
     };
   });
 
-  // Lista de perfiles para la simulación
+  // Lista de perfiles para simulación
   const availableProfilesForPreview = (empresaPerfiles || [])
     .filter(
       (p, index, self) =>
-        index === self.findIndex((t) => t.codigo === p.codigo),
+        index ===
+        self.findIndex((t) => t.codigo === p.codigo && t.nombre === p.nombre),
     )
     .map((p) => ({
       id: p.id,
-      codigo: p.codigo || "miembro",
+      codigo: p.codigo || "personalizado",
       nombre: p.nombre,
       descripcion: p.descripcion,
     }));
@@ -1094,11 +618,11 @@ export async function getDashboardContext(
       pruebaHasta: subPruebaHasta,
     },
     activeProfile: {
-      id: activePerfilRow?.id || "admin",
+      id: activePerfilRow?.id || "",
       codigo: activePerfilCodigo,
-      nombre: activePerfilRow?.nombre || "Administrador",
+      nombre: activePerfilRow?.nombre || "Personalizado",
       descripcion: activePerfilRow?.descripcion || null,
-      esPropietario: activeMembership.es_propietario,
+      esPropietario: effectiveIsOwner,
       accesoWeb: activeMembership.acceso_web,
       isSimulated,
     },
@@ -1108,6 +632,9 @@ export async function getDashboardContext(
       canEditConfig,
       canManageUsers,
     },
+    canAccessConfig,
+    allowedModules,
+    allowedByPlanModules,
     enabledModules,
     planLockedModules,
     roleRestrictedModules,
@@ -1128,12 +655,6 @@ export interface StaffDashboardContextResult {
   enabledModules: EnrichedModule[];
 }
 
-/**
- * Obtiene el contexto del Portal Interno de Trabajadores / Staff del SaaS Vittkly.
- * Verifica en el servidor que el usuario pertenezca a `public.staff_plataforma`
- * (o pase `public.es_staff()`) y retorna la lista de módulos de la base de datos
- * donde el miembro del staff tiene permiso activo de lectura/acceso.
- */
 export async function getStaffDashboardContext(): Promise<StaffDashboardContextResult | null> {
   const supabase = await createServerClient();
 
@@ -1149,7 +670,6 @@ export async function getStaffDashboardContext(): Promise<StaffDashboardContextR
   let isStaff = false;
   let staffRole: "admin" | "soporte" = "admin";
 
-  // 1. Verificar con RPC es_staff
   try {
     const { data: rpcIsStaff } = await supabase.rpc("es_staff");
     if (rpcIsStaff === true) {
@@ -1162,7 +682,6 @@ export async function getStaffDashboardContext(): Promise<StaffDashboardContextR
     );
   }
 
-  // 2. Consultar public.staff_plataforma para determinar el rol exacto ('admin' | 'soporte')
   try {
     const { data: staffRow } = await supabase
       .from("staff_plataforma")
@@ -1186,27 +705,20 @@ export async function getStaffDashboardContext(): Promise<StaffDashboardContextR
     return null;
   }
 
-  // 3. Consultar datos de public.usuarios
   const { data: usuarioRow } = await supabase
     .from("usuarios")
     .select("*")
     .eq("id", authUser.id)
     .maybeSingle();
 
-  // 4. Consultar catálogo de módulos y permisos en BD
-  let allModules: Database["public"]["Tables"]["modulos"]["Row"][] = [];
   const { data: dbModulos } = await supabase
     .from("modulos")
     .select("*")
     .order("orden", { ascending: true });
 
-  if (dbModulos && dbModulos.length > 0) {
-    allModules = dbModulos;
-  } else {
-    allModules = MASTER_MODULES_FALLBACK;
-  }
+  const allModules =
+    dbModulos && dbModulos.length > 0 ? dbModulos : CANONICAL_DB_FALLBACK;
 
-  // Consultar permisos de lectura (.ver) registrados en public.permisos
   const { data: dbPermisos } = await supabase
     .from("permisos")
     .select("codigo, modulo_codigo, descripcion");
@@ -1215,7 +727,6 @@ export async function getStaffDashboardContext(): Promise<StaffDashboardContextR
     (dbPermisos || []).map((p) => p.codigo),
   );
 
-  // Si el usuario de staff también posee membresías o perfil asignado en BD, consultar sus perfil_permisos
   const { data: userMemberships } = await supabase
     .from("membresias")
     .select("perfil_id, activo")
@@ -1240,15 +751,12 @@ export async function getStaffDashboardContext(): Promise<StaffDashboardContextR
   }
 
   const SOPORTE_DEFAULT_MODULES = new Set<string>([
-    "panel_plataforma",
-    "soporte_comunidad",
-    "empresa_usuarios",
+    "dashboard",
+    "calendario",
     "clientes",
-    "calendario_trabajos",
-    "ocurrencias",
+    "trabajos",
     "post_venta",
-    "academia",
-    "biblioteca",
+    "biblioteca_academia",
     "reportes",
   ]);
 

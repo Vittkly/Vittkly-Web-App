@@ -1,12 +1,5 @@
-import React from "react";
-import { ModulePlaceholderCanvas } from "@/features/dashboard/components/ModulePlaceholderCanvas";
+import { redirect } from "next/navigation";
 
 export default function PerfilPage() {
-  return (
-    <ModulePlaceholderCanvas
-      moduleName="Perfil"
-      moduleCode="PERFIL"
-      breadcrumbs={[{ label: "Perfil", isCurrent: true }]}
-    />
-  );
+  redirect("/accesos");
 }

@@ -3,41 +3,74 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Settings } from "lucide-react";
 import {
-  LayoutDashboard,
-  CalendarDays,
-  Briefcase,
-  Users,
-  Settings,
-} from "lucide-react";
+  CANONICAL_MODULES,
+  type CanonicalModuleCode,
+  type ModuleIconKey,
+} from "@vittkly/shared";
+import { DashboardModuleIcon } from "./module-icons";
 
-export interface MobileNavItem {
+export interface WebMobileTabBarProps {
+  allowedModules?: CanonicalModuleCode[];
+  canAccessConfig?: boolean;
+}
+
+interface MobileNavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  iconKey?: ModuleIconKey;
+  isSettings?: boolean;
   matchPrefix?: string;
 }
 
-const MOBILE_NAV_ITEMS: MobileNavItem[] = [
-  {
-    href: "/dashboard",
-    label: "Inicio",
-    icon: LayoutDashboard,
-    matchPrefix: "/dashboard",
-  },
-  { href: "/dashboard/calendario", label: "Calendario", icon: CalendarDays },
-  { href: "/dashboard/trabajos", label: "Trabajos", icon: Briefcase },
-  { href: "/dashboard/clientes", label: "Clientes", icon: Users },
-  {
-    href: "/dashboard/configuraciones",
-    label: "Más",
-    icon: Settings,
-    matchPrefix: "/dashboard/configuraciones",
-  },
+const PREFERRED_MOBILE_ORDER: CanonicalModuleCode[] = [
+  "dashboard",
+  "calendario",
+  "trabajos",
+  "clientes",
 ];
 
-export function WebMobileTabBar() {
+export function WebMobileTabBar({
+  allowedModules = [],
+  canAccessConfig = false,
+}: WebMobileTabBarProps) {
   const pathname = usePathname();
+  const allowedSet = new Set(allowedModules);
+
+  const selectedModules = CANONICAL_MODULES.filter((m) =>
+    allowedSet.has(m.code),
+  ).sort((a, b) => {
+    const idxA = PREFERRED_MOBILE_ORDER.indexOf(a.code);
+    const idxB = PREFERRED_MOBILE_ORDER.indexOf(b.code);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.orden - b.orden;
+  });
+
+  const maxModuleSlots = canAccessConfig ? 4 : 5;
+  const navItems: MobileNavItem[] = selectedModules
+    .slice(0, maxModuleSlots)
+    .map((mod) => ({
+      href: mod.href,
+      label: mod.label,
+      iconKey: mod.iconKey,
+      matchPrefix: mod.code === "dashboard" ? "/dashboard" : mod.href,
+    }));
+
+  if (canAccessConfig) {
+    navItems.push({
+      href: "/dashboard/configuraciones",
+      label: "Config",
+      isSettings: true,
+      matchPrefix: "/dashboard/configuraciones",
+    });
+  }
+
+  if (navItems.length === 0) {
+    return null;
+  }
 
   const isItemActive = (item: MobileNavItem) => {
     if (item.href === "/dashboard") {
@@ -54,8 +87,7 @@ export function WebMobileTabBar() {
       aria-label="Navegación móvil"
       className="border-line bg-surface-raised/95 fixed right-0 bottom-0 left-0 z-40 flex h-16 w-full items-center justify-around border-t pb-[env(safe-area-inset-bottom)] shadow-lg backdrop-blur-lg transition-colors lg:hidden"
     >
-      {MOBILE_NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
+      {navItems.map((item) => {
         const active = isItemActive(item);
 
         return (
@@ -73,9 +105,17 @@ export function WebMobileTabBar() {
                 active ? "bg-primary-soft text-primary-ink" : "text-ink-muted"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              {item.isSettings ? (
+                <Settings className="h-4 w-4" strokeWidth={1.75} />
+              ) : (
+                <DashboardModuleIcon
+                  iconKey={item.iconKey ?? "LayoutGrid"}
+                  className="h-4 w-4"
+                  strokeWidth={1.75}
+                />
+              )}
             </div>
-            <span className="max-w-[58px] truncate text-[10px] leading-none tracking-tight">
+            <span className="max-w-[64px] truncate text-[10px] leading-none tracking-tight">
               {item.label}
             </span>
           </Link>
@@ -84,4 +124,5 @@ export function WebMobileTabBar() {
     </nav>
   );
 }
+
 export default WebMobileTabBar;

@@ -61,7 +61,11 @@ export function UsersProfilesView({
       )}
 
       {activeTab === "perfiles" && (
-        <ProfilesPermissionsTab profiles={bundle.profiles} />
+        <ProfilesPermissionsTab
+          profiles={bundle.profiles}
+          activePlanCode={bundle.activePlanCode}
+          allowedPlanModules={bundle.allowedPlanModules}
+        />
       )}
 
       {activeTab === "actividad" && (

@@ -1,71 +1,47 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  CalendarDays,
-  ChevronDown,
-  Plus,
-  ChevronsUpDown,
-  FileText,
-  UserCheck,
-  PackageCheck,
-  BookOpen,
-  Settings,
-  BarChart3,
-  Users,
-  Briefcase,
-  DollarSign,
-  TrendingUp,
-  Sparkles,
+  BarChart2,
+  Box,
+  Calendar,
   Check,
+  ChevronDown,
+  ChevronsUpDown,
+  FilePlus2,
+  GraduationCap,
+  LayoutGrid,
+  Plus,
+  Settings,
+  Users,
 } from "lucide-react";
+import {
+  CANONICAL_MODULES,
+  CANONICAL_PROCESSES,
+  isTenantAdminRole,
+  normalizeModuleCodesToCanonical,
+  type CanonicalModuleCode,
+  type ProcessKey,
+} from "@vittkly/shared";
 import { VittklyLogo } from "@/components/brand/VittklyLogo";
 import { logoutAction } from "@/features/auth/actions/auth.actions";
 import { selectOrganizationAction } from "@/features/tenants/actions/tenants.actions";
 import type { UserOrganization } from "@/features/tenants/types/tenants.types";
 import type { EnrichedModule } from "../services/modules.service";
+import { DashboardModuleIcon } from "./module-icons";
 
 const SIDEBAR_STORAGE_KEY = "vittkly_sidebar_collapsed";
-
-const GROUP_CHILD_PATHS: Record<string, string[]> = {
-  ve: [
-    "/dashboard/clientes",
-    "/dashboard/cotizaciones",
-    "/dashboard/contratos",
-  ],
-  op: [
-    "/dashboard/inventario",
-    "/dashboard/trabajos",
-    "/dashboard/ocurrencias",
-    "/dashboard/tiempo",
-    "/dashboard/calidad",
-    "/dashboard/postventa",
-  ],
-  fi: [
-    "/dashboard/cobranzas",
-    "/dashboard/comprobantes",
-    "/dashboard/liquidaciones",
-    "/dashboard/valorizaciones",
-    "/dashboard/caja",
-    "/dashboard/rentabilidad",
-  ],
-  eq: [
-    "/dashboard/personal",
-    "/dashboard/pagos-personal",
-    "/dashboard/academia",
-  ],
-  cr: ["/dashboard/marketing", "/dashboard/sitio-web"],
-};
 
 export interface DashboardSidebarProps {
   basePath?: string;
   homePath?: string;
   organizations?: UserOrganization[];
   activeOrganizationId?: string;
+  allowedModules?: CanonicalModuleCode[];
   modules?: EnrichedModule[];
+  canAccessConfig?: boolean;
   portalLabel?: string;
   subtitleLabel?: string;
   user?: { nombre: string; correo: string };
@@ -83,7 +59,9 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
     homePath = "/dashboard",
     organizations = [],
     activeOrganizationId,
+    allowedModules,
     modules,
+    canAccessConfig: explicitCanAccessConfig,
     portalLabel,
     subtitleLabel,
     activeProfile,
@@ -92,13 +70,14 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
   } = props;
   const pathname = usePathname();
 
-  // Por defecto, todos los módulos con submenú inician plegados
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    ve: false,
-    op: false,
-    fi: false,
-    eq: false,
-    cr: false,
+  const [openGroups, setOpenGroups] = useState<
+    Record<Exclude<ProcessKey, "root">, boolean>
+  >({
+    ventas: false,
+    operacion: false,
+    finanzas: false,
+    equipo: false,
+    crecimiento: false,
   });
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(initialCollapsed);
@@ -114,7 +93,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
       window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isCollapsed));
       document.cookie = `${SIDEBAR_STORAGE_KEY}=${String(isCollapsed)}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {
-      // Ignorar errores de acceso a localStorage en modo privado restringido
+      // Ignorar errores en modo privado restringido
     }
   }, [isCollapsed]);
 
@@ -125,27 +104,27 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
     setShowCrearMenu(false);
   };
 
-  const toggleGroup = (key: string) => {
+  const toggleGroup = (key: Exclude<ProcessKey, "root">) => {
     setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const expandAll = () => {
     setOpenGroups({
-      ve: true,
-      op: true,
-      fi: true,
-      eq: true,
-      cr: true,
+      ventas: true,
+      operacion: true,
+      finanzas: true,
+      equipo: true,
+      crecimiento: true,
     });
   };
 
   const collapseAll = () => {
     setOpenGroups({
-      ve: false,
-      op: false,
-      fi: false,
-      eq: false,
-      cr: false,
+      ventas: false,
+      operacion: false,
+      finanzas: false,
+      equipo: false,
+      crecimiento: false,
     });
   };
 
@@ -157,58 +136,67 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
     subtitleLabel ||
     activeProfile?.nombre ||
     activeOrg?.roleName ||
-    "Administrador";
+    "Personalizado";
 
-  const enabledCodes = new Set(modules?.map((m) => m.codigo) ?? []);
-  const hasModule = (code: string) =>
-    !modules ? true : enabledCodes.has(code);
+  // Calcular conjunto exacto de módulos permitidos
+  const allowedSet = useMemo(() => {
+    if (allowedModules) {
+      return new Set<CanonicalModuleCode>(allowedModules);
+    }
+    if (modules) {
+      return new Set<CanonicalModuleCode>(
+        normalizeModuleCodesToCanonical(modules.map((m) => m.codigo)),
+      );
+    }
+    return new Set<CanonicalModuleCode>();
+  }, [allowedModules, modules]);
 
-  const canAccessConfig = Boolean(
-    activeProfile?.esPropietario ||
-    activeOrg?.isOwner ||
-    activeProfile?.codigo === "administrador" ||
-    (modules &&
-      (enabledCodes.has("configuraciones") ||
-        enabledCodes.has("empresa_usuarios"))),
-  );
+  const hasModule = (code: CanonicalModuleCode) => allowedSet.has(code);
 
-  const hasVentas =
-    hasModule("clientes") ||
-    hasModule("cotizaciones") ||
-    hasModule("contratos");
-  const hasOperaciones =
-    hasModule("inventario") ||
-    hasModule("calendario_trabajos") ||
-    hasModule("ocurrencias") ||
-    hasModule("tiempo") ||
-    hasModule("inspecciones") ||
-    hasModule("post_venta");
-  const hasFinanzas =
-    hasModule("cobranzas_comprobantes") ||
-    hasModule("convenios") ||
-    hasModule("valorizaciones") ||
-    hasModule("caja_bancos");
-  const hasEquipo =
-    hasModule("personal") || hasModule("academia") || hasModule("biblioteca");
-  const hasCrecimiento = hasModule("marketing") || hasModule("sitio_web");
+  const canAccessConfig =
+    explicitCanAccessConfig ??
+    isTenantAdminRole(
+      activeProfile?.esPropietario || activeOrg?.isOwner,
+      activeProfile?.codigo,
+    );
+
+  // Construir procesos visibles: únicamente los que tienen >= 1 módulo hijo habilitado
+  const visibleProcessSections = useMemo(() => {
+    return CANONICAL_PROCESSES.map((proc) => ({
+      ...proc,
+      children: CANONICAL_MODULES.filter(
+        (m) => m.process === proc.key && allowedSet.has(m.code),
+      ),
+    })).filter((proc) => proc.children.length > 0);
+  }, [allowedSet]);
+
+  const hasDashboard = hasModule("dashboard");
+  const hasCalendario = hasModule("calendario");
+  const hasReportes = hasModule("reportes");
 
   const hasAnyCrear =
     hasModule("cotizaciones") ||
     hasModule("clientes") ||
     hasModule("inventario") ||
-    hasModule("academia");
+    hasModule("biblioteca_academia");
 
   const isCurrent = (path: string) => {
     if (path === "/dashboard") {
       return pathname === "/dashboard" || pathname === "/dashboard/";
     }
-    return pathname.startsWith(path);
+    return pathname === path || pathname.startsWith(`${path}/`);
   };
 
-  const isGroupActive = (groupKey: string) => {
-    const paths = GROUP_CHILD_PATHS[groupKey] ?? [];
-    return paths.some((path) => pathname.startsWith(path));
+  const isProcessActive = (processKey: Exclude<ProcessKey, "root">) => {
+    const children = CANONICAL_MODULES.filter((m) => m.process === processKey);
+    return children.some((child) => isCurrent(child.href));
   };
+
+  const dashboardMeta = CANONICAL_MODULES.find((m) => m.code === "dashboard")!;
+  const calendarioMeta = CANONICAL_MODULES.find(
+    (m) => m.code === "calendario",
+  )!;
+  const reportesMeta = CANONICAL_MODULES.find((m) => m.code === "reportes")!;
 
   return (
     <>
@@ -281,7 +269,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                 {organizations.length > 0 && (
                   <div className="max-h-48 space-y-0.5 overflow-y-auto">
                     {organizations.map((org) => {
-                      const isCurrent = org.id === activeOrganizationId;
+                      const isCurrentOrg = org.id === activeOrganizationId;
                       return (
                         <form key={org.id} action={selectOrganizationAction}>
                           <input
@@ -293,13 +281,13 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                             type="submit"
                             onClick={() => setShowOrgMenu(false)}
                             className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
-                              isCurrent
+                              isCurrentOrg
                                 ? "bg-primary-soft/60 text-ink font-semibold"
                                 : "text-ink hover:bg-surface-sunken"
                             }`}
                           >
                             <span className="truncate">{org.name}</span>
-                            {isCurrent && (
+                            {isCurrentOrg && (
                               <Check className="text-primary h-3.5 w-3.5 shrink-0" />
                             )}
                           </button>
@@ -325,7 +313,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
             )}
           </div>
 
-          {/* Botón "+ Crear" con Menú Dropdown Rápido (filtrado por módulos) */}
+          {/* Botón "+ Crear" con Menú Dropdown Rápido (filtrado por módulos reales) */}
           {hasAnyCrear && (
             <div className="relative flex justify-center">
               <button
@@ -350,7 +338,10 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                       onClick={() => setShowCrearMenu(false)}
                       className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
                     >
-                      <FileText className="text-primary-ink h-3.5 w-3.5" />
+                      <FilePlus2
+                        className="text-primary-ink h-3.5 w-3.5"
+                        strokeWidth={1.75}
+                      />
                       <span>Cotización</span>
                     </Link>
                   )}
@@ -360,7 +351,10 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                       onClick={() => setShowCrearMenu(false)}
                       className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
                     >
-                      <UserCheck className="text-primary-ink h-3.5 w-3.5" />
+                      <Users
+                        className="text-primary-ink h-3.5 w-3.5"
+                        strokeWidth={1.75}
+                      />
                       <span>Cliente</span>
                     </Link>
                   )}
@@ -370,17 +364,23 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                       onClick={() => setShowCrearMenu(false)}
                       className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
                     >
-                      <PackageCheck className="text-primary-ink h-3.5 w-3.5" />
+                      <Box
+                        className="text-primary-ink h-3.5 w-3.5"
+                        strokeWidth={1.75}
+                      />
                       <span>Movimiento de inventario</span>
                     </Link>
                   )}
-                  {hasModule("academia") && (
+                  {hasModule("biblioteca_academia") && (
                     <Link
                       href="/dashboard/academia"
                       onClick={() => setShowCrearMenu(false)}
                       className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
                     >
-                      <BookOpen className="text-primary-ink h-3.5 w-3.5" />
+                      <GraduationCap
+                        className="text-primary-ink h-3.5 w-3.5"
+                        strokeWidth={1.75}
+                      />
                       <span>Artículo de la Biblioteca</span>
                     </Link>
                   )}
@@ -389,508 +389,186 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
             </div>
           )}
 
-          {/* Acciones Expandir todo / Plegar todo */}
-          <div
-            className={
-              isExpanded ? "flex justify-end gap-1 px-1 pt-0.5" : "hidden"
-            }
-          >
-            <button
-              type="button"
-              onClick={expandAll}
-              className="text-primary-ink cursor-pointer rounded-sm p-1 text-[10px] font-bold hover:underline"
+          {/* Acciones Expandir todo / Plegar todo (solo si hay al menos 1 proceso visible) */}
+          {visibleProcessSections.length > 0 && (
+            <div
+              className={
+                isExpanded ? "flex justify-end gap-1 px-1 pt-0.5" : "hidden"
+              }
             >
-              Expandir todo
-            </button>
-            <span className="text-line-strong text-[10px] select-none">•</span>
-            <button
-              type="button"
-              onClick={collapseAll}
-              className="text-primary-ink cursor-pointer rounded-sm p-1 text-[10px] font-bold hover:underline"
-            >
-              Plegar todo
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={expandAll}
+                className="text-primary-ink cursor-pointer rounded-sm p-1 text-[10px] font-bold hover:underline"
+              >
+                Expandir todo
+              </button>
+              <span className="text-line-strong text-[10px] select-none">
+                •
+              </span>
+              <button
+                type="button"
+                onClick={collapseAll}
+                className="text-primary-ink cursor-pointer rounded-sm p-1 text-[10px] font-bold hover:underline"
+              >
+                Plegar todo
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* 2. Navegación (flex-1 overflow-y-auto overflow-x-hidden) */}
+        {/* 2. Navegación (Procesos contenedores + 19 módulos canónicos filtrados) */}
         <nav
           className="my-2 flex flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto px-0.5 py-1"
           role="navigation"
           aria-label="Secciones"
         >
-          {/* Top: Inicio */}
-          <Link
-            href={homePath}
-            title="Inicio"
-            className={`flex h-9 items-center rounded-lg text-xs font-semibold transition-colors ${
-              isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
-            } ${
-              isCurrent(homePath)
-                ? "bg-primary-soft text-primary-ink font-bold"
-                : "text-ink hover:bg-surface-raised"
-            }`}
-          >
-            <LayoutDashboard className="h-4 w-4 shrink-0" />
-            <span className={isExpanded ? "truncate" : "hidden"}>Inicio</span>
-          </Link>
-
-          {/* Top: Calendario */}
-          {hasModule("calendario_trabajos") && (
+          {/* Raíz superior: Inicio */}
+          {hasDashboard && (
             <Link
-              href="/dashboard/calendario"
-              title="Calendario"
+              href={homePath}
+              title={dashboardMeta.label}
               className={`flex h-9 items-center rounded-lg text-xs font-semibold transition-colors ${
                 isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
               } ${
-                isCurrent("/dashboard/calendario")
+                isCurrent(homePath)
                   ? "bg-primary-soft text-primary-ink font-bold"
                   : "text-ink hover:bg-surface-raised"
               }`}
             >
-              <CalendarDays className="h-4 w-4 shrink-0" />
+              <LayoutGrid className="h-4 w-4 shrink-0" strokeWidth={1.75} />
               <span className={isExpanded ? "truncate" : "hidden"}>
-                Calendario
+                {dashboardMeta.label}
               </span>
             </Link>
           )}
 
-          {/* Grupo: Ventas */}
-          {hasVentas && (
-            <div className="flex flex-col">
-              <button
-                type="button"
-                onClick={() => toggleGroup("ve")}
-                title="Ventas"
-                className={`flex h-9 cursor-pointer items-center rounded-lg text-left text-xs font-bold transition-colors ${
-                  isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
-                } ${
-                  isGroupActive("ve")
-                    ? "bg-primary-soft text-primary-ink"
-                    : openGroups.ve
-                      ? "text-ink hover:bg-surface-raised"
-                      : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                }`}
-              >
-                <TrendingUp className="text-primary-ink h-4 w-4 shrink-0" />
-                <span className={isExpanded ? "flex-1 truncate" : "hidden"}>
-                  Ventas
-                </span>
-                <ChevronDown
-                  className={
-                    isExpanded
-                      ? `h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                          openGroups.ve ? "" : "-rotate-90"
-                        }`
-                      : "hidden"
-                  }
-                />
-              </button>
-              {isExpanded && openGroups.ve && (
-                <div className="border-line animate-sc-in my-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2.5">
-                  {hasModule("clientes") && (
-                    <Link
-                      href="/dashboard/clientes"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/clientes")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Clientes
-                    </Link>
-                  )}
-                  {hasModule("cotizaciones") && (
-                    <Link
-                      href="/dashboard/cotizaciones"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/cotizaciones")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Cotizaciones
-                    </Link>
-                  )}
-                  {hasModule("contratos") && (
-                    <div className="text-ink-muted/70 flex h-7 items-center justify-between px-2 text-xs">
-                      <span>Contratos</span>
-                      <span className="py-0.2 border-line bg-surface-raised text-ink-muted rounded-full border px-1.5 text-[9px] font-bold">
-                        Pronto
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+          {/* Raíz superior: Calendario */}
+          {hasCalendario && (
+            <Link
+              href={calendarioMeta.href}
+              title={calendarioMeta.label}
+              className={`flex h-9 items-center rounded-lg text-xs font-semibold transition-colors ${
+                isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
+              } ${
+                isCurrent(calendarioMeta.href)
+                  ? "bg-primary-soft text-primary-ink font-bold"
+                  : "text-ink hover:bg-surface-raised"
+              }`}
+            >
+              <Calendar className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+              <span className={isExpanded ? "truncate" : "hidden"}>
+                {calendarioMeta.label}
+              </span>
+            </Link>
           )}
 
-          {/* Grupo: Operación */}
-          {hasOperaciones && (
-            <div className="flex flex-col">
-              <button
-                type="button"
-                onClick={() => toggleGroup("op")}
-                title="Operación"
-                className={`flex h-9 cursor-pointer items-center rounded-lg text-left text-xs font-bold transition-colors ${
-                  isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
-                } ${
-                  isGroupActive("op")
-                    ? "bg-primary-soft text-primary-ink"
-                    : openGroups.op
-                      ? "text-ink hover:bg-surface-raised"
-                      : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                }`}
-              >
-                <Briefcase className="text-primary-ink h-4 w-4 shrink-0" />
-                <span className={isExpanded ? "flex-1 truncate" : "hidden"}>
-                  Operación
-                </span>
-                <ChevronDown
-                  className={
-                    isExpanded
-                      ? `h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                          openGroups.op ? "" : "-rotate-90"
-                        }`
-                      : "hidden"
-                  }
-                />
-              </button>
-              {isExpanded && openGroups.op && (
-                <div className="border-line animate-sc-in my-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2.5">
-                  {hasModule("inventario") && (
-                    <Link
-                      href="/dashboard/inventario"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/inventario")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Inventario
-                    </Link>
-                  )}
-                  {hasModule("calendario_trabajos") && (
-                    <Link
-                      href="/dashboard/trabajos"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/trabajos")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Trabajos
-                    </Link>
-                  )}
-                  {hasModule("ocurrencias") && (
-                    <div className="text-ink-muted/70 flex h-7 items-center justify-between px-2 text-xs">
-                      <span>Ocurrencias</span>
-                      <span className="py-0.2 border-line bg-surface-raised text-ink-muted rounded-full border px-1.5 text-[9px] font-bold">
-                        Pronto
-                      </span>
-                    </div>
-                  )}
-                  {hasModule("tiempo") && (
-                    <Link
-                      href="/dashboard/tiempo"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/tiempo")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Tiempo
-                    </Link>
-                  )}
-                  {hasModule("inspecciones") && (
-                    <div className="text-ink-muted/70 flex h-7 items-center justify-between px-2 text-xs">
-                      <span>Calidad</span>
-                      <span className="py-0.2 border-line bg-surface-raised text-ink-muted rounded-full border px-1.5 text-[9px] font-bold">
-                        Pronto
-                      </span>
-                    </div>
-                  )}
-                  {hasModule("post_venta") && (
-                    <Link
-                      href="/dashboard/postventa"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/postventa")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Post venta
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Contenedores de Proceso (ocultos automáticamente si visibleChildren === 0) */}
+          {visibleProcessSections.map((section) => {
+            const isOpen = openGroups[section.key];
+            const active = isProcessActive(section.key);
 
-          {/* Grupo: Finanzas */}
-          {hasFinanzas && (
-            <div className="flex flex-col">
-              <button
-                type="button"
-                onClick={() => toggleGroup("fi")}
-                title="Finanzas"
-                className={`flex h-9 cursor-pointer items-center rounded-lg text-left text-xs font-bold transition-colors ${
-                  isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
-                } ${
-                  isGroupActive("fi")
-                    ? "bg-primary-soft text-primary-ink"
-                    : openGroups.fi
-                      ? "text-ink hover:bg-surface-raised"
-                      : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                }`}
-              >
-                <DollarSign className="text-primary-ink h-4 w-4 shrink-0" />
-                <span className={isExpanded ? "flex-1 truncate" : "hidden"}>
-                  Finanzas
-                </span>
-                <ChevronDown
-                  className={
-                    isExpanded
-                      ? `h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                          openGroups.fi ? "" : "-rotate-90"
-                        }`
-                      : "hidden"
-                  }
-                />
-              </button>
-              {isExpanded && openGroups.fi && (
-                <div className="border-line animate-sc-in my-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2.5">
-                  {hasModule("cobranzas_comprobantes") && (
-                    <Link
-                      href="/dashboard/cobranzas"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/cobranzas")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Cobranzas
-                    </Link>
-                  )}
-                  {hasModule("cobranzas_comprobantes") && (
-                    <Link
-                      href="/dashboard/comprobantes"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/comprobantes")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Comprobantes
-                    </Link>
-                  )}
-                  {hasModule("convenios") && (
-                    <Link
-                      href="/dashboard/liquidaciones"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/liquidaciones")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Liquidaciones A365
-                    </Link>
-                  )}
-                  {hasModule("valorizaciones") && (
-                    <div className="text-ink-muted/70 flex h-7 items-center justify-between px-2 text-xs">
-                      <span>Valorizaciones</span>
-                      <span className="py-0.2 border-line bg-surface-raised text-ink-muted rounded-full border px-1.5 text-[9px] font-bold">
-                        Pronto
-                      </span>
-                    </div>
-                  )}
-                  {hasModule("caja_bancos") && (
-                    <Link
-                      href="/dashboard/caja"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/caja")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Caja y bancos
-                    </Link>
-                  )}
-                  {hasModule("caja_bancos") && (
-                    <Link
-                      href="/dashboard/rentabilidad"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/rentabilidad")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Rentabilidad
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+            return (
+              <div key={section.key} className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(section.key)}
+                  aria-expanded={isOpen}
+                  title={section.label}
+                  className={`flex h-9 cursor-pointer items-center rounded-lg text-left text-xs font-bold transition-colors ${
+                    isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
+                  } ${
+                    active
+                      ? "bg-primary-soft text-primary-ink"
+                      : isOpen
+                        ? "text-ink hover:bg-surface-raised"
+                        : "text-ink-muted hover:text-ink hover:bg-surface-raised"
+                  }`}
+                >
+                  <DashboardModuleIcon
+                    iconKey={section.iconKey}
+                    className="text-primary-ink h-4 w-4 shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  <span className={isExpanded ? "flex-1 truncate" : "hidden"}>
+                    {section.label}
+                  </span>
+                  <ChevronDown
+                    className={
+                      isExpanded
+                        ? `h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+                            isOpen ? "" : "-rotate-90"
+                          }`
+                        : "hidden"
+                    }
+                  />
+                </button>
 
-          {/* Grupo: Equipo */}
-          {hasEquipo && (
-            <div className="flex flex-col">
-              <button
-                type="button"
-                onClick={() => toggleGroup("eq")}
-                title="Equipo"
-                className={`flex h-9 cursor-pointer items-center rounded-lg text-left text-xs font-bold transition-colors ${
-                  isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
-                } ${
-                  isGroupActive("eq")
-                    ? "bg-primary-soft text-primary-ink"
-                    : openGroups.eq
-                      ? "text-ink hover:bg-surface-raised"
-                      : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                }`}
-              >
-                <Users className="text-primary-ink h-4 w-4 shrink-0" />
-                <span className={isExpanded ? "flex-1 truncate" : "hidden"}>
-                  Equipo
-                </span>
-                <ChevronDown
-                  className={
-                    isExpanded
-                      ? `h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                          openGroups.eq ? "" : "-rotate-90"
-                        }`
-                      : "hidden"
-                  }
-                />
-              </button>
-              {isExpanded && openGroups.eq && (
-                <div className="border-line animate-sc-in my-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2.5">
-                  {hasModule("personal") && (
-                    <div className="text-ink-muted/70 flex h-7 items-center justify-between px-2 text-xs">
-                      <span>Personal</span>
-                      <span className="py-0.2 border-line bg-surface-raised text-ink-muted rounded-full border px-1.5 text-[9px] font-bold">
-                        Pronto
-                      </span>
-                    </div>
-                  )}
-                  {hasModule("personal") && (
-                    <Link
-                      href="/dashboard/pagos-personal"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/pagos-personal")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Pagos al personal
-                    </Link>
-                  )}
-                  {(hasModule("academia") || hasModule("biblioteca")) && (
-                    <Link
-                      href="/dashboard/academia"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/academia")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Biblioteca y Academia
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Grupo: Crecimiento */}
-          {hasCrecimiento && (
-            <div className="flex flex-col">
-              <button
-                type="button"
-                onClick={() => toggleGroup("cr")}
-                title="Crecimiento"
-                className={`flex h-9 cursor-pointer items-center rounded-lg text-left text-xs font-bold transition-colors ${
-                  isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
-                } ${
-                  isGroupActive("cr")
-                    ? "bg-primary-soft text-primary-ink"
-                    : openGroups.cr
-                      ? "text-ink hover:bg-surface-raised"
-                      : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                }`}
-              >
-                <Sparkles className="text-primary-ink h-4 w-4 shrink-0" />
-                <span className={isExpanded ? "flex-1 truncate" : "hidden"}>
-                  Crecimiento
-                </span>
-                <ChevronDown
-                  className={
-                    isExpanded
-                      ? `h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                          openGroups.cr ? "" : "-rotate-90"
-                        }`
-                      : "hidden"
-                  }
-                />
-              </button>
-              {isExpanded && openGroups.cr && (
-                <div className="border-line animate-sc-in my-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2.5">
-                  {hasModule("marketing") && (
-                    <Link
-                      href="/dashboard/marketing"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/marketing")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Marketing
-                    </Link>
-                  )}
-                  {hasModule("sitio_web") && (
-                    <Link
-                      href="/dashboard/sitio-web"
-                      className={`flex h-7 items-center rounded-md px-2 text-xs transition-colors ${
-                        isCurrent("/dashboard/sitio-web")
-                          ? "bg-primary-soft text-primary-ink font-bold"
-                          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-                      }`}
-                    >
-                      Sitio web y reservas
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                {isExpanded && isOpen && (
+                  <div className="border-line animate-sc-in my-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2.5">
+                    {section.children.map((mod) => {
+                      const modActive = isCurrent(mod.href);
+                      return (
+                        <Link
+                          key={mod.code}
+                          href={mod.href}
+                          className={`flex h-7 items-center justify-between gap-2 rounded-md px-2 text-xs transition-colors ${
+                            modActive
+                              ? "bg-primary-soft text-primary-ink font-bold"
+                              : "text-ink-muted hover:text-ink hover:bg-surface-raised"
+                          }`}
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <DashboardModuleIcon
+                              iconKey={mod.iconKey}
+                              className="h-3.5 w-3.5 shrink-0"
+                              strokeWidth={1.75}
+                            />
+                            <span className="truncate">{mod.label}</span>
+                          </span>
+                          {mod.isPronto && (
+                            <span className="border-line bg-surface-raised text-ink-muted shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold">
+                              Pronto
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {/* Separador */}
-          {(hasModule("reportes") || canAccessConfig) && (
+          {(hasReportes || canAccessConfig) && (
             <div className="bg-line my-1.5 h-px shrink-0" />
           )}
 
-          {/* Reportes */}
-          {hasModule("reportes") && (
+          {/* Raíz inferior: Reportes */}
+          {hasReportes && (
             <Link
-              href="/dashboard/reportes"
-              title="Reportes"
+              href={reportesMeta.href}
+              title={reportesMeta.label}
               className={`flex h-9 items-center rounded-lg text-xs font-semibold transition-colors ${
                 isExpanded ? "gap-2.5 px-2.5" : "justify-center px-0"
               } ${
-                isCurrent("/dashboard/reportes")
+                isCurrent(reportesMeta.href)
                   ? "bg-primary-soft text-primary-ink font-bold"
                   : "text-ink hover:bg-surface-raised"
               }`}
             >
-              <BarChart3 className="text-ink-muted h-4 w-4 shrink-0" />
+              <BarChart2
+                className="text-ink-muted h-4 w-4 shrink-0"
+                strokeWidth={1.75}
+              />
               <span className={isExpanded ? "truncate" : "hidden"}>
-                Reportes
+                {reportesMeta.label}
               </span>
             </Link>
           )}
 
-          {/* Configuraciones */}
+          {/* Configuraciones (exclusivo para Dueño o Administrador) */}
           {canAccessConfig && (
             <Link
               href="/dashboard/configuraciones"
@@ -903,7 +581,10 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                   : "text-ink hover:bg-surface-raised"
               }`}
             >
-              <Settings className="text-ink-muted h-4 w-4 shrink-0" />
+              <Settings
+                className="text-ink-muted h-4 w-4 shrink-0"
+                strokeWidth={1.75}
+              />
               <span className={isExpanded ? "truncate" : "hidden"}>
                 Configuraciones
               </span>
@@ -913,7 +594,6 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
 
         {/* 3. Footer fijo en la parte inferior (shrink-0 mt-auto) */}
         <div className="side-foot border-line mt-auto flex shrink-0 flex-col gap-2 border-t pt-2.5">
-          {/* 1. Fila de sesión: Perfil: Administrador y Cerrar sesión */}
           <div
             className={
               isExpanded
@@ -935,7 +615,6 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
             </form>
           </div>
 
-          {/* 2. Botón ancho completo con borde sutil: Resumen del grupo */}
           <button
             type="button"
             onClick={() => setShowGrupoModal(true)}
@@ -948,7 +627,6 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
             <span>Resumen del grupo</span>
           </button>
 
-          {/* 3. Marca institucional: Con tecnología vittkly / isotipo vk en modo contraído */}
           <div className="text-ink-muted flex items-center justify-center gap-1.5 py-1 text-[11px] font-semibold">
             <span className={isExpanded ? "inline" : "hidden"}>
               Con tecnología
@@ -960,7 +638,6 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
             )}
           </div>
 
-          {/* 4. Botón de control de estado: « Contraer menú / » Fijar menú / » */}
           <button
             type="button"
             onClick={handleToggleCollapse}
@@ -977,7 +654,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
         </div>
       </aside>
 
-      {/* Modal Resumen del Grupo fuera del <aside> para evitar stacking context trap */}
+      {/* Modal Resumen del Grupo */}
       {showGrupoModal && (
         <div className="animate-sc-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
           <div className="bg-surface-raised border-line shadow-2 relative flex w-full max-w-md flex-col gap-4 rounded-2xl border p-6">
@@ -1026,7 +703,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                       </div>
                     </div>
                     {isAct ? (
-                      <span className="bg-success rounded-full px-2 py-0.5 text-[10px] font-bold text-white">
+                      <span className="bg-primary text-on-primary rounded-full px-2 py-0.5 text-[10px] font-bold">
                         Activa
                       </span>
                     ) : (

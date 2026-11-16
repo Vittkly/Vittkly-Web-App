@@ -1,12 +1,5 @@
-import React from "react";
-import { ModulePlaceholderCanvas } from "@/features/dashboard/components/ModulePlaceholderCanvas";
+import { redirect } from "next/navigation";
 
 export default function AgendaPage() {
-  return (
-    <ModulePlaceholderCanvas
-      moduleName="Agenda"
-      moduleCode="AGENDA"
-      breadcrumbs={[{ label: "Agenda", isCurrent: true }]}
-    />
-  );
+  redirect("/dashboard/calendario");
 }

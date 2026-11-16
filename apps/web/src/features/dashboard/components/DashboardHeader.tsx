@@ -18,6 +18,8 @@ export interface DashboardHeaderProps {
   userRole?: string;
   moduleCode?: string;
   notificationCount?: number;
+  canAccessConfig?: boolean;
+  canAccessAcademy?: boolean;
 }
 
 export function DashboardHeader({
@@ -25,6 +27,8 @@ export function DashboardHeader({
   subtitle = "Resumen del negocio: ventas, servicios, distritos y cobros",
   userName = "Andree",
   userRole = "Administrador",
+  canAccessConfig = true,
+  canAccessAcademy = true,
 }: DashboardHeaderProps) {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAvisosPop, setShowAvisosPop] = useState(false);
@@ -130,25 +134,27 @@ export function DashboardHeader({
             )}
           </div>
 
-          {/* 3. Ícono de perfil / usuario (círculo con candado) */}
+          {/* 3. Ícono de perfil / accesos de usuario */}
           <Link
-            href="/perfil"
+            href="/accesos"
             className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft hover:text-primary-ink relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border shadow-2xs transition-colors"
             title={`Perfil: ${userRole}`}
-            aria-label="Perfil de usuario"
+            aria-label="Accesos y perfil de usuario"
           >
             <ShieldCheck className="h-4 w-4" />
           </Link>
 
-          {/* 4. Ícono de engranaje (configuraciones) */}
-          <Link
-            href="/dashboard/configuraciones"
-            className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft hover:text-primary-ink flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border shadow-2xs transition-colors"
-            title="Configuraciones"
-            aria-label="Configuraciones"
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
+          {/* 4. Ícono de engranaje (configuraciones — solo dueño/admin) */}
+          {canAccessConfig && (
+            <Link
+              href="/dashboard/configuraciones"
+              className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft hover:text-primary-ink flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border shadow-2xs transition-colors"
+              title="Configuraciones"
+              aria-label="Configuraciones"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       </div>
 
@@ -176,16 +182,18 @@ export function DashboardHeader({
               Consulta las guías de uso de tu perfil (<b>{userRole}</b>),
               aprende a configurar tarifarios y resuelve dudas operativas.
             </p>
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/dashboard/academia"
-                onClick={() => setShowHelpModal(false)}
-                className="border-line bg-surface hover:bg-primary-soft hover:border-primary text-ink group flex items-center justify-between rounded-xl border p-3 text-xs font-semibold transition-colors"
-              >
-                <span>Manuales del perfil y Academy</span>
-                <ExternalLink className="text-primary-ink h-3.5 w-3.5" />
-              </Link>
-            </div>
+            {canAccessAcademy && (
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/dashboard/academia"
+                  onClick={() => setShowHelpModal(false)}
+                  className="border-line bg-surface hover:bg-primary-soft hover:border-primary text-ink group flex items-center justify-between rounded-xl border p-3 text-xs font-semibold transition-colors"
+                >
+                  <span>Manuales del perfil y Academy</span>
+                  <ExternalLink className="text-primary-ink h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setShowHelpModal(false)}

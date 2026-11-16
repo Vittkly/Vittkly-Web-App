@@ -2,10 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import type { CanonicalModuleCode } from "@vittkly/shared";
 import { VittklyLogo } from "@/components/brand/VittklyLogo";
 
 export interface TenantDashboardViewProps {
   companyName: string;
+  allowedModules?: CanonicalModuleCode[];
+  canAccessConfig?: boolean;
 }
 
 type PeriodKey = "mes" | "mesAnt" | "trim" | "anio" | "todo" | "custom";
@@ -14,6 +17,7 @@ type ChannelKey = "todos" | "directo" | "a365";
 interface AvisoItem {
   id: number;
   mod: string;
+  moduleCode: CanonicalModuleCode;
   nivel: "rojo" | "ambar" | "info";
   n: number;
   titulo: string;
@@ -26,6 +30,7 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 1,
     mod: "TIEMPO",
+    moduleCode: "tiempo",
     nivel: "rojo",
     n: 6,
     titulo: "6 alerta(s) del equipo en Tiempo",
@@ -37,6 +42,7 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 2,
     mod: "COTIZACIÓN",
+    moduleCode: "cotizaciones",
     nivel: "ambar",
     n: 4,
     titulo: "4 cotizaciones sin respuesta",
@@ -48,6 +54,7 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 3,
     mod: "AGENDA",
+    moduleCode: "trabajos",
     nivel: "ambar",
     n: 2,
     titulo: "2 servicios de hoy pendientes de cierre",
@@ -59,6 +66,7 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 4,
     mod: "AGENDA",
+    moduleCode: "calendario",
     nivel: "ambar",
     n: 2,
     titulo: "2 recordatorios pendientes para mañana",
@@ -70,9 +78,10 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 5,
     mod: "FINANZAS",
+    moduleCode: "liquidaciones",
     nivel: "info",
     n: 1,
-    titulo: "1 liquidación A365 por facturar",
+    titulo: "1 liquidación por facturar",
     detalle:
       "Corte al 15 de abril listo para emitir factura electrónica a Multiasistencia: S/ 1,840.00.",
     href: "/dashboard/liquidaciones",
@@ -81,6 +90,7 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 6,
     mod: "AGENDA",
+    moduleCode: "calendario",
     nivel: "info",
     n: 2,
     titulo: "2 servicios programados para mañana",
@@ -92,6 +102,7 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 7,
     mod: "COBRANZAS",
+    moduleCode: "cobranzas",
     nivel: "ambar",
     n: 3,
     titulo: "3 pagos pendientes por conciliar",
@@ -103,6 +114,7 @@ const AVISOS_ITEMS: AvisoItem[] = [
   {
     id: 8,
     mod: "CLIENTES",
+    moduleCode: "clientes",
     nivel: "info",
     n: 5,
     titulo: "5 clientes nuevos sin clasificar",
@@ -112,7 +124,11 @@ const AVISOS_ITEMS: AvisoItem[] = [
   },
 ];
 
-export function TenantDashboardView({ companyName }: TenantDashboardViewProps) {
+export function TenantDashboardView({
+  companyName,
+  allowedModules,
+  canAccessConfig = true,
+}: TenantDashboardViewProps) {
   const [period, setPeriod] = useState<PeriodKey>("mes");
   const [channel, setChannel] = useState<ChannelKey>("todos");
   const [showTableDetails, setShowTableDetails] = useState(false);
@@ -120,11 +136,20 @@ export function TenantDashboardView({ companyName }: TenantDashboardViewProps) {
   const [doneAvisos, setDoneAvisos] = useState<Record<number, boolean>>({});
   const [showAllAvisos, setShowAllAvisos] = useState(false);
 
+  const allowedSet = allowedModules ? new Set(allowedModules) : null;
+  const filteredAvisos = allowedSet
+    ? AVISOS_ITEMS.filter((av) => allowedSet.has(av.moduleCode))
+    : AVISOS_ITEMS;
+  const canQuotations = !allowedSet || allowedSet.has("cotizaciones");
+  const canReports = !allowedSet || allowedSet.has("reportes");
+
   const toggleAvisoDone = (id: number) => {
     setDoneAvisos((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const visibleAvisos = showAllAvisos ? AVISOS_ITEMS : AVISOS_ITEMS.slice(0, 6);
+  const visibleAvisos = showAllAvisos
+    ? filteredAvisos
+    : filteredAvisos.slice(0, 6);
 
   // Período etiqueta
   const periodDateLabel =
@@ -289,12 +314,14 @@ export function TenantDashboardView({ companyName }: TenantDashboardViewProps) {
                 Logo, WhatsApp, RUC y cuenta bancaria para los documentos.
               </small>
             </div>
-            <Link
-              href="/dashboard/configuraciones/empresa"
-              className="border-line bg-surface-raised hover:bg-surface-sunken text-ink shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors"
-            >
-              Configurar empresa
-            </Link>
+            {canAccessConfig && (
+              <Link
+                href="/dashboard/configuraciones/empresa"
+                className="border-line bg-surface-raised hover:bg-surface-sunken text-ink shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors"
+              >
+                Configurar empresa
+              </Link>
+            )}
           </div>
 
           {/* Paso 2 */}
@@ -310,12 +337,14 @@ export function TenantDashboardView({ companyName }: TenantDashboardViewProps) {
                 Crea tus ítems, precios base y unidades para cotizar rápido.
               </small>
             </div>
-            <Link
-              href="/dashboard/configuraciones/mix-tarifarios"
-              className="border-line bg-surface-raised hover:bg-surface-sunken text-ink shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors"
-            >
-              Ver tarifarios
-            </Link>
+            {canAccessConfig && (
+              <Link
+                href="/dashboard/configuraciones/mix-tarifarios"
+                className="border-line bg-surface-raised hover:bg-surface-sunken text-ink shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors"
+              >
+                Ver tarifarios
+              </Link>
+            )}
           </div>
 
           {/* Paso 3 */}
@@ -331,12 +360,14 @@ export function TenantDashboardView({ companyName }: TenantDashboardViewProps) {
                 Elige un cliente, agrega servicios y envíala por WhatsApp.
               </small>
             </div>
-            <Link
-              href="/dashboard/nueva"
-              className="bg-primary hover:bg-primary-hover text-on-primary shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold shadow-xs transition-colors"
-            >
-              Nueva cotización
-            </Link>
+            {canQuotations && (
+              <Link
+                href="/dashboard/cotizaciones"
+                className="bg-primary hover:bg-primary-hover text-on-primary shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold shadow-xs transition-colors"
+              >
+                Nueva cotización
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -355,12 +386,14 @@ export function TenantDashboardView({ companyName }: TenantDashboardViewProps) {
               con el período anterior. Montos con IGV.
             </p>
           </div>
-          <Link
-            href="/dashboard/reportes"
-            className="border-line bg-surface-sunken hover:bg-surface-raised text-ink inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors sm:self-auto"
-          >
-            <span>📥 Ir a descargar reportes</span>
-          </Link>
+          {canReports && (
+            <Link
+              href="/dashboard/reportes"
+              className="border-line bg-surface-sunken hover:bg-surface-raised text-ink inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors sm:self-auto"
+            >
+              <span>📥 Ir a descargar reportes</span>
+            </Link>
+          )}
         </div>
 
         {/* Fila de Segmentos y Fecha */}

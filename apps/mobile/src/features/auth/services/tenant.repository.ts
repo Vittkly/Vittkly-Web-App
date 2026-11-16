@@ -95,7 +95,7 @@ function resolveAccessScope(accesoWeb: boolean, accesoApp: boolean): AccessScope
 
 function extractActiveModules(permisos: string[]): string[] {
   return permisos
-    .filter((codigo) => codigo.endsWith('.ver') && !codigo.startsWith('cotizaciones.'))
+    .filter((codigo) => codigo.endsWith('.ver') && codigo !== 'cotizaciones.ver_montos')
     .map((codigo) => codigo.slice(0, -4));
 }
 

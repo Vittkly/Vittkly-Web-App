@@ -1811,6 +1811,17 @@ export interface Database {
         };
         Returns: Json;
       };
+      guardar_perfil_empresa: {
+        Args: {
+          p_empresa_id: string;
+          p_profile_id?: string | null;
+          p_nombre?: string | null;
+          p_descripcion?: string | null;
+          p_recomendado_para?: string | null;
+          p_configuracion?: Json;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       [_ in never]: never;

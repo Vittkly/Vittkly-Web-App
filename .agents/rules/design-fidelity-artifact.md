@@ -32,7 +32,7 @@ Cualquier ruta nueva requiere que exista en el artefacto.
 
 ## 4. Navegación (sidebar) — cerrada
 
-Inicio · Calendario · **Ventas** (Clientes, Cotizaciones, Contratos*) · **Operación** (Inventario, Trabajos, Ocurrencias*, Tiempo, Calidad*, Post venta) · **Finanzas** (Cobranzas, Comprobantes, Liquidaciones, Valorizaciones*, Caja y bancos, Rentabilidad) · **Equipo** (Personal*, Pagos al personal, Biblioteca y Academia) · **Crecimiento** (Marketing, Sitio web y reservas) · Reportes · Configuraciones. (*) = badge "Pronto" tal como en el artefacto.
+Inicio · Calendario · **Ventas** (Clientes, Cotizaciones) · **Operación** (Inventario, Trabajos, Tiempo, Post venta) · **Finanzas** (Cobranzas, Comprobantes, Liquidaciones, Caja y bancos, Rentabilidad) · **Equipo** (Personal*, Pagos al personal, Biblioteca y Academia) · **Crecimiento** (Marketing, Sitio web y reservas) · Reportes · Configuraciones (solo dueño/admin). (*) = badge "Pronto" en `Personal`. Los contenedores de proceso solo se muestran si tienen al menos 1 módulo hijo habilitado para el usuario.
 
 Header: saludo + fecha, Ayuda, Avisos (campana), Comunidad, Configuraciones, **+ Nueva cotización**. Footer del sidebar: Perfil / Cerrar sesión, Resumen del grupo, "Con tecnología Vittkly" y control de contraer/fijar menú (el selector de empresa activa reside únicamente en la cabecera del sidebar).
 

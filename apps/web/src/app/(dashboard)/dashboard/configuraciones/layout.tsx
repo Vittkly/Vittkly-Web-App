@@ -1,5 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
+import { getFirstAllowedDashboardPath } from "@vittkly/shared";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 import { getDashboardContext } from "@/features/dashboard/services/modules.service";
 import { DashboardHeader } from "@/features/dashboard/components/DashboardHeader";
@@ -17,19 +18,12 @@ export default async function SettingsLayout({
   const context = await getDashboardContext(active.id);
   if (!context) redirect("/login");
 
-  // Blindaje estricto de seguridad: solo propietario, admin o perfiles con capacidad de configuración
-  const isOwner = Boolean(context.activeProfile.esPropietario);
-  const isAdmin = context.activeProfile.codigo === "administrador";
-  const hasConfigCapability = Boolean(context.globalCapabilities.canEditConfig);
-  const hasConfigModule = context.enabledModules.some(
-    (m) => m.codigo === "configuraciones" || m.codigo === "empresa_usuarios",
-  );
-
-  const canAccessConfig =
-    isOwner || isAdmin || hasConfigCapability || hasConfigModule;
-
-  if (!canAccessConfig) {
-    redirect("/dashboard");
+  // Blindaje estricto: Configuraciones es exclusivo para propietario o administrador
+  if (!context.canAccessConfig) {
+    const firstAllowed =
+      getFirstAllowedDashboardPath(context.allowedModules, false) ??
+      "/dashboard";
+    redirect(firstAllowed);
   }
 
   return (
@@ -41,6 +35,10 @@ export default async function SettingsLayout({
         moduleCode="CFG-00"
         userName={context.user.nombre}
         userRole={context.activeProfile.nombre}
+        canAccessConfig={context.canAccessConfig}
+        canAccessAcademy={context.allowedModules.includes(
+          "biblioteca_academia",
+        )}
       />
 
       {/* Disposición Adaptativa: 

@@ -1,20 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { Lock } from "lucide-react";
 import {
-  LayoutDashboard,
-  FileText,
-  Users,
-  CalendarDays,
-  Briefcase,
-  Clock,
-  DollarSign,
-  HeartHandshake,
-  Package,
-  BookOpen,
-  BarChart3,
-  Settings,
-} from "lucide-react";
+  CANONICAL_MODULE_CODES,
+  getRequiredPlanBadgeLabel,
+  normalizeModuleCodesToCanonical,
+  type CanonicalModuleCode,
+  type PlanCode,
+} from "@vittkly/shared";
+import { DashboardModuleIcon } from "@/features/dashboard/components/module-icons";
 import { saveProfileAction } from "../actions/users-profiles.actions";
 import {
   PROFILE_MODULES_CATALOG,
@@ -24,24 +19,6 @@ import {
   type RestrictionKey,
   type RestrictionScope,
 } from "../types/settings.types";
-
-const MODULE_ICONS: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
-  dashboard: LayoutDashboard,
-  cotizaciones: FileText,
-  clientes: Users,
-  calendario: CalendarDays,
-  trabajos: Briefcase,
-  tiempo: Clock,
-  finanzas: DollarSign,
-  postventa: HeartHandshake,
-  inventario: Package,
-  academia: BookOpen,
-  reportes: BarChart3,
-  configuraciones: Settings,
-};
 
 const BLANK_CONFIGURATION: ProfileConfiguration = {
   modulos: ["calendario", "trabajos"],
@@ -81,6 +58,8 @@ export interface ProfileFormModalProps {
   mode: "create" | "duplicate" | "edit";
   sourceProfile: CompanyProfile | null;
   allProfiles: CompanyProfile[];
+  activePlanCode?: PlanCode;
+  allowedPlanModules?: CanonicalModuleCode[];
 }
 
 export function ProfileFormModal({
@@ -89,10 +68,26 @@ export function ProfileFormModal({
   mode,
   sourceProfile,
   allProfiles,
+  activePlanCode = "empresa",
+  allowedPlanModules = [...CANONICAL_MODULE_CODES],
 }: ProfileFormModalProps) {
-  const initialConfig: ProfileConfiguration = sourceProfile
+  const allowedPlanSet = useMemo(
+    () => new Set<CanonicalModuleCode>(allowedPlanModules),
+    [allowedPlanModules],
+  );
+
+  const sanitizeModulesForPlan = (rawModulos: string[]) =>
+    normalizeModuleCodesToCanonical(rawModulos).filter((code) =>
+      allowedPlanSet.has(code),
+    );
+
+  const rawInitialConfig: ProfileConfiguration = sourceProfile
     ? JSON.parse(JSON.stringify(sourceProfile.configuracion))
     : JSON.parse(JSON.stringify(BLANK_CONFIGURATION));
+  const initialConfig: ProfileConfiguration = {
+    ...rawInitialConfig,
+    modulos: sanitizeModulesForPlan(rawInitialConfig.modulos ?? []),
+  };
 
   const [nombre, setNombre] = useState(
     mode === "edit" && sourceProfile
@@ -119,18 +114,27 @@ export function ProfileFormModal({
   const handleCopyFromChange = (selectedId: string) => {
     setCopyFromId(selectedId);
     if (!selectedId) {
-      setConfig(JSON.parse(JSON.stringify(BLANK_CONFIGURATION)));
+      const blank = JSON.parse(
+        JSON.stringify(BLANK_CONFIGURATION),
+      ) as ProfileConfiguration;
+      blank.modulos = sanitizeModulesForPlan(blank.modulos);
+      setConfig(blank);
       return;
     }
     const found = allProfiles.find((p) => p.id === selectedId);
     if (found) {
-      setConfig(JSON.parse(JSON.stringify(found.configuracion)));
+      const cloned = JSON.parse(
+        JSON.stringify(found.configuracion),
+      ) as ProfileConfiguration;
+      cloned.modulos = sanitizeModulesForPlan(cloned.modulos ?? []);
+      setConfig(cloned);
       if (!descripcion.trim()) setDescripcion(found.descripcion);
       if (!recomendadoPara.trim()) setRecomendadoPara(found.recomendadoPara);
     }
   };
 
-  const toggleModulo = (code: string) => {
+  const toggleModulo = (code: CanonicalModuleCode) => {
+    if (!allowedPlanSet.has(code)) return;
     setConfig((prev) => {
       const exists = prev.modulos.includes(code);
       return {
@@ -157,12 +161,17 @@ export function ProfileFormModal({
     setError(null);
     setIsSaving(true);
 
+    const payloadConfig: ProfileConfiguration = {
+      ...config,
+      modulos: sanitizeModulesForPlan(config.modulos),
+    };
+
     const res = await saveProfileAction({
       profileId: mode === "edit" && sourceProfile ? sourceProfile.id : null,
       nombre: nombre.trim(),
       descripcion: descripcion.trim(),
       recomendadoPara: recomendadoPara.trim(),
-      configuracion: config,
+      configuracion: payloadConfig,
     });
 
     setIsSaving(false);
@@ -281,44 +290,78 @@ export function ProfileFormModal({
             </div>
           </div>
 
-          {/* 2. Módulos que puede ver (12 tarjetas con checkbox, ícono y descripción) */}
+          {/* 2. Módulos que puede ver (19 módulos granulares individuales) */}
           <div className="border-line flex flex-col gap-3 border-t pt-4">
-            <div>
-              <h3 className="text-ink text-sm font-bold">
-                Módulos que puede ver
-              </h3>
-              <p className="text-ink-muted text-[11px]">
-                Selecciona los módulos que aparecerán habilitados en su menú
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-ink text-sm font-bold">
+                  Módulos que puede ver
+                </h3>
+                <p className="text-ink-muted text-[11px]">
+                  Selecciona individualmente los módulos habilitados. Los
+                  procesos del menú lateral se mostrarán automáticamente según
+                  tus selecciones.
+                </p>
+              </div>
+              <span className="border-line bg-surface-sunken text-ink-muted rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase">
+                Plan {activePlanCode} · {allowedPlanModules.length}/19
+                disponibles
+              </span>
             </div>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {PROFILE_MODULES_CATALOG.map((mod) => {
-                const checked = config.modulos.includes(mod.code);
-                const Icon = MODULE_ICONS[mod.code] || LayoutDashboard;
+                const isPlanAllowed = allowedPlanSet.has(mod.code);
+                const checked =
+                  isPlanAllowed && config.modulos.includes(mod.code);
+                const planBadge = !isPlanAllowed
+                  ? getRequiredPlanBadgeLabel(mod.minPlan)
+                  : null;
+
                 return (
                   <label
                     key={mod.code}
-                    className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 transition-colors select-none ${
-                      checked
-                        ? "border-primary bg-primary-soft/40 text-ink"
-                        : "border-line bg-surface-sunken/50 text-ink-muted hover:text-ink"
+                    aria-disabled={!isPlanAllowed}
+                    className={`flex items-start gap-2.5 rounded-xl border p-3 transition-colors select-none ${
+                      !isPlanAllowed
+                        ? "border-line bg-surface-sunken/35 text-ink-muted cursor-not-allowed opacity-65"
+                        : checked
+                          ? "border-primary bg-primary-soft/40 text-ink cursor-pointer"
+                          : "border-line bg-surface-sunken/50 text-ink-muted hover:text-ink cursor-pointer"
                     }`}
                   >
                     <input
                       type="checkbox"
+                      disabled={!isPlanAllowed}
                       checked={checked}
                       onChange={() => toggleModulo(mod.code)}
-                      className="text-primary focus:ring-primary mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded"
+                      className="text-primary focus:ring-primary mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded disabled:cursor-not-allowed"
                     />
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5 font-bold">
-                        <Icon className="text-primary-ink h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{mod.label}</span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex min-w-0 items-center gap-1.5 font-bold">
+                          <DashboardModuleIcon
+                            iconKey={mod.iconKey}
+                            className="text-primary-ink h-3.5 w-3.5 shrink-0"
+                            strokeWidth={1.75}
+                          />
+                          <span className="truncate">{mod.label}</span>
+                        </div>
+                        <span className="border-line bg-surface-raised text-ink-muted shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-semibold">
+                          {mod.processLabel}
+                        </span>
                       </div>
+
                       <span className="text-ink-muted text-[10px] leading-snug">
                         {mod.description}
                       </span>
+
+                      {planBadge && (
+                        <span className="border-line bg-surface-raised text-ink-muted mt-0.5 inline-flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold">
+                          <Lock className="h-2.5 w-2.5 shrink-0" />
+                          <span>{planBadge}</span>
+                        </span>
+                      )}
                     </div>
                   </label>
                 );

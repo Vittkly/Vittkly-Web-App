@@ -1,24 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import { Plus, Copy, Edit2, Trash2 } from "lucide-react";
 import {
-  Plus,
-  Copy,
-  Edit2,
-  Trash2,
-  LayoutDashboard,
-  FileText,
-  Users,
-  CalendarDays,
-  Briefcase,
-  Clock,
-  DollarSign,
-  HeartHandshake,
-  Package,
-  BookOpen,
-  BarChart3,
-  Settings,
-} from "lucide-react";
+  CANONICAL_MODULE_CODES,
+  type CanonicalModuleCode,
+  type PlanCode,
+} from "@vittkly/shared";
+import { DashboardModuleIcon } from "@/features/dashboard/components/module-icons";
 import { deleteProfileAction } from "../actions/users-profiles.actions";
 import {
   PROFILE_MODULES_CATALOG,
@@ -28,30 +17,16 @@ import {
 } from "../types/settings.types";
 import { ProfileFormModal } from "./ProfileFormModal";
 
-const MODULE_ICONS: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
-  dashboard: LayoutDashboard,
-  cotizaciones: FileText,
-  clientes: Users,
-  calendario: CalendarDays,
-  trabajos: Briefcase,
-  tiempo: Clock,
-  finanzas: DollarSign,
-  postventa: HeartHandshake,
-  inventario: Package,
-  academia: BookOpen,
-  reportes: BarChart3,
-  configuraciones: Settings,
-};
-
 export interface ProfilesPermissionsTabProps {
   profiles: CompanyProfile[];
+  activePlanCode?: PlanCode;
+  allowedPlanModules?: CanonicalModuleCode[];
 }
 
 export function ProfilesPermissionsTab({
   profiles,
+  activePlanCode = "empresa",
+  allowedPlanModules = [...CANONICAL_MODULE_CODES],
 }: ProfilesPermissionsTabProps) {
   const [modalState, setModalState] = useState<{
     mode: "create" | "duplicate" | "edit";
@@ -79,7 +54,10 @@ export function ProfilesPermissionsTab({
   const renderScopeCell = (scope: RestrictionScope) => {
     if (scope === "todas") {
       return (
-        <span className="text-kleanly font-mono text-sm font-bold" title="Todo">
+        <span
+          className="text-primary-ink font-mono text-sm font-bold"
+          title="Todo"
+        >
           ✓
         </span>
       );
@@ -146,8 +124,10 @@ export function ProfilesPermissionsTab({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {profiles.map((profile) => {
             const cfg = profile.configuracion;
+            const allowedPlanSet = new Set(allowedPlanModules);
             const isFullAccess =
-              cfg.modulos.length >= PROFILE_MODULES_CATALOG.length;
+              allowedPlanModules.length > 0 &&
+              allowedPlanModules.every((code) => cfg.modulos.includes(code));
 
             // Pills de capacidades activas en azul/cian
             const capabilityPills: string[] = [];
@@ -210,22 +190,25 @@ export function ProfilesPermissionsTab({
                     </p>
                   </div>
 
-                  {/* Badges con íconos de módulos habilitados */}
+                  {/* Badges con íconos de módulos individuales habilitados (sin procesos contenedores) */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {PROFILE_MODULES_CATALOG.filter((m) =>
-                      cfg.modulos.includes(m.code),
-                    ).map((m) => {
-                      const Icon = MODULE_ICONS[m.code] || LayoutDashboard;
-                      return (
-                        <span
-                          key={m.code}
-                          className="border-line bg-surface-raised text-ink inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-semibold"
-                        >
-                          <Icon className="text-primary-ink h-3 w-3 shrink-0" />
-                          <span>{m.label}</span>
-                        </span>
-                      );
-                    })}
+                    {PROFILE_MODULES_CATALOG.filter(
+                      (m) =>
+                        cfg.modulos.includes(m.code) &&
+                        allowedPlanSet.has(m.code),
+                    ).map((m) => (
+                      <span
+                        key={m.code}
+                        className="border-line bg-surface-raised text-ink inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-semibold"
+                      >
+                        <DashboardModuleIcon
+                          iconKey={m.iconKey}
+                          className="text-primary-ink h-3 w-3 shrink-0"
+                          strokeWidth={1.75}
+                        />
+                        <span>{m.label}</span>
+                      </span>
+                    ))}
                   </div>
 
                   {/* Pills de capacidades (azul/cian) y restricciones (ámbar) */}
@@ -449,6 +432,8 @@ export function ProfilesPermissionsTab({
           mode={modalState.mode}
           sourceProfile={modalState.sourceProfile}
           allProfiles={profiles}
+          activePlanCode={activePlanCode}
+          allowedPlanModules={allowedPlanModules}
         />
       )}
     </div>

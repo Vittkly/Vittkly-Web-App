@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   createMemberInvitationSchema,
   isValidE164Phone,
+  isCanonicalModuleCode,
   lookupDocumentInputSchema,
   maskDocumentForDisplay,
   maskEmailAddress,
@@ -14,17 +15,19 @@ import {
   newAccountPersonDetailsSchema,
   normalizeDocumentNumber,
   normalizeDocumentType,
+  normalizeModuleCodesToCanonical,
   normalizePhoneToE164,
 } from "@vittkly/shared";
 import { createClient } from "@/lib/supabase/server";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
-import type { Database, Json } from "@vittkly/db-types";
+import type { Database } from "@vittkly/db-types";
 import { sendInvitationEmail } from "../services/invitation-mailer";
 import {
   createCompanyInvitationInDb,
   getExistingAccountEmailTargetInDb,
   lookupPersonByDocumentInDb,
   resendCompanyInvitationInDb,
+  saveCompanyProfileInDb,
   type RpcCreatedInvitationResult,
 } from "../services/users-profiles.repository";
 import {
@@ -50,6 +53,7 @@ function generateInvitationToken(): string {
 function revalidateUsersProfiles() {
   revalidatePath("/dashboard/configuraciones/usuarios-perfiles");
   revalidatePath("/dashboard/configuraciones");
+  revalidatePath("/dashboard", "layout");
 }
 
 async function dispatchInvitationEmailServerOnly(params: {
@@ -837,12 +841,49 @@ export async function resolveExitRequestAction(input: {
 // ---------------------------------------------------------------------
 // 8. Crear, Duplicar, Editar y Eliminar Perfiles (public.perfiles)
 // ---------------------------------------------------------------------
+const restrictionScopeSchema = z.enum([
+  "todas",
+  "equipo",
+  "propias",
+  "ninguna",
+]);
+
 const saveProfileSchema = z.object({
   profileId: z.string().uuid().nullable().optional(),
-  nombre: z.string().min(2, "El nombre del perfil es obligatorio"),
+  nombre: z.string().trim().min(2, "El nombre del perfil es obligatorio"),
   descripcion: z.string().optional().default(""),
   recomendadoPara: z.string().optional().default(""),
-  configuracion: z.custom<ProfileConfiguration>(),
+  configuracion: z.object({
+    modulos: z.array(z.string()),
+    opciones: z.object({
+      ve_precios_montos: z.boolean(),
+      valida_servicios: z.boolean(),
+      es_personal_campo: z.boolean(),
+    }),
+    restricciones: z.object({
+      ver_montos_cotizaciones: restrictionScopeSchema,
+      editar_cotizaciones: restrictionScopeSchema,
+      eliminar_cotizaciones: restrictionScopeSchema,
+      programar_reprogramar: restrictionScopeSchema,
+      pagos_clientes: restrictionScopeSchema,
+      costeo_margenes: restrictionScopeSchema,
+      cancelar_servicios: restrictionScopeSchema,
+    }),
+    descargar_archivos: z.boolean(),
+    aprueba_solicitudes: z.boolean(),
+    ocultar_datos_cliente: z.object({
+      telefonos: z.boolean(),
+      correos: z.boolean(),
+      documento: z.boolean(),
+      direccion: z.boolean(),
+    }),
+    horario_acceso: z.object({
+      restringido: z.boolean(),
+      inicio: z.string(),
+      fin: z.string(),
+    }),
+    dispositivo_acceso: z.enum(["cualquiera", "solo_web", "solo_app"]),
+  }),
 });
 
 export type SaveProfileInput = z.infer<typeof saveProfileSchema>;
@@ -860,61 +901,29 @@ export async function saveProfileAction(
       };
     }
 
-    const supabase = await createClient();
-    const slugCode = validated.nombre
-      .trim()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "");
-
-    let targetProfileId = validated.profileId ?? null;
-
-    if (targetProfileId) {
-      const { error: updateErr } = await supabase
-        .from("perfiles")
-        .update({
-          nombre: validated.nombre.trim(),
-          descripcion: validated.descripcion.trim() || null,
-          recomendado_para: validated.recomendadoPara.trim() || null,
-          configuracion: validated.configuracion as unknown as Json,
-        })
-        .eq("id", targetProfileId)
-        .eq("empresa_id", active.id);
-
-      if (updateErr) {
-        return {
-          success: false,
-          error: updateErr.message || "No se pudo actualizar el perfil.",
-        };
-      }
-    } else {
-      const { data: inserted, error: insertErr } = await supabase
-        .from("perfiles")
-        .insert({
-          empresa_id: active.id,
-          codigo: `${slugCode}_${Date.now().toString(36).slice(-4)}`,
-          nombre: validated.nombre.trim(),
-          descripcion: validated.descripcion.trim() || null,
-          recomendado_para: validated.recomendadoPara.trim() || null,
-          configuracion: validated.configuracion as unknown as Json,
-          es_base: false,
-          creado_por: userId,
-        })
-        .select("id")
-        .single();
-
-      if (insertErr || !inserted) {
-        return {
-          success: false,
-          error:
-            insertErr?.message ||
-            "No se pudo crear el perfil (verifica que el nombre no esté repetido).",
-        };
-      }
-      targetProfileId = inserted.id;
+    const invalidModules = validated.configuracion.modulos.filter(
+      (code) => !isCanonicalModuleCode(code),
+    );
+    if (invalidModules.length > 0) {
+      return {
+        success: false,
+        error: `Módulos no permitidos en el catálogo oficial: ${invalidModules.join(", ")}.`,
+      };
     }
+
+    const cleanConfig: ProfileConfiguration = {
+      ...validated.configuracion,
+      modulos: normalizeModuleCodesToCanonical(validated.configuracion.modulos),
+    };
+
+    const targetProfileId = await saveCompanyProfileInDb({
+      empresaId: active.id,
+      profileId: validated.profileId ?? null,
+      nombre: validated.nombre,
+      descripcion: validated.descripcion.trim(),
+      recomendadoPara: validated.recomendadoPara.trim(),
+      configuracion: cleanConfig,
+    });
 
     revalidateUsersProfiles();
     return { success: true, profileId: targetProfileId };
@@ -927,7 +936,10 @@ export async function saveProfileAction(
     }
     return {
       success: false,
-      error: "Ocurrió un error al guardar el perfil.",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error al guardar el perfil.",
     };
   }
 }

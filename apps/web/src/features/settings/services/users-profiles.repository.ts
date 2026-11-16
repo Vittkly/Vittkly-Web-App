@@ -1,11 +1,16 @@
 import "server-only";
 import { cache } from "react";
 import {
+  CANONICAL_MODULE_CODES,
+  getPlanModuleCodes,
   maskDocumentForDisplay,
   maskEmailAddress,
   maskPersonName,
   maskPhoneLocal,
+  normalizeModuleCodesToCanonical,
   type CanonicalDocumentType,
+  type CanonicalModuleCode,
+  type PlanCode,
 } from "@vittkly/shared";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -36,20 +41,7 @@ interface StandardProfilePreset {
   configuracion: ProfileConfiguration;
 }
 
-const ALL_MODULES = [
-  "dashboard",
-  "cotizaciones",
-  "clientes",
-  "calendario",
-  "trabajos",
-  "tiempo",
-  "finanzas",
-  "postventa",
-  "inventario",
-  "academia",
-  "reportes",
-  "configuraciones",
-];
+const ALL_MODULES: CanonicalModuleCode[] = [...CANONICAL_MODULE_CODES];
 
 function buildProfileConfig(
   overrides: Partial<ProfileConfiguration> & {
@@ -57,7 +49,7 @@ function buildProfileConfig(
   },
 ): ProfileConfiguration {
   return {
-    modulos: overrides.modulos ?? ["dashboard", "calendario", "trabajos"],
+    modulos: overrides.modulos ?? [],
     opciones: {
       ve_precios_montos: overrides.opciones?.ve_precios_montos ?? false,
       valida_servicios: overrides.opciones?.valida_servicios ?? false,
@@ -132,11 +124,12 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
         "dashboard",
         "calendario",
         "clientes",
+        "inventario",
         "trabajos",
         "tiempo",
-        "postventa",
-        "inventario",
-        "academia",
+        "post_venta",
+        "personal",
+        "biblioteca_academia",
       ],
       opciones: {
         ve_precios_montos: false,
@@ -164,11 +157,12 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
     recomendadoPara: "Ejecutivos comerciales y asesores de ventas",
     configuracion: buildProfileConfig({
       modulos: [
-        "cotizaciones",
-        "clientes",
         "calendario",
+        "clientes",
+        "cotizaciones",
         "trabajos",
-        "postventa",
+        "post_venta",
+        "biblioteca_academia",
       ],
       opciones: {
         ve_precios_montos: true,
@@ -189,13 +183,23 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
     }),
   },
   {
-    codigo: "coordinador_agenda",
+    codigo: "coordinador",
     nombre: "Coordinador de agenda",
     descripcion:
       "Organiza el calendario, asigna técnicos a visitas y reprograma órdenes de trabajo.",
     recomendadoPara: "Despachadores y coordinadores de programación",
     configuracion: buildProfileConfig({
-      modulos: ["dashboard", "calendario", "clientes", "trabajos", "tiempo"],
+      modulos: [
+        "dashboard",
+        "calendario",
+        "clientes",
+        "inventario",
+        "trabajos",
+        "tiempo",
+        "post_venta",
+        "personal",
+        "biblioteca_academia",
+      ],
       opciones: {
         ve_precios_montos: false,
         valida_servicios: true,
@@ -223,9 +227,14 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
     configuracion: buildProfileConfig({
       modulos: [
         "dashboard",
-        "cotizaciones",
         "clientes",
-        "finanzas",
+        "cotizaciones",
+        "cobranzas",
+        "comprobantes",
+        "liquidaciones",
+        "caja_bancos",
+        "rentabilidad",
+        "pagos_personal",
         "reportes",
       ],
       opciones: {
@@ -247,13 +256,19 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
     }),
   },
   {
-    codigo: "atencion_cliente",
+    codigo: "postventa",
     nombre: "Atención al cliente",
     descripcion:
       "Atiende consultas, gestiona post venta, garantías y seguimiento de satisfacción.",
     recomendadoPara: "Mesa de ayuda, recepción y post venta",
     configuracion: buildProfileConfig({
-      modulos: ["clientes", "calendario", "trabajos", "postventa"],
+      modulos: [
+        "calendario",
+        "clientes",
+        "trabajos",
+        "post_venta",
+        "biblioteca_academia",
+      ],
       opciones: {
         ve_precios_montos: false,
         valida_servicios: false,
@@ -273,7 +288,7 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
     }),
   },
   {
-    codigo: "analista_gerencia",
+    codigo: "analista",
     nombre: "Analista / Gerencia",
     descripcion:
       "Consulta indicadores, márgenes, reportes ejecutivos y desempeño operativo en modo lectura.",
@@ -281,12 +296,17 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
     configuracion: buildProfileConfig({
       modulos: [
         "dashboard",
-        "cotizaciones",
-        "clientes",
         "calendario",
+        "clientes",
+        "cotizaciones",
+        "inventario",
         "trabajos",
         "tiempo",
-        "finanzas",
+        "cobranzas",
+        "comprobantes",
+        "liquidaciones",
+        "caja_bancos",
+        "rentabilidad",
         "reportes",
       ],
       opciones: {
@@ -314,7 +334,13 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
       "Solo ve sus trabajos asignados, marcaciones de tiempo y hojas de servicio en la app móvil.",
     recomendadoPara: "Técnicos de campo y operarios en ruta",
     configuracion: buildProfileConfig({
-      modulos: ["calendario", "trabajos", "tiempo", "academia"],
+      modulos: [
+        "calendario",
+        "inventario",
+        "trabajos",
+        "tiempo",
+        "biblioteca_academia",
+      ],
       opciones: {
         ve_precios_montos: false,
         valida_servicios: false,
@@ -349,11 +375,13 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
     configuracion: buildProfileConfig({
       modulos: [
         "dashboard",
-        "cotizaciones",
-        "clientes",
         "calendario",
+        "clientes",
+        "cotizaciones",
         "trabajos",
-        "postventa",
+        "post_venta",
+        "marketing",
+        "sitio_web_reservas",
         "reportes",
       ],
       opciones: {
@@ -376,6 +404,14 @@ export const STANDARD_PROFILE_PRESETS: StandardProfilePreset[] = [
   },
 ];
 
+const NON_MODULE_VIEW_PERMS = new Set([
+  "precios.ver",
+  "usuarios.ver",
+  "auditoria.ver",
+  "costeo.ver",
+  "cotizaciones.ver_montos",
+]);
+
 function normalizeProfileConfiguration(
   rawConfig: unknown,
   codigo: string | null,
@@ -386,21 +422,39 @@ function normalizeProfileConfiguration(
   recomendadoDefault: string;
   configuracion: ProfileConfiguration;
 } {
-  const preset =
-    STANDARD_PROFILE_PRESETS.find(
-      (p) =>
-        (codigo && p.codigo.toLowerCase() === codigo.toLowerCase()) ||
-        p.nombre.toLowerCase() === nombre.toLowerCase(),
-    ) ?? STANDARD_PROFILE_PRESETS[2];
+  const preset = STANDARD_PROFILE_PRESETS.find(
+    (p) =>
+      (codigo && p.codigo.toLowerCase() === codigo.toLowerCase()) ||
+      p.nombre.toLowerCase() === nombre.toLowerCase(),
+  );
 
-  const base = preset.configuracion;
+  const base = preset?.configuracion ?? buildProfileConfig({ modulos: [] });
   const parsed =
     rawConfig && typeof rawConfig === "object" && !Array.isArray(rawConfig)
       ? (rawConfig as Partial<ProfileConfiguration>)
       : {};
 
+  // Extraer módulos reales desde perfil_permisos (<modulo>.ver) si existen
+  const permModuleCodes = permisosRows
+    .filter(
+      (pp) =>
+        pp.permiso_codigo.endsWith(".ver") &&
+        !NON_MODULE_VIEW_PERMS.has(pp.permiso_codigo) &&
+        pp.alcance !== "ninguna",
+    )
+    .map((pp) => pp.permiso_codigo.slice(0, -4));
+
+  let resolvedModulos: CanonicalModuleCode[];
+  if (permModuleCodes.length > 0) {
+    resolvedModulos = normalizeModuleCodesToCanonical(permModuleCodes);
+  } else if (Array.isArray(parsed.modulos)) {
+    resolvedModulos = normalizeModuleCodesToCanonical(parsed.modulos);
+  } else {
+    resolvedModulos = normalizeModuleCodesToCanonical(base.modulos);
+  }
+
   const merged = buildProfileConfig({
-    modulos: Array.isArray(parsed.modulos) ? parsed.modulos : base.modulos,
+    modulos: resolvedModulos,
     opciones: {
       ve_precios_montos:
         parsed.opciones?.ve_precios_montos ?? base.opciones.ve_precios_montos,
@@ -426,10 +480,16 @@ function normalizeProfileConfiguration(
     dispositivo_acceso: parsed.dispositivo_acceso ?? base.dispositivo_acceso,
   });
 
-  // Si existen filas en perfil_permisos con alcance explícito, sincronizarlas
+  // Sincronizar capacidades y alcances explícitos desde perfil_permisos
   for (const pp of permisosRows) {
     const scope = (pp.alcance as RestrictionScope | null) ?? "todas";
-    if (
+    if (pp.permiso_codigo === "precios.ver") {
+      merged.opciones.ve_precios_montos = true;
+    } else if (pp.permiso_codigo === "servicios.validar") {
+      merged.opciones.valida_servicios = true;
+    } else if (pp.permiso_codigo === "datos.exportar") {
+      merged.descargar_archivos = true;
+    } else if (
       pp.permiso_codigo === "cotizaciones.ver_montos" ||
       pp.permiso_codigo === "ver_montos_cotizaciones"
     ) {
@@ -445,16 +505,19 @@ function normalizeProfileConfiguration(
     ) {
       merged.restricciones.eliminar_cotizaciones = scope;
     } else if (
+      pp.permiso_codigo === "programacion.editar" ||
       pp.permiso_codigo === "agenda.programar" ||
       pp.permiso_codigo === "programar_reprogramar"
     ) {
       merged.restricciones.programar_reprogramar = scope;
     } else if (
+      pp.permiso_codigo === "pagos.registrar" ||
       pp.permiso_codigo === "cobranzas.ver" ||
       pp.permiso_codigo === "pagos_clientes"
     ) {
       merged.restricciones.pagos_clientes = scope;
     } else if (
+      pp.permiso_codigo === "costeo.ver" ||
       pp.permiso_codigo === "rentabilidad.ver" ||
       pp.permiso_codigo === "costeo_margenes"
     ) {
@@ -468,8 +531,9 @@ function normalizeProfileConfiguration(
   }
 
   return {
-    descripcionDefault: preset.descripcion,
-    recomendadoDefault: preset.recomendadoPara,
+    descripcionDefault:
+      preset?.descripcion ?? "Perfil personalizado de acceso en la empresa.",
+    recomendadoDefault: preset?.recomendadoPara ?? "Uso personalizado",
     configuracion: merged,
   };
 }
@@ -580,6 +644,55 @@ export const getUsersProfilesBundle = cache(
     } = await supabase.auth.getUser();
 
     const currentUserId = currentUser?.id ?? "";
+
+    // 0. Resolver plan activo de la empresa y módulos disponibles según plan_modulos
+    let activePlanCode: PlanCode = "empresa";
+    let allowedPlanModules: CanonicalModuleCode[] =
+      getPlanModuleCodes("empresa");
+
+    const { data: empresaRow } = await supabase
+      .from("empresas")
+      .select("cuenta_id")
+      .eq("id", empresaId)
+      .maybeSingle();
+
+    if (empresaRow?.cuenta_id) {
+      const { data: subRow } = await supabase
+        .from("suscripciones")
+        .select("plan_id, planes(codigo)")
+        .eq("cuenta_id", empresaRow.cuenta_id)
+        .order("creado_en", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const planRel = subRow?.planes as
+        { codigo?: string | null } | null | undefined;
+      const rawPlanCode = (planRel?.codigo ?? "").trim().toLowerCase();
+      if (
+        rawPlanCode === "inicia" ||
+        rawPlanCode === "crece" ||
+        rawPlanCode === "empresa"
+      ) {
+        activePlanCode = rawPlanCode;
+      }
+
+      if (subRow?.plan_id) {
+        const { data: planModRows } = await supabase
+          .from("plan_modulos")
+          .select("modulo_codigo")
+          .eq("plan_id", subRow.plan_id);
+
+        const normalizedFromDb = normalizeModuleCodesToCanonical(
+          (planModRows ?? []).map((r) => r.modulo_codigo),
+        );
+        allowedPlanModules =
+          normalizedFromDb.length > 0
+            ? normalizedFromDb
+            : getPlanModuleCodes(activePlanCode);
+      } else {
+        allowedPlanModules = getPlanModuleCodes(activePlanCode);
+      }
+    }
 
     // 1. Consultar perfiles exclusivamente de la empresa activa (empresa_id = empresaId)
     const { data: rawProfiles } = await supabase
@@ -1052,9 +1165,37 @@ export const getUsersProfilesBundle = cache(
       invitations,
       exitRequests,
       auditLogs,
+      activePlanCode,
+      allowedPlanModules,
     };
   },
 );
+
+export async function saveCompanyProfileInDb(input: {
+  empresaId: string;
+  profileId?: string | null;
+  nombre: string;
+  descripcion: string;
+  recomendadoPara: string;
+  configuracion: ProfileConfiguration;
+}): Promise<string> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("guardar_perfil_empresa", {
+    p_empresa_id: input.empresaId,
+    p_profile_id: input.profileId ?? null,
+    p_nombre: input.nombre,
+    p_descripcion: input.descripcion || null,
+    p_recomendado_para: input.recomendadoPara || null,
+    p_configuracion:
+      input.configuracion as unknown as import("@vittkly/db-types").Json,
+  });
+
+  if (error || !data) {
+    throw new Error(error?.message || "No se pudo guardar el perfil.");
+  }
+
+  return data;
+}
 
 export const getTeamMembers = cache(
   async (empresaId: string): Promise<TeamMember[]> => {

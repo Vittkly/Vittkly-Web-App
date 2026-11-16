@@ -1,4 +1,11 @@
-import { maskDocumentForDisplay } from "@vittkly/shared";
+import {
+  CANONICAL_MODULES,
+  maskDocumentForDisplay,
+  type CanonicalModuleCode,
+  type ModuleIconKey,
+  type PlanCode,
+  type ProcessKey,
+} from "@vittkly/shared";
 
 export type MemberStatus = "active" | "pending" | "suspended";
 
@@ -191,76 +198,32 @@ export interface UsersProfilesBundle {
   invitations: InvitationRecord[];
   exitRequests: ExitRequestRecord[];
   auditLogs: AuditLogEntry[];
+  activePlanCode: PlanCode;
+  allowedPlanModules: CanonicalModuleCode[];
 }
 
 export interface ProfileModuleCatalogItem {
-  code: string;
+  code: CanonicalModuleCode;
   label: string;
   description: string;
+  process: ProcessKey;
+  processLabel: string;
+  iconKey: ModuleIconKey;
+  minPlan: PlanCode;
+  isPronto?: boolean;
 }
 
-export const PROFILE_MODULES_CATALOG: ProfileModuleCatalogItem[] = [
-  {
-    code: "dashboard",
-    label: "Dashboard",
-    description: "Resumen general, indicadores del día y alertas operativas.",
-  },
-  {
-    code: "cotizaciones",
-    label: "Cotización",
-    description: "Propuestas comerciales, plantillas y seguimiento de envíos.",
-  },
-  {
-    code: "clientes",
-    label: "CRM & Clientes",
-    description: "Directorio de clientes, sedes, contactos e historial.",
-  },
-  {
-    code: "calendario",
-    label: "Calendario",
-    description: "Programación de visitas, turnos y disponibilidad de equipos.",
-  },
-  {
-    code: "trabajos",
-    label: "Trabajos",
-    description: "Órdenes de trabajo, ejecución en campo y actas de cierre.",
-  },
-  {
-    code: "tiempo",
-    label: "Tiempo",
-    description: "Marcaciones de asistencia, rutas y control de horas.",
-  },
-  {
-    code: "finanzas",
-    label: "Finanzas",
-    description: "Cobranzas, comprobantes, liquidaciones, caja y rentabilidad.",
-  },
-  {
-    code: "postventa",
-    label: "Post venta",
-    description: "Garantías, reclamos, encuestas de satisfacción y calidad.",
-  },
-  {
-    code: "inventario",
-    label: "Inventario",
-    description: "Almacenes, insumos, equipos asignados y movimientos.",
-  },
-  {
-    code: "academia",
-    label: "Biblioteca y Academia",
-    description: "Protocolos técnicos, guías operativas y capacitación.",
-  },
-  {
-    code: "reportes",
-    label: "Reportes",
-    description: "Indicadores gerenciales, exportación y análisis histórico.",
-  },
-  {
-    code: "configuraciones",
-    label: "Configuraciones",
-    description: "Parámetros de empresa, tarifarios, usuarios y perfiles.",
-  },
-];
+export const PROFILE_MODULES_CATALOG: ProfileModuleCatalogItem[] =
+  CANONICAL_MODULES.map((mod) => ({
+    code: mod.code,
+    label: mod.label,
+    description: mod.description,
+    process: mod.process,
+    processLabel: mod.processLabel,
+    iconKey: mod.iconKey,
+    minPlan: mod.minPlan,
+    isPronto: mod.isPronto,
+  }));
 
 export const RESTRICTION_FIELDS_META: {
   key: RestrictionKey;
