@@ -26,12 +26,16 @@ import {
   createCompanyInvitationInDb,
   getExistingAccountEmailTargetInDb,
   lookupPersonByDocumentInDb,
+  queryAuditLogs,
   resendCompanyInvitationInDb,
   saveCompanyProfileInDb,
   type RpcCreatedInvitationResult,
 } from "../services/users-profiles.repository";
 import {
+  AUDIT_TIME_RANGES,
   mapAccessLabelToFlags,
+  SYSTEM_AUDIT_ACTOR_ID,
+  type AuditLogsQueryResult,
   type DocumentLookupResult,
   type DocumentType,
   type GeneratedInvitationPayload,
@@ -993,6 +997,129 @@ export async function deleteProfileAction(
     return {
       success: false,
       error: "Ocurrió un error al eliminar el perfil.",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------
+// 9. Consulta filtrada y paginada de Auditoría y Actividad (R2, R4)
+// ---------------------------------------------------------------------
+const queryAuditLogsSchema = z.object({
+  actorId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((val) =>
+      !val || val === "all" || val === "todos" ? undefined : val,
+    )
+    .refine(
+      (val) =>
+        val === undefined ||
+        val === SYSTEM_AUDIT_ACTOR_ID ||
+        z.string().uuid().safeParse(val).success,
+      { message: "Identificador de persona inválido." },
+    ),
+  origen: z
+    .string()
+    .trim()
+    .max(64, "El módulo de origen no debe superar 64 caracteres.")
+    .optional()
+    .transform((val) =>
+      !val || val === "all" || val === "todos" ? undefined : val,
+    ),
+  timeRange: z.enum(AUDIT_TIME_RANGES).default("all"),
+  search: z
+    .string()
+    .max(200, "La búsqueda no puede superar 200 caracteres.")
+    .optional()
+    .transform((val) => val?.trim() || undefined),
+  limit: z.number().int().min(1).max(200).default(25),
+  offset: z.number().int().min(0).max(50_000).default(0),
+});
+
+async function canViewEmpresaAudit(
+  empresaId: string,
+  userId: string,
+  isOwnerFlag?: boolean,
+): Promise<boolean> {
+  if (isOwnerFlag === true) {
+    return true;
+  }
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("membresias")
+    .select("es_propietario, perfil_id")
+    .eq("empresa_id", empresaId)
+    .eq("usuario_id", userId)
+    .eq("activo", true)
+    .eq("estado", "activa")
+    .maybeSingle();
+
+  if (!membership) {
+    return false;
+  }
+
+  if (membership.es_propietario === true) {
+    return true;
+  }
+
+  if (!membership.perfil_id) {
+    return false;
+  }
+
+  const { data: permRow } = await supabase
+    .from("perfil_permisos")
+    .select("alcance")
+    .eq("perfil_id", membership.perfil_id)
+    .eq("permiso_codigo", "auditoria.ver")
+    .maybeSingle();
+
+  return Boolean(permRow && permRow.alcance !== "ninguna");
+}
+
+export async function queryAuditLogsAction(input?: unknown): Promise<{
+  success: boolean;
+  data?: AuditLogsQueryResult;
+  error?: string;
+}> {
+  try {
+    const validated = queryAuditLogsSchema.parse(input ?? {});
+    const { active, userId } = await resolveActiveOrganization();
+    if (!userId || !active) {
+      return {
+        success: false,
+        error: "No tienes una sesión de empresa activa.",
+      };
+    }
+
+    const allowed = await canViewEmpresaAudit(
+      active.id,
+      userId,
+      active.isOwner,
+    );
+    if (!allowed) {
+      return {
+        success: false,
+        error: "No tienes permisos para consultar el registro de actividad.",
+      };
+    }
+
+    const data = await queryAuditLogs(active.id, validated);
+    return { success: true, data };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return {
+        success: false,
+        error: err.issues[0]?.message || "Parámetros de filtro inválidos.",
+      };
+    }
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "No se pudo consultar el registro de actividad.",
     };
   }
 }

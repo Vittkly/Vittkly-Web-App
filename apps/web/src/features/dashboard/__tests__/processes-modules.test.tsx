@@ -58,9 +58,14 @@ describe("Procesos vs. Módulos (Sidebar, Plan Gating y Caso Borde 0 módulos)",
     expect(screen.queryByText("Configuraciones")).not.toBeInTheDocument();
     expect(screen.queryByText("Ocurrencias")).not.toBeInTheDocument();
 
-    // Expandir Ventas y Finanzas muestra únicamente sus hijos habilitados
-    fireEvent.click(screen.getByRole("button", { name: /Ventas/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Finanzas/i }));
+    // Ventas se auto-abre porque pathname es /dashboard/clientes; Finanzas inicia plegado y se expande al hacer clic
+    const ventasBtn = screen.getByRole("button", { name: /Ventas/i });
+    const finanzasBtn = screen.getByRole("button", { name: /Finanzas/i });
+    expect(ventasBtn).toHaveAttribute("aria-expanded", "true");
+    expect(finanzasBtn).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(finanzasBtn);
+    expect(finanzasBtn).toHaveAttribute("aria-expanded", "true");
 
     expect(screen.getByText("Clientes")).toBeInTheDocument();
     expect(screen.getByText("Cotizaciones")).toBeInTheDocument();

@@ -64,7 +64,7 @@ export default async function TenantDashboardLayout({
         initialCollapsed={initialCollapsed}
       />
 
-      <main className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto pb-20 lg:pb-0">
+      <main className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <PendingInvitationsBanner count={pendingInvitationsCount} />
         {children}
       </main>
@@ -72,6 +72,10 @@ export default async function TenantDashboardLayout({
       <WebMobileTabBar
         allowedModules={context.allowedModules}
         canAccessConfig={context.canAccessConfig}
+        organizations={organizations}
+        activeOrganizationId={active.id}
+        pendingInvitationsCount={pendingInvitationsCount}
+        activeProfile={context.activeProfile}
       />
     </div>
   );

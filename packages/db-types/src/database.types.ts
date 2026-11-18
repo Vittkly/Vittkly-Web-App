@@ -1170,6 +1170,14 @@ export interface Database {
           antes: Json | null;
           despues: Json | null;
           creado_en: string;
+          tipo_evento: string | null;
+          origen: string | null;
+          actor_nombre: string | null;
+          actor_correo: string | null;
+          entidad_nombre: string | null;
+          campos_modificados: string[];
+          detalle: string | null;
+          metadatos: Json;
         };
         Insert: {
           id?: never;
@@ -1181,6 +1189,14 @@ export interface Database {
           antes?: Json | null;
           despues?: Json | null;
           creado_en?: string;
+          tipo_evento?: string | null;
+          origen?: string | null;
+          actor_nombre?: string | null;
+          actor_correo?: string | null;
+          entidad_nombre?: string | null;
+          campos_modificados?: string[];
+          detalle?: string | null;
+          metadatos?: Json;
         };
         Update: {
           id?: never;
@@ -1192,6 +1208,14 @@ export interface Database {
           antes?: Json | null;
           despues?: Json | null;
           creado_en?: string;
+          tipo_evento?: string | null;
+          origen?: string | null;
+          actor_nombre?: string | null;
+          actor_correo?: string | null;
+          entidad_nombre?: string | null;
+          campos_modificados?: string[];
+          detalle?: string | null;
+          metadatos?: Json;
         };
         Relationships: [];
       };
@@ -1752,6 +1776,10 @@ export interface Database {
         Returns: string;
       };
       es_miembro: {
+        Args: { p_empresa_id: string };
+        Returns: boolean;
+      };
+      es_propietario_empresa: {
         Args: { p_empresa_id: string };
         Returns: boolean;
       };

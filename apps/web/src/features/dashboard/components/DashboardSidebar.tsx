@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -33,6 +33,27 @@ import type { EnrichedModule } from "../services/modules.service";
 import { DashboardModuleIcon } from "./module-icons";
 
 const SIDEBAR_STORAGE_KEY = "vittkly_sidebar_collapsed";
+
+type ProcessGroupKey = Exclude<ProcessKey, "root">;
+type OpenGroupsMap = Record<ProcessGroupKey, boolean>;
+
+const DEFAULT_OPEN_GROUPS: OpenGroupsMap = {
+  ventas: false,
+  operacion: false,
+  finanzas: false,
+  equipo: false,
+  crecimiento: false,
+};
+
+function getActiveProcessForPath(pathname: string): ProcessGroupKey | null {
+  for (const mod of CANONICAL_MODULES) {
+    if (mod.process === "root") continue;
+    if (pathname === mod.href || pathname.startsWith(`${mod.href}/`)) {
+      return mod.process;
+    }
+  }
+  return null;
+}
 
 export interface DashboardSidebarProps {
   basePath?: string;
@@ -70,23 +91,43 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
   } = props;
   const pathname = usePathname();
 
-  const [openGroups, setOpenGroups] = useState<
-    Record<Exclude<ProcessKey, "root">, boolean>
-  >({
-    ventas: false,
-    operacion: false,
-    finanzas: false,
-    equipo: false,
-    crecimiento: false,
-  });
+  const activeProcessForPath = getActiveProcessForPath(pathname);
+
+  const [groupState, setGroupState] = useState<{
+    path: string;
+    open: OpenGroupsMap;
+  }>(() => ({
+    path: pathname,
+    open: activeProcessForPath
+      ? { ...DEFAULT_OPEN_GROUPS, [activeProcessForPath]: true }
+      : { ...DEFAULT_OPEN_GROUPS },
+  }));
+
+  const openGroups: OpenGroupsMap = useMemo(() => {
+    if (groupState.path === pathname || !activeProcessForPath) {
+      return groupState.open;
+    }
+    return { ...groupState.open, [activeProcessForPath]: true };
+  }, [groupState, pathname, activeProcessForPath]);
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(initialCollapsed);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [isFocused, setIsFocused] = useState<boolean>(false);
   const [showOrgMenu, setShowOrgMenu] = useState<boolean>(false);
   const [showCrearMenu, setShowCrearMenu] = useState<boolean>(false);
   const [showGrupoModal, setShowGrupoModal] = useState<boolean>(false);
 
-  const isExpanded = !isCollapsed || isHovered || showGrupoModal;
+  const orgMenuRef = useRef<HTMLDivElement>(null);
+  const orgButtonRef = useRef<HTMLButtonElement>(null);
+  const crearMenuRef = useRef<HTMLDivElement>(null);
+  const crearButtonRef = useRef<HTMLButtonElement>(null);
+  const grupoButtonRef = useRef<HTMLButtonElement>(null);
+
+  const isExpanded = !isCollapsed || isHovered || isFocused || showGrupoModal;
+  const itemHoverBg =
+    isCollapsed && isExpanded
+      ? "hover:bg-surface-sunken"
+      : "hover:bg-surface-raised";
 
   useEffect(() => {
     try {
@@ -97,34 +138,84 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
     }
   }, [isCollapsed]);
 
+  useEffect(() => {
+    if (!showOrgMenu && !showCrearMenu && !showGrupoModal) return;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (
+        showOrgMenu &&
+        orgMenuRef.current &&
+        !orgMenuRef.current.contains(target)
+      ) {
+        setShowOrgMenu(false);
+      }
+      if (
+        showCrearMenu &&
+        crearMenuRef.current &&
+        !crearMenuRef.current.contains(target)
+      ) {
+        setShowCrearMenu(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showGrupoModal) {
+        setShowGrupoModal(false);
+        grupoButtonRef.current?.focus();
+        return;
+      }
+      if (showOrgMenu) {
+        setShowOrgMenu(false);
+        orgButtonRef.current?.focus();
+      }
+      if (showCrearMenu) {
+        setShowCrearMenu(false);
+        crearButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showOrgMenu, showCrearMenu, showGrupoModal]);
+
   const handleToggleCollapse = () => {
     setIsCollapsed((prev) => !prev);
     setIsHovered(false);
+    setIsFocused(false);
     setShowOrgMenu(false);
     setShowCrearMenu(false);
   };
 
-  const toggleGroup = (key: Exclude<ProcessKey, "root">) => {
-    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleGroup = (key: ProcessGroupKey) => {
+    setGroupState({
+      path: pathname,
+      open: { ...openGroups, [key]: !openGroups[key] },
+    });
   };
 
   const expandAll = () => {
-    setOpenGroups({
-      ventas: true,
-      operacion: true,
-      finanzas: true,
-      equipo: true,
-      crecimiento: true,
+    setGroupState({
+      path: pathname,
+      open: {
+        ventas: true,
+        operacion: true,
+        finanzas: true,
+        equipo: true,
+        crecimiento: true,
+      },
     });
   };
 
   const collapseAll = () => {
-    setOpenGroups({
-      ventas: false,
-      operacion: false,
-      finanzas: false,
-      equipo: false,
-      crecimiento: false,
+    setGroupState({
+      path: pathname,
+      open: { ...DEFAULT_OPEN_GROUPS },
     });
   };
 
@@ -204,7 +295,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
       <div
         aria-hidden="true"
         className={`hidden shrink-0 transition-all duration-200 lg:block ${
-          isCollapsed ? "w-[64px]" : "w-[260px]"
+          isCollapsed ? "w-[64px]" : "w-[240px]"
         }`}
       />
 
@@ -218,20 +309,34 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
           setShowCrearMenu(false);
           if (isCollapsed) setShowOrgMenu(false);
         }}
-        className={`side bg-surface border-line fixed inset-y-0 left-0 z-40 hidden h-screen flex-col border-r transition-all duration-200 lg:flex ${
-          isExpanded ? "w-[260px] p-3" : "w-[64px] px-2 py-3"
-        } ${isCollapsed && isExpanded ? "bg-surface-raised shadow-2xl" : ""}`}
+        onFocus={() => {
+          if (isCollapsed) setIsFocused(true);
+        }}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setIsFocused(false);
+            setShowCrearMenu(false);
+            if (isCollapsed) setShowOrgMenu(false);
+          }
+        }}
+        className={`side border-line fixed inset-y-0 left-0 z-40 hidden h-screen flex-col border-r transition-all duration-200 lg:flex ${
+          isExpanded ? "w-[240px] p-3" : "w-[64px] px-2 py-3"
+        } ${isCollapsed && isExpanded ? "bg-surface-raised shadow-2" : "bg-surface-sunken"}`}
       >
         {/* 1. Header fijo (shrink-0) */}
         <div className="flex shrink-0 flex-col gap-2">
-          <div className="relative">
+          <div ref={orgMenuRef} className="relative">
             <button
+              ref={orgButtonRef}
               type="button"
-              onClick={() => setShowOrgMenu((prev) => !prev)}
+              onClick={() => {
+                setShowOrgMenu((prev) => !prev);
+                setShowCrearMenu(false);
+              }}
               aria-expanded={showOrgMenu}
               title="Cambiar de empresa"
               aria-label="Cambiar de empresa"
-              className={`group hover:bg-surface-raised flex min-h-[46px] w-full cursor-pointer items-center rounded-xl text-left transition-colors ${
+              className={`group ${itemHoverBg} flex min-h-[46px] w-full cursor-pointer items-center rounded-xl text-left transition-colors ${
                 isExpanded ? "gap-2.5 p-1.5" : "justify-center p-1"
               }`}
             >
@@ -304,7 +409,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                 >
                   <span>Accesos a empresa</span>
                   {pendingInvitationsCount > 0 && (
-                    <span className="bg-primary rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold text-white tabular-nums">
+                    <span className="bg-primary text-on-primary rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums">
                       {pendingInvitationsCount}
                     </span>
                   )}
@@ -315,10 +420,14 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
 
           {/* Botón "+ Crear" con Menú Dropdown Rápido (filtrado por módulos reales) */}
           {hasAnyCrear && (
-            <div className="relative flex justify-center">
+            <div ref={crearMenuRef} className="relative flex justify-center">
               <button
+                ref={crearButtonRef}
                 type="button"
-                onClick={() => setShowCrearMenu((prev) => !prev)}
+                onClick={() => {
+                  setShowCrearMenu((prev) => !prev);
+                  setShowOrgMenu(false);
+                }}
                 aria-expanded={showCrearMenu}
                 aria-label="Crear"
                 title="Crear"
@@ -433,7 +542,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
               } ${
                 isCurrent(homePath)
                   ? "bg-primary-soft text-primary-ink font-bold"
-                  : "text-ink hover:bg-surface-raised"
+                  : `text-ink ${itemHoverBg}`
               }`}
             >
               <LayoutGrid className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -453,7 +562,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
               } ${
                 isCurrent(calendarioMeta.href)
                   ? "bg-primary-soft text-primary-ink font-bold"
-                  : "text-ink hover:bg-surface-raised"
+                  : `text-ink ${itemHoverBg}`
               }`}
             >
               <Calendar className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -481,8 +590,8 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                     active
                       ? "bg-primary-soft text-primary-ink"
                       : isOpen
-                        ? "text-ink hover:bg-surface-raised"
-                        : "text-ink-muted hover:text-ink hover:bg-surface-raised"
+                        ? `text-ink ${itemHoverBg}`
+                        : `text-ink-muted hover:text-ink ${itemHoverBg}`
                   }`}
                 >
                   <DashboardModuleIcon
@@ -515,7 +624,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                           className={`flex h-7 items-center justify-between gap-2 rounded-md px-2 text-xs transition-colors ${
                             modActive
                               ? "bg-primary-soft text-primary-ink font-bold"
-                              : "text-ink-muted hover:text-ink hover:bg-surface-raised"
+                              : `text-ink-muted hover:text-ink ${itemHoverBg}`
                           }`}
                         >
                           <span className="flex min-w-0 items-center gap-2">
@@ -555,11 +664,15 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
               } ${
                 isCurrent(reportesMeta.href)
                   ? "bg-primary-soft text-primary-ink font-bold"
-                  : "text-ink hover:bg-surface-raised"
+                  : `text-ink ${itemHoverBg}`
               }`}
             >
               <BarChart2
-                className="text-ink-muted h-4 w-4 shrink-0"
+                className={`h-4 w-4 shrink-0 ${
+                  isCurrent(reportesMeta.href)
+                    ? "text-primary-ink"
+                    : "text-ink-muted"
+                }`}
                 strokeWidth={1.75}
               />
               <span className={isExpanded ? "truncate" : "hidden"}>
@@ -578,11 +691,15 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
               } ${
                 isCurrent("/dashboard/configuraciones")
                   ? "bg-primary-soft text-primary-ink font-bold"
-                  : "text-ink hover:bg-surface-raised"
+                  : `text-ink ${itemHoverBg}`
               }`}
             >
               <Settings
-                className="text-ink-muted h-4 w-4 shrink-0"
+                className={`h-4 w-4 shrink-0 ${
+                  isCurrent("/dashboard/configuraciones")
+                    ? "text-primary-ink"
+                    : "text-ink-muted"
+                }`}
                 strokeWidth={1.75}
               />
               <span className={isExpanded ? "truncate" : "hidden"}>
@@ -616,6 +733,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
           </div>
 
           <button
+            ref={grupoButtonRef}
             type="button"
             onClick={() => setShowGrupoModal(true)}
             className={
@@ -643,7 +761,7 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
             onClick={handleToggleCollapse}
             title={isCollapsed ? "Fijar menú" : "Contraer menú"}
             aria-label={isCollapsed ? "Fijar menú" : "Contraer menú"}
-            className="hover:bg-surface-raised text-ink-muted hover:text-ink flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
+            className={`${itemHoverBg} text-ink-muted hover:text-ink flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors`}
           >
             {isExpanded ? (
               <span>{isCollapsed ? "» Fijar menú" : "« Contraer menú"}</span>
@@ -656,11 +774,22 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
 
       {/* Modal Resumen del Grupo */}
       {showGrupoModal && (
-        <div className="animate-sc-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="grupo-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowGrupoModal(false);
+          }}
+          className="animate-sc-in bg-ink/45 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
+        >
           <div className="bg-surface-raised border-line shadow-2 relative flex w-full max-w-md flex-col gap-4 rounded-2xl border p-6">
             <div className="border-line flex items-center justify-between border-b pb-3">
               <div>
-                <h3 className="text-ink text-base font-bold">
+                <h3
+                  id="grupo-modal-title"
+                  className="text-ink text-base font-bold"
+                >
                   Resumen del grupo
                 </h3>
                 <p className="text-ink-muted text-xs">

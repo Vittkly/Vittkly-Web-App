@@ -56,12 +56,12 @@ export function PendingInvitationsBanner({
   return (
     <div className="border-primary/20 bg-primary/5 text-ink border-b px-4 py-2.5 text-xs sm:px-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Mail className="text-primary h-4 w-4 shrink-0" />
-          <span className="truncate font-medium">{label}</span>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <Mail className="text-primary-ink h-4 w-4 shrink-0" />
+          <span className="font-medium wrap-break-word">{label}</span>
           <Link
             href="/accesos"
-            className="text-primary shrink-0 font-semibold hover:underline"
+            className="text-primary-ink shrink-0 font-semibold hover:underline"
           >
             Ver en Accesos a empresa →
           </Link>
@@ -70,7 +70,7 @@ export function PendingInvitationsBanner({
           type="button"
           onClick={handleDismiss}
           aria-label="Ocultar aviso por esta sesión"
-          className="text-ink-muted hover:bg-surface-alt hover:text-ink shrink-0 rounded-md p-1"
+          className="text-ink-muted hover:bg-surface-sunken hover:text-ink shrink-0 rounded-md p-1"
         >
           <X className="h-3.5 w-3.5" />
         </button>
