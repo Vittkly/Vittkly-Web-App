@@ -36,6 +36,7 @@ export interface Tenant {
   rubro?: string | null;
   ciudad?: string | null;
   logoUrl?: string | null;
+  menuIconUrl?: string | null;
   brandColor?: string | null;
   modeloOperacion?: string | null;
   role: MembershipRole;

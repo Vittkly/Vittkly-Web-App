@@ -3,9 +3,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { useAuth } from '@/features/auth';
-import { getInitials } from '@/features/auth/utils/profile';
 import { OrgSwitchSheet, useOrgStore } from '@/features/tenants';
 import { useTheme } from '@/theme';
+import { CompanyAvatarImage } from './CompanyAvatarImage';
 
 export interface CompanyCircleButtonProps {
   style?: StyleProp<ViewStyle>;
@@ -18,7 +18,7 @@ export function CompanyCircleButton({
   testID = 'company-circle-button',
   showChevron = true,
 }: CompanyCircleButtonProps) {
-  const { colors, radius, typography, fontFamilies, control } = useTheme();
+  const { colors, radius, typography, control } = useTheme();
   const { tenants, activeTenant } = useAuth();
   const { activeOrg, organizations } = useOrgStore();
 
@@ -30,14 +30,12 @@ export function CompanyCircleButton({
   const totalOrgs = organizations.length > 0 ? organizations.length : tenants.length;
   const hasMultipleTenants = totalOrgs > 1;
 
-  const currentOrgName =
-    activeOrg?.name ||
-    activeTenant?.name ||
-    organizations[0]?.name ||
-    tenants[0]?.name ||
-    'Vitta Kleanly';
-
-  const companyInitials = getInitials(currentOrgName);
+  const activeOrgEntry = activeOrg ?? activeTenant ?? organizations[0] ?? tenants[0];
+  const currentOrgName = activeOrgEntry?.name || 'Vitta Kleanly';
+  const currentMenuIconUrl = activeOrgEntry?.menuIconUrl ?? null;
+  const currentLogoUrl = activeOrgEntry?.logoUrl ?? null;
+  const currentBrandColor = activeOrgEntry?.brandColor ?? null;
+  const hasAvatarImage = Boolean(currentMenuIconUrl?.trim() || currentLogoUrl?.trim());
 
   useEffect(() => {
     return () => {
@@ -94,26 +92,25 @@ export function CompanyCircleButton({
             width: control.lg,
             height: control.lg,
             borderRadius: radius.pill,
-            backgroundColor: colors.tenantAccentSoft,
-            borderColor: colors.tenantAccent,
+            backgroundColor: hasAvatarImage ? colors.surfaceRaised : colors.tenantAccentSoft,
+            borderColor:
+              currentBrandColor && /^#[0-9A-Fa-f]{6}$/.test(currentBrandColor)
+                ? currentBrandColor
+                : colors.tenantAccent,
             borderWidth: 1.5,
             opacity: pressed ? 0.75 : 1,
           },
           style,
         ]}
       >
-        <Text
-          style={[
-            typography.bodyStrong,
-            {
-              fontFamily: fontFamilies.bold,
-              color: colors.onTenantAccent,
-              fontSize: 14,
-            },
-          ]}
-        >
-          {companyInitials}
-        </Text>
+        <CompanyAvatarImage
+          name={currentOrgName}
+          menuIconUrl={currentMenuIconUrl}
+          logoUrl={currentLogoUrl}
+          size={control.lg - 4}
+          textColor={colors.onTenantAccent}
+          fontSize={14}
+        />
 
         {hasMultipleTenants && showChevron ? (
           <View

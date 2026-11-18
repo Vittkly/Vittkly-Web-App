@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Building2, LockKeyhole, LogOut } from "lucide-react";
+import { CompanyAvatar } from "@/components/brand/CompanyAvatar";
 import { VittklyLogo } from "@/components/brand/VittklyLogo";
 import { logoutAction } from "@/features/auth/actions/auth.actions";
 
@@ -8,21 +9,39 @@ export interface NoModulesAssignedViewProps {
   companyName: string;
   userName: string;
   profileName: string;
+  logoUrl?: string | null;
+  menuIconUrl?: string | null;
+  brandColor?: string | null;
 }
 
 export function NoModulesAssignedView({
   companyName,
   userName,
   profileName,
+  logoUrl,
+  menuIconUrl,
+  brandColor,
 }: NoModulesAssignedViewProps) {
+  const hasCompanyImage = Boolean(menuIconUrl?.trim() || logoUrl?.trim());
   return (
     <div className="bg-surface flex min-h-dvh flex-col items-center justify-center p-6 transition-colors">
       <div className="border-line bg-surface-raised flex w-full max-w-md flex-col items-center gap-5 rounded-2xl border p-8 text-center shadow-lg">
         <VittklyLogo variant="wordmark" height={28} />
 
-        <div className="bg-warning-soft border-warning/30 text-warning-ink flex h-12 w-12 items-center justify-center rounded-2xl border">
-          <LockKeyhole className="h-6 w-6" strokeWidth={1.75} />
-        </div>
+        {hasCompanyImage ? (
+          <CompanyAvatar
+            name={companyName}
+            menuIconUrl={menuIconUrl}
+            logoUrl={logoUrl}
+            brandColor={brandColor}
+            size="xl"
+            shape="rounded"
+          />
+        ) : (
+          <div className="bg-warning-soft border-warning/30 text-warning-ink flex h-12 w-12 items-center justify-center rounded-2xl border">
+            <LockKeyhole className="h-6 w-6" strokeWidth={1.75} />
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <span className="text-ink-muted text-[11px] font-bold tracking-wider uppercase">

@@ -8,6 +8,9 @@ export interface UserOrganization {
   name: string;
   roleName: string;
   isOwner: boolean;
+  logoUrl?: string | null;
+  menuIconUrl?: string | null;
+  brandColor?: string | null;
 }
 
 export interface OrganizationOptions {
@@ -32,6 +35,9 @@ export interface MisAccesosEmpresa {
   nombre: string;
   rubro: string;
   ciudad: string;
+  logo_ruta?: string | null;
+  icono_menu_ruta?: string | null;
+  color_marca?: string | null;
   perfil_id: string;
   perfil_nombre: string;
   perfil_codigo: string;
@@ -45,6 +51,9 @@ export interface MisAccesosInvitacion {
   id: string;
   empresa_id: string;
   empresa_nombre: string;
+  empresa_logo_ruta?: string | null;
+  empresa_icono_menu_ruta?: string | null;
+  empresa_color_marca?: string | null;
   perfil_id: string;
   perfil_nombre: string;
   invitador_nombre: string;

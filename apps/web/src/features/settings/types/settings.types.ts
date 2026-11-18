@@ -3,6 +3,7 @@ import {
   maskDocumentForDisplay,
   type CanonicalModuleCode,
   type ModuleIconKey,
+  type OperationModelCode,
   type PlanCode,
   type ProcessKey,
 } from "@vittkly/shared";
@@ -319,6 +320,25 @@ export const SETTINGS_CATEGORIES: {
   { key: "cuenta", label: "CUENTA VITTKLY" },
 ];
 
+export interface CompanySettingsBundle {
+  empresaId: string;
+  razonSocial: string;
+  nombreComercial: string;
+  ruc: string;
+  direccion: string;
+  rubro: string;
+  ciudad: string;
+  whatsappTelefono: string;
+  encabezadoDocumento: string;
+  piePaginaDocumento: string;
+  logoRuta: string | null;
+  iconoMenuRuta: string | null;
+  colorMarca: string;
+  modeloOperacion: OperationModelCode;
+  menuAcordeon: boolean;
+  canEdit: boolean;
+}
+
 export const SETTINGS_SUBMODULES: SettingsSubmodule[] = [
   // 1. MI NEGOCIO
   {
@@ -329,6 +349,7 @@ export const SETTINGS_SUBMODULES: SettingsSubmodule[] = [
     categoryLabel: "MI NEGOCIO",
     description:
       "Datos fiscales, razón social, logo institucional y direcciones comerciales.",
+    isActiveModule: true,
   },
   {
     slug: "plantillas-cotizacion",

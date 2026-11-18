@@ -17,6 +17,9 @@ interface MembershipOrgRow {
     id: string;
     razon_social: string;
     nombre_comercial: string | null;
+    logo_ruta?: string | null;
+    icono_menu_ruta?: string | null;
+    color_marca?: string | null;
     activa: boolean;
     eliminado_en: string | null;
   } | null;
@@ -42,11 +45,15 @@ export const getOrganizationOptions = cache(
         lastOrganizationId: null,
       };
 
-    const [{ data: rows }, { data: usuario }, cookieStore] = await Promise.all([
+    const [
+      { data: primaryRows, error: primaryError },
+      { data: usuario },
+      cookieStore,
+    ] = await Promise.all([
       supabase
         .from("membresias")
         .select(
-          "es_propietario, acceso_web, empresas!inner(id, razon_social, nombre_comercial, activa, eliminado_en), perfiles(nombre)",
+          "es_propietario, acceso_web, empresas!inner(id, razon_social, nombre_comercial, logo_ruta, icono_menu_ruta, color_marca, activa, eliminado_en), perfiles(nombre)",
         )
         .eq("usuario_id", user.id)
         .eq("estado", "activa")
@@ -59,6 +66,19 @@ export const getOrganizationOptions = cache(
       cookies(),
     ]);
 
+    let rows = primaryRows;
+    if (primaryError?.message?.includes("icono_menu_ruta")) {
+      const fallback = await supabase
+        .from("membresias")
+        .select(
+          "es_propietario, acceso_web, empresas!inner(id, razon_social, nombre_comercial, logo_ruta, color_marca, activa, eliminado_en), perfiles(nombre)",
+        )
+        .eq("usuario_id", user.id)
+        .eq("estado", "activa")
+        .eq("activo", true);
+      rows = fallback.data as unknown as typeof primaryRows;
+    }
+
     const activeRows = ((rows ?? []) as unknown as MembershipOrgRow[]).filter(
       (row) => row.empresas?.activa && !row.empresas.eliminado_en,
     );
@@ -70,6 +90,9 @@ export const getOrganizationOptions = cache(
         name: row.empresas!.nombre_comercial || row.empresas!.razon_social,
         roleName: row.perfiles?.nombre ?? "Miembro",
         isOwner: row.es_propietario,
+        logoUrl: row.empresas!.logo_ruta ?? null,
+        menuIconUrl: row.empresas!.icono_menu_ruta ?? null,
+        brandColor: row.empresas!.color_marca ?? null,
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
@@ -108,7 +131,70 @@ export const getMisAccesos = cache(async (): Promise<MisAccesosData | null> => {
     return null;
   }
 
-  return data as unknown as MisAccesosData;
+  const parsed = data as unknown as MisAccesosData;
+
+  // Enriquecer marca (logo_ruta, icono_menu_ruta, color_marca) si la RPC en la nube aún no los incluye
+  const needsBrandEnrichment = [
+    ...(parsed.empresas_propias ?? []),
+    ...(parsed.empresas_miembro ?? []),
+  ].some(
+    (emp) => emp.logo_ruta === undefined && emp.icono_menu_ruta === undefined,
+  );
+
+  if (needsBrandEnrichment) {
+    const empresaIds = Array.from(
+      new Set([
+        ...(parsed.empresas_propias ?? []).map((e) => e.empresa_id),
+        ...(parsed.empresas_miembro ?? []).map((e) => e.empresa_id),
+      ]),
+    );
+
+    if (empresaIds.length > 0) {
+      const { data: brandRows, error: brandErr } = await supabase
+        .from("empresas")
+        .select("id, logo_ruta, icono_menu_ruta, color_marca")
+        .in("id", empresaIds);
+
+      let resolvedRows = brandRows as Array<{
+        id: string;
+        logo_ruta: string | null;
+        icono_menu_ruta?: string | null;
+        color_marca: string | null;
+      }> | null;
+
+      if (brandErr?.message?.includes("icono_menu_ruta")) {
+        const fallback = await supabase
+          .from("empresas")
+          .select("id, logo_ruta, color_marca")
+          .in("id", empresaIds);
+        resolvedRows = fallback.data as typeof resolvedRows;
+      }
+
+      if (resolvedRows && resolvedRows.length > 0) {
+        const byId = new Map(resolvedRows.map((row) => [row.id, row]));
+        for (const emp of parsed.empresas_propias ?? []) {
+          const b = byId.get(emp.empresa_id);
+          if (b) {
+            emp.logo_ruta = emp.logo_ruta ?? b.logo_ruta ?? null;
+            emp.icono_menu_ruta =
+              emp.icono_menu_ruta ?? b.icono_menu_ruta ?? null;
+            emp.color_marca = emp.color_marca ?? b.color_marca ?? null;
+          }
+        }
+        for (const emp of parsed.empresas_miembro ?? []) {
+          const b = byId.get(emp.empresa_id);
+          if (b) {
+            emp.logo_ruta = emp.logo_ruta ?? b.logo_ruta ?? null;
+            emp.icono_menu_ruta =
+              emp.icono_menu_ruta ?? b.icono_menu_ruta ?? null;
+            emp.color_marca = emp.color_marca ?? b.color_marca ?? null;
+          }
+        }
+      }
+    }
+  }
+
+  return parsed;
 });
 
 /** Número de invitaciones pendientes para el usuario autenticado. */
@@ -159,10 +245,35 @@ export async function respondInvitation(params: {
     throw new Error(error.message || "No se pudo procesar la invitación.");
   }
 
-  return (data ?? {}) as {
+  const payload = (data ?? {}) as {
     aceptada?: boolean;
     empresa_id?: string | null;
     acceso_web?: boolean;
+  };
+
+  let empresaNombre: string | null = null;
+  if (payload.aceptada && payload.empresa_id) {
+    try {
+      const { data: empresa, error: empError } = await supabase
+        .from("empresas")
+        .select("nombre_comercial, razon_social")
+        .eq("id", payload.empresa_id)
+        .maybeSingle();
+
+      if (!empError && empresa) {
+        empresaNombre =
+          empresa.nombre_comercial?.trim() ||
+          empresa.razon_social?.trim() ||
+          null;
+      }
+    } catch {
+      // No degradar la aceptación si falla la consulta auxiliar del nombre.
+    }
+  }
+
+  return {
+    ...payload,
+    empresa_nombre: empresaNombre,
   };
 }
 

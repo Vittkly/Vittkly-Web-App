@@ -2,6 +2,8 @@ import React from "react";
 import { redirect } from "next/navigation";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 import {
+  CompanySettingsForm,
+  getCompanySettingsBundle,
   getUsersProfilesBundle,
   UsersProfilesView,
   SettingsPlaceholderCanvas,
@@ -24,7 +26,18 @@ export default async function SettingsSectionPage({
   if (!userId) redirect("/login");
   if (!active) redirect("/accesos");
 
-  // 1. MÓDULO ACTIVO: Usuarios y perfiles
+  // 1. MÓDULO ACTIVO: Empresa (CFG-EMP)
+  if (sectionSlug === "empresa") {
+    const companySettings = await getCompanySettingsBundle(active.id);
+    if (!companySettings) redirect("/accesos");
+    return (
+      <div className="flex flex-1 flex-col p-5 sm:p-7">
+        <CompanySettingsForm initialData={companySettings} />
+      </div>
+    );
+  }
+
+  // 2. MÓDULO ACTIVO: Usuarios y perfiles (CFG-USR)
   if (sectionSlug === "usuarios-perfiles") {
     const bundle = await getUsersProfilesBundle(active.id);
     return <UsersProfilesView bundle={bundle} companyName={active.name} />;

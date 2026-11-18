@@ -1,8 +1,8 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
+import { CompanyAvatar } from "@/components/brand/CompanyAvatar";
 import { selectOrganizationAction } from "../actions/tenants.actions";
 import type { UserOrganization } from "../types/tenants.types";
-import { getOrganizationInitials } from "../utils/initials";
 
 export interface OrganizationPickerProps {
   organizations: UserOrganization[];
@@ -27,12 +27,15 @@ export function OrganizationPicker({
                   isLast ? "border-primary" : "border-line"
                 }`}
               >
-                <span
-                  aria-hidden="true"
-                  className="bg-primary-soft text-primary-ink flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold"
-                >
-                  {getOrganizationInitials(org.name)}
-                </span>
+                <CompanyAvatar
+                  name={org.name}
+                  menuIconUrl={org.menuIconUrl}
+                  logoUrl={org.logoUrl}
+                  brandColor={org.brandColor}
+                  size="xl"
+                  shape="circle"
+                  className="bg-primary-soft text-primary-ink font-mono"
+                />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="text-ink truncate text-sm font-bold">
                     {org.name}

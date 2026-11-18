@@ -3,9 +3,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { clsx } from "clsx";
+import { CompanyAvatar } from "@/components/brand/CompanyAvatar";
 import { selectOrganizationAction } from "../actions/tenants.actions";
 import type { UserOrganization } from "../types/tenants.types";
-import { getOrganizationInitials } from "../utils/initials";
 
 export interface SidebarOrgSwitcherProps {
   organizations: UserOrganization[];
@@ -53,12 +53,15 @@ export function SidebarOrgSwitcher({
           collapsed && "justify-center",
         )}
       >
-        <span
-          aria-hidden="true"
-          className="bg-primary-soft text-primary-ink ring-primary/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold ring-1"
-        >
-          {getOrganizationInitials(active.name)}
-        </span>
+        <CompanyAvatar
+          name={active.name}
+          menuIconUrl={active.menuIconUrl}
+          logoUrl={active.logoUrl}
+          brandColor={active.brandColor}
+          size="lg"
+          shape="circle"
+          className="bg-primary-soft text-primary-ink ring-primary/20 font-mono text-sm ring-1"
+        />
         {!collapsed && (
           <>
             <span className="flex min-w-0 flex-1 flex-col">
@@ -105,12 +108,15 @@ export function SidebarOrgSwitcher({
                   }
                   className="hover:bg-surface-sunken/60 focus-visible:outline-focus flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-2"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="bg-primary-soft text-primary-ink flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold"
-                  >
-                    {getOrganizationInitials(org.name)}
-                  </span>
+                  <CompanyAvatar
+                    name={org.name}
+                    menuIconUrl={org.menuIconUrl}
+                    logoUrl={org.logoUrl}
+                    brandColor={org.brandColor}
+                    size="sm"
+                    shape="circle"
+                    className="bg-primary-soft text-primary-ink font-mono"
+                  />
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="text-ink truncate text-xs font-semibold">
                       {org.name}

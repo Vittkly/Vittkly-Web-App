@@ -2,6 +2,7 @@ export * from './ActionSheet';
 export * from './AlertBanner';
 export * from './BackButton';
 export * from './BottomSheet';
+export * from './CompanyAvatarImage';
 export * from './CompanyCircleButton';
 export * from './FormField';
 export * from './ModulePlaceholderScreen';

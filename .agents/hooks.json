@@ -1,10 +1,16 @@
 {
-  "hooks": [
-    {
-      "name": "auto-typecheck-post-edit",
-      "type": "PostToolUse",
-      "tool": "write_to_file|replace_file_content",
-      "command": "npx tsc --noEmit"
-    }
-  ]
+  "auto-typecheck-post-edit": {
+    "enabled": false,
+    "PostToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm typecheck >/dev/null 2>&1 && echo '{}'"
+          }
+        ]
+      }
+    ]
+  }
 }

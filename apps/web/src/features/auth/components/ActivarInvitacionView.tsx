@@ -18,6 +18,7 @@ import {
   KeyRound,
   UserCheck,
 } from "lucide-react";
+import { CompanyAvatar } from "@/components/brand/CompanyAvatar";
 import { AuthCard } from "./AuthCard";
 import type { InvitationVerificationStatus } from "../services/invitacion-activation.service";
 import {
@@ -119,9 +120,16 @@ export function ActivarInvitacionView({
       <AuthCard showLogo>
         <div className="flex flex-col gap-4">
           <div className="border-line flex items-center gap-2.5 border-b pb-2">
-            <div className="bg-primary/10 text-primary border-primary/20 flex h-10 w-10 items-center justify-center rounded-xl border">
-              <Building2 className="h-5 w-5" />
-            </div>
+            <CompanyAvatar
+              name={invitation.empresaNombre}
+              menuIconUrl={invitation.empresaMenuIconUrl}
+              logoUrl={invitation.empresaLogoUrl}
+              brandColor={invitation.empresaBrandColor}
+              size="lg"
+              shape="rounded"
+              className="bg-primary/10 text-primary border-primary/20"
+              fallbackIcon={<Building2 className="h-5 w-5" />}
+            />
             <div>
               <p className="text-ink-muted text-[11px] font-semibold tracking-wider uppercase">
                 Invitación recibida
@@ -284,9 +292,16 @@ export function ActivarInvitacionView({
       <div className="flex flex-col gap-4">
         {/* Cabecera de la empresa */}
         <div className="border-line flex items-center gap-2.5 border-b pb-2">
-          <div className="bg-primary/10 text-primary border-primary/20 flex h-10 w-10 items-center justify-center rounded-xl border">
-            <Building2 className="h-5 w-5" />
-          </div>
+          <CompanyAvatar
+            name={invitation.empresaNombre}
+            menuIconUrl={invitation.empresaMenuIconUrl}
+            logoUrl={invitation.empresaLogoUrl}
+            brandColor={invitation.empresaBrandColor}
+            size="lg"
+            shape="rounded"
+            className="bg-primary/10 text-primary border-primary/20"
+            fallbackIcon={<Building2 className="h-5 w-5" />}
+          />
           <div className="min-w-0 flex-1">
             <p className="text-ink-muted text-[10px] font-bold tracking-wider uppercase">
               Invitación de equipo

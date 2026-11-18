@@ -29,9 +29,8 @@ import type { AuthActionState } from "../types/auth.types";
  * 4. Si falla: invoca `registrar_intento(identificador, false)`. Al 3.er fallo bloquea 30s;
  *    al 5.º fallo bloquea 15m. Retorna mensaje genérico o aviso de bloqueo temporal.
  * 5. Si tiene éxito: invoca `registrar_intento(identificador, true)`.
- * 6. Verifica que el usuario tenga permiso de acceso a la Central Web (`acceso_web = true`).
- *    Si es un perfil exclusivamente móvil (ej. Técnico de Campo sin acceso web), lo informa y cierra sesión.
- * 7. Invalida la caché de sesión y inicializa la empresa activa y redirige a `/hoy` (o `/select-org` si tiene varias).
+ * 6. Si el usuario aún no tiene membresías pero registró datos de empresa en metadata, auto-aprovisiona.
+ * 7. Invalida la caché de sesión, inicializa contexto de empresa y redirige a `/dashboard` o `/accesos`.
  */
 export async function loginAction(
   _prevState: AuthActionState,
@@ -179,26 +178,14 @@ export async function loginAction(
     }
   }
 
-  // 5. Validación de Acceso Web según Membresías y Roles de seed.sql
+  // 5. Auto-aprovisionamiento si la cuenta aún no tiene membresías pero tiene metadata de registro
   try {
     const { data: userMemberships } = await supabase
       .from("membresias")
-      .select("id, empresa_id, perfil_id, acceso_web, activo")
+      .select("id")
       .eq("usuario_id", data.user.id)
-      .eq("activo", true);
-
-    // Si tiene membresías y NINGUNA tiene acceso web (ej. Técnico de Campo en seed.sql)
-    if (
-      userMemberships &&
-      userMemberships.length > 0 &&
-      !userMemberships.some((m) => m.acceso_web)
-    ) {
-      await supabase.auth.signOut();
-      return {
-        error:
-          "Tu cuenta tiene asignado un perfil exclusivo para la App Móvil de Campo. Para acceder a la Central Web contacta a tu administrador.",
-      };
-    }
+      .eq("activo", true)
+      .limit(1);
 
     // Si el usuario aún no tiene membresías (ej. cuenta creada pero pendiente de provisión)
     if (!userMemberships || userMemberships.length === 0) {

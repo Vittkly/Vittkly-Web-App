@@ -2,7 +2,7 @@ import { Building2, ChevronRight } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { getInitials } from '@/features/auth/utils/profile';
+import { CompanyAvatarImage } from '@/components/ui/CompanyAvatarImage';
 import type { Organization } from '@/features/tenants';
 import { useTheme } from '@/theme';
 
@@ -15,7 +15,9 @@ export function PerfilOrgCard({ organization, onOpenSwitcher }: PerfilOrgCardPro
   const { colors, spacing, radius, typography, fontFamilies, control } = useTheme();
 
   const companyName = organization?.name ?? 'Vitta Kleanly';
-  const companyInitials = getInitials(companyName);
+  const hasAvatarImage = Boolean(
+    organization?.menuIconUrl?.trim() || organization?.logoUrl?.trim(),
+  );
   const roleDisplay =
     organization?.jobTitle ||
     (organization?.role === 'owner'
@@ -78,22 +80,18 @@ export function PerfilOrgCard({ organization, onOpenSwitcher }: PerfilOrgCardPro
               width: 38,
               height: 38,
               borderRadius: radius.pill,
-              backgroundColor: colors.tenantAccent,
+              backgroundColor: hasAvatarImage ? colors.surfaceRaised : colors.tenantAccent,
             },
           ]}
         >
-          <Text
-            style={[
-              typography.bodyStrong,
-              {
-                fontFamily: fontFamilies.bold,
-                color: colors.onTenantAccent,
-                fontSize: 13,
-              },
-            ]}
-          >
-            {companyInitials}
-          </Text>
+          <CompanyAvatarImage
+            name={companyName}
+            menuIconUrl={organization?.menuIconUrl}
+            logoUrl={organization?.logoUrl}
+            size={36}
+            textColor={colors.onTenantAccent}
+            fontSize={13}
+          />
         </View>
 
         <View style={styles.orgTextColumn}>

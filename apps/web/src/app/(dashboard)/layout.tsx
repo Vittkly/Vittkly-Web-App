@@ -39,6 +39,9 @@ export default async function TenantDashboardLayout({
         }
         userName={context.user.nombre}
         profileName={context.activeProfile.nombre}
+        logoUrl={context.activeOrganization.logoRuta}
+        menuIconUrl={context.activeOrganization.iconoMenuRuta}
+        brandColor={context.activeOrganization.colorMarca}
       />
     );
   }
@@ -62,6 +65,10 @@ export default async function TenantDashboardLayout({
         user={context.user}
         activeProfile={context.activeProfile}
         initialCollapsed={initialCollapsed}
+        logoUrl={context.activeOrganization.logoRuta}
+        menuIconUrl={context.activeOrganization.iconoMenuRuta}
+        brandColor={context.activeOrganization.colorMarca}
+        menuAcordeon={context.activeOrganization.menuAcordeon}
       />
 
       <main className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto pb-20 lg:pb-0">

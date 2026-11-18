@@ -451,6 +451,7 @@ export interface Database {
           ruc: string | null;
           direccion: string | null;
           logo_ruta: string | null;
+          icono_menu_ruta: string | null;
           color_marca: string | null;
           modelo_operacion: string;
           rubro: string | null;
@@ -473,6 +474,7 @@ export interface Database {
           ruc?: string | null;
           direccion?: string | null;
           logo_ruta?: string | null;
+          icono_menu_ruta?: string | null;
           color_marca?: string | null;
           modelo_operacion?: string;
           rubro?: string | null;
@@ -495,6 +497,7 @@ export interface Database {
           ruc?: string | null;
           direccion?: string | null;
           logo_ruta?: string | null;
+          icono_menu_ruta?: string | null;
           color_marca?: string | null;
           modelo_operacion?: string;
           rubro?: string | null;
@@ -1821,6 +1824,32 @@ export interface Database {
           p_configuracion?: Json;
         };
         Returns: string;
+      };
+      puede_editar_configuracion_empresa: {
+        Args: {
+          p_empresa_id: string;
+        };
+        Returns: boolean;
+      };
+      actualizar_configuracion_empresa: {
+        Args: {
+          p_empresa_id: string;
+          p_razon_social: string;
+          p_nombre_comercial: string;
+          p_ruc?: string | null;
+          p_direccion?: string | null;
+          p_rubro?: string | null;
+          p_ciudad?: string | null;
+          p_whatsapp_telefono?: string | null;
+          p_encabezado_documento?: string | null;
+          p_pie_pagina_documento?: string | null;
+          p_logo_ruta?: string | null;
+          p_icono_menu_ruta?: string | null;
+          p_color_marca?: string;
+          p_modelo_operacion?: string;
+          p_menu_acordeon?: boolean;
+        };
+        Returns: Json;
       };
     };
     Enums: {

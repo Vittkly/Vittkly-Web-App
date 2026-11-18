@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Sparkles,
 } from "lucide-react";
+import { CompanyAvatar } from "@/components/brand/CompanyAvatar";
 import { VittklyLogo } from "@/components/brand/VittklyLogo";
 import { logoutAction } from "@/features/auth/actions/auth.actions";
 import type { UserOrganization } from "@/features/tenants/types/tenants.types";
@@ -119,9 +120,15 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
           title="Cambiar de empresa"
           aria-label="Cambiar de empresa"
         >
-          <span className="bg-surface-raised border-line text-primary-ink group-hover:border-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold shadow-xs transition-colors">
-            {companyName.slice(0, 2).toUpperCase()}
-          </span>
+          <CompanyAvatar
+            name={companyName}
+            menuIconUrl={activeOrg?.menuIconUrl}
+            logoUrl={activeOrg?.logoUrl}
+            brandColor={activeOrg?.brandColor}
+            size="md"
+            shape="circle"
+            className="group-hover:border-primary"
+          />
           <span className="flex min-w-0 flex-1 flex-col leading-tight">
             <b className="text-ink truncate text-xs font-bold">{companyName}</b>
             <small className="text-ink-muted truncate text-[11px] font-semibold">
@@ -680,9 +687,14 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="bg-surface-raised border-line text-primary-ink flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold">
-                        {org.name.slice(0, 2).toUpperCase()}
-                      </span>
+                      <CompanyAvatar
+                        name={org.name}
+                        menuIconUrl={org.menuIconUrl}
+                        logoUrl={org.logoUrl}
+                        brandColor={org.brandColor}
+                        size="sm"
+                        shape="circle"
+                      />
                       <div className="flex flex-col">
                         <b className="text-xs font-bold">{org.name}</b>
                         <small className="text-ink-muted text-[11px]">

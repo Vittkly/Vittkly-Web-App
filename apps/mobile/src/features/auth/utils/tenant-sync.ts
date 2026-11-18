@@ -11,6 +11,7 @@ export function mapTenantToOrganization(tenant: Tenant): Organization {
     rubro: tenant.rubro,
     ciudad: tenant.ciudad,
     logoUrl: tenant.logoUrl,
+    menuIconUrl: tenant.menuIconUrl,
     brandColor: tenant.brandColor,
     role: tenant.role,
     roleName: tenant.perfilNombre ?? null,

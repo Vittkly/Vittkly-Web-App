@@ -25,6 +25,7 @@ import {
   type CanonicalModuleCode,
   type ProcessKey,
 } from "@vittkly/shared";
+import { CompanyAvatar } from "@/components/brand/CompanyAvatar";
 import { VittklyLogo } from "@/components/brand/VittklyLogo";
 import { logoutAction } from "@/features/auth/actions/auth.actions";
 import { selectOrganizationAction } from "@/features/tenants/actions/tenants.actions";
@@ -52,6 +53,10 @@ export interface DashboardSidebarProps {
   };
   initialCollapsed?: boolean;
   pendingInvitationsCount?: number;
+  logoUrl?: string | null;
+  menuIconUrl?: string | null;
+  brandColor?: string | null;
+  menuAcordeon?: boolean;
 }
 
 export function DashboardSidebar(props: DashboardSidebarProps) {
@@ -67,8 +72,12 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
     activeProfile,
     initialCollapsed = false,
     pendingInvitationsCount = 0,
+    logoUrl = null,
+    menuIconUrl = null,
+    brandColor = null,
+    menuAcordeon = false,
   } = props;
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   const [openGroups, setOpenGroups] = useState<
     Record<Exclude<ProcessKey, "root">, boolean>
@@ -105,7 +114,20 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
   };
 
   const toggleGroup = (key: Exclude<ProcessKey, "root">) => {
-    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+    setOpenGroups((prev) => {
+      const nextOpen = !prev[key];
+      if (menuAcordeon && nextOpen) {
+        return {
+          ventas: false,
+          operacion: false,
+          finanzas: false,
+          equipo: false,
+          crecimiento: false,
+          [key]: true,
+        };
+      }
+      return { ...prev, [key]: nextOpen };
+    });
   };
 
   const expandAll = () => {
@@ -235,12 +257,19 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                 isExpanded ? "gap-2.5 p-1.5" : "justify-center p-1"
               }`}
             >
-              <span className="bg-surface-raised border-line text-primary-ink group-hover:border-primary relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold shadow-xs transition-colors">
-                {companyName.slice(0, 2).toUpperCase()}
+              <CompanyAvatar
+                name={companyName}
+                menuIconUrl={menuIconUrl || activeOrg?.menuIconUrl}
+                logoUrl={logoUrl || activeOrg?.logoUrl}
+                brandColor={brandColor || activeOrg?.brandColor}
+                size="md"
+                shape="circle"
+                className="group-hover:border-primary"
+              >
                 {pendingInvitationsCount > 0 && !isExpanded && (
                   <span className="bg-primary border-surface absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2" />
                 )}
-              </span>
+              </CompanyAvatar>
               <span
                 className={
                   isExpanded
@@ -280,13 +309,23 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                           <button
                             type="submit"
                             onClick={() => setShowOrgMenu(false)}
-                            className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
+                            className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
                               isCurrentOrg
                                 ? "bg-primary-soft/60 text-ink font-semibold"
                                 : "text-ink hover:bg-surface-sunken"
                             }`}
                           >
-                            <span className="truncate">{org.name}</span>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <CompanyAvatar
+                                name={org.name}
+                                menuIconUrl={org.menuIconUrl}
+                                logoUrl={org.logoUrl}
+                                brandColor={org.brandColor}
+                                size="xs"
+                                shape="circle"
+                              />
+                              <span className="truncate">{org.name}</span>
+                            </span>
                             {isCurrentOrg && (
                               <Check className="text-primary h-3.5 w-3.5 shrink-0" />
                             )}
@@ -692,9 +731,14 @@ export function DashboardSidebar(props: DashboardSidebarProps) {
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="bg-surface-raised border-line text-primary-ink flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold">
-                        {org.name.slice(0, 2).toUpperCase()}
-                      </span>
+                      <CompanyAvatar
+                        name={org.name}
+                        menuIconUrl={org.menuIconUrl}
+                        logoUrl={org.logoUrl}
+                        brandColor={org.brandColor}
+                        size="sm"
+                        shape="circle"
+                      />
                       <div className="flex flex-col">
                         <b className="text-xs font-bold">{org.name}</b>
                         <small className="text-ink-muted text-[11px]">
