@@ -47,9 +47,9 @@ export default async function SettingsLayout({
       */}
       <div className="flex flex-1 flex-col lg:flex-row">
         <SettingsSecondaryNav />
-        <main className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto">
+        <div className="bg-surface flex min-w-0 flex-1 flex-col overflow-y-auto">
           {children}
-        </main>
+        </div>
       </div>
     </div>
   );

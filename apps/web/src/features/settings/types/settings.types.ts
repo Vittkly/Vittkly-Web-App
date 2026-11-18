@@ -569,3 +569,31 @@ export const SETTINGS_SUBMODULES: SettingsSubmodule[] = [
       "Suscripción activa, licencias de técnicos, almacenamiento y facturación SaaS.",
   },
 ];
+
+export type UsersProfilesTabId =
+  | "personas"
+  | "invitaciones-salidas"
+  | "perfiles"
+  | "equipos"
+  | "aprobaciones"
+  | "actividad";
+
+export const USERS_PROFILES_TABS: {
+  id: UsersProfilesTabId;
+  label: string;
+  hasIcon?: boolean;
+}[] = [
+  { id: "personas", label: "Personas", hasIcon: true },
+  { id: "invitaciones-salidas", label: "Invitaciones y salidas" },
+  { id: "perfiles", label: "Perfiles y permisos" },
+  { id: "equipos", label: "Equipos" },
+  { id: "aprobaciones", label: "Aprobaciones" },
+  { id: "actividad", label: "Actividad" },
+];
+
+export function parseUsersProfilesTab(rawTab?: string): UsersProfilesTabId {
+  if (rawTab && USERS_PROFILES_TABS.some((tab) => tab.id === rawTab)) {
+    return rawTab as UsersProfilesTabId;
+  }
+  return "personas";
+}

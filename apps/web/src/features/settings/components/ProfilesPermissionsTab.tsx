@@ -110,7 +110,7 @@ export function ProfilesPermissionsTab({
             className="bg-primary text-on-primary hover:bg-primary-hover inline-flex shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-xl px-4 py-2.5 text-xs font-bold shadow-xs transition-colors sm:self-auto"
           >
             <Plus className="h-4 w-4" />
-            <span>+ Crear perfil</span>
+            <span>Crear perfil</span>
           </button>
         </div>
 
@@ -370,7 +370,7 @@ export function ProfilesPermissionsTab({
 
                     <td className="px-3 py-3 text-center">
                       {cfg.descargar_archivos ? (
-                        <span className="text-kleanly font-mono text-sm font-bold">
+                        <span className="text-success-ink font-mono text-sm font-bold">
                           ✓
                         </span>
                       ) : (
@@ -382,7 +382,7 @@ export function ProfilesPermissionsTab({
 
                     <td className="px-3 py-3 text-center">
                       {cfg.aprueba_solicitudes ? (
-                        <span className="text-kleanly font-mono text-sm font-bold">
+                        <span className="text-success-ink font-mono text-sm font-bold">
                           ✓
                         </span>
                       ) : (
@@ -401,7 +401,7 @@ export function ProfilesPermissionsTab({
         {/* Leyenda explicativa al pie de la tabla */}
         <div className="text-ink-muted flex flex-wrap items-center gap-4 pt-1 text-[11px]">
           <span className="inline-flex items-center gap-1.5">
-            <b className="text-kleanly font-mono text-xs">✓</b>
+            <b className="text-success-ink font-mono text-xs">✓</b>
             <span>Todos los registros de la empresa</span>
           </span>
           <span className="inline-flex items-center gap-1.5">

@@ -173,7 +173,7 @@ export function InvitationsExitsTab({
                             </span>
                           ) : inv.estado === "aceptada" ||
                             inv.estado === "usada" ? (
-                            <span className="bg-success-soft text-kleanly border-success/30 rounded-pill inline-flex w-fit items-center gap-1 border px-2.5 py-0.5 text-[11px] font-bold">
+                            <span className="bg-success-soft text-success-ink border-success/30 rounded-pill inline-flex w-fit items-center gap-1 border px-2.5 py-0.5 text-[11px] font-bold">
                               Aceptada
                             </span>
                           ) : (
@@ -315,7 +315,7 @@ export function InvitationsExitsTab({
                             Pendiente
                           </span>
                         ) : req.estado === "aprobada" ? (
-                          <span className="bg-success-soft text-kleanly border-success/30 rounded-pill inline-flex items-center border px-2.5 py-0.5 text-[11px] font-bold">
+                          <span className="bg-success-soft text-success-ink border-success/30 rounded-pill inline-flex items-center border px-2.5 py-0.5 text-[11px] font-bold">
                             Aprobada · Desvinculada
                           </span>
                         ) : (

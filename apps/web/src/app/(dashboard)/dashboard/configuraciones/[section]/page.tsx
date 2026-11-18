@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { resolveActiveOrganization } from "@/features/tenants/services/tenants.service";
 import {
   getUsersProfilesBundle,
+  parseUsersProfilesTab,
   UsersProfilesView,
   SettingsPlaceholderCanvas,
   SETTINGS_SUBMODULES,
@@ -13,12 +14,17 @@ interface SettingsSectionPageProps {
   params: Promise<{
     section: string;
   }>;
+  searchParams?: Promise<{
+    tab?: string;
+  }>;
 }
 
 export default async function SettingsSectionPage({
   params,
+  searchParams,
 }: SettingsSectionPageProps) {
   const { section: sectionSlug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const { userId, active } = await resolveActiveOrganization();
 
   if (!userId) redirect("/login");
@@ -27,7 +33,13 @@ export default async function SettingsSectionPage({
   // 1. MÓDULO ACTIVO: Usuarios y perfiles
   if (sectionSlug === "usuarios-perfiles") {
     const bundle = await getUsersProfilesBundle(active.id);
-    return <UsersProfilesView bundle={bundle} companyName={active.name} />;
+    return (
+      <UsersProfilesView
+        bundle={bundle}
+        companyName={active.name}
+        initialTab={parseUsersProfilesTab(resolvedSearchParams?.tab)}
+      />
+    );
   }
 
   // 2. RESTO DE MÓDULOS: Cascarones limpios "Próximamente disponible"
