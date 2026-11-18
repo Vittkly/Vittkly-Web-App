@@ -257,7 +257,7 @@ export function UsersProfilesTable({
           className="bg-primary text-on-primary hover:bg-primary-hover inline-flex shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-xl px-4 py-2.5 text-xs font-bold shadow-xs transition-colors sm:self-auto"
         >
           <Plus className="h-4 w-4" />
-          <span>+ Agregar persona</span>
+          <span>Agregar persona</span>
         </button>
       </div>
 
@@ -432,7 +432,7 @@ export function UsersProfilesTable({
                                 {member.fullName}
                               </span>
                               {member.isOwner && (
-                                <span className="bg-primary-soft text-primary-ink border-primary/20 py-0.2 rounded-md border px-1.5 text-[10px] font-bold">
+                                <span className="bg-primary-soft text-primary-ink border-primary/20 rounded-md border px-1.5 py-0.5 text-[10px] font-bold">
                                   Tú · Propietario de la cuenta
                                 </span>
                               )}
@@ -535,7 +535,7 @@ export function UsersProfilesTable({
                       {/* 4. ESTADO */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         {member.status === "active" ? (
-                          <span className="bg-success-soft text-kleanly border-success/30 rounded-pill inline-flex items-center gap-1.5 border px-2.5 py-0.5 text-xs font-bold">
+                          <span className="bg-success-soft text-success-ink border-success/30 rounded-pill inline-flex items-center gap-1.5 border px-2.5 py-0.5 text-xs font-bold">
                             <span className="bg-success h-1.5 w-1.5 rounded-full" />
                             <span>Activa</span>
                           </span>
@@ -741,10 +741,10 @@ export function UsersProfilesTable({
                 type="button"
                 disabled={isConfirmLoading}
                 onClick={() => void handleConfirmAction()}
-                className={`cursor-pointer rounded-xl px-4 py-2 text-xs font-bold text-white transition-colors disabled:opacity-50 ${
+                className={`cursor-pointer rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:opacity-50 ${
                   confirmDialog.type === "unlink"
-                    ? "bg-danger hover:opacity-90"
-                    : "bg-primary hover:bg-primary-hover"
+                    ? "bg-danger text-on-danger hover:opacity-90"
+                    : "bg-primary text-on-primary hover:bg-primary-hover"
                 }`}
               >
                 {isConfirmLoading

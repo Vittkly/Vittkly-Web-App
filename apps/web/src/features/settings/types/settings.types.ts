@@ -183,14 +183,104 @@ export interface CompanyProfile {
   configuracion: ProfileConfiguration;
 }
 
+export const AUDIT_ACTION_EVENTS = [
+  "crear",
+  "editar",
+  "borrar",
+  "invitar",
+  "reenviar",
+  "aceptar",
+  "aprobar",
+  "rechazar",
+  "suspender",
+  "reactivar",
+  "anular",
+  "desvincular",
+  "vencer",
+  "solicitar",
+  "acceso",
+] as const;
+
+export type CanonicalAuditActionEvent = (typeof AUDIT_ACTION_EVENTS)[number];
+export type AuditActionEvent = CanonicalAuditActionEvent | (string & {});
+
+export const AUDIT_ORIGIN_KEYS = [
+  "equipo_accesos",
+  "perfiles_permisos",
+  "invitaciones",
+  "solicitudes_salida",
+  "empresa_configuracion",
+  "operaciones_clientes",
+  "operaciones_ordenes",
+  "operaciones_formularios",
+  "operaciones_tiempo",
+  "soporte",
+  "cuenta_suscripcion",
+  "plataforma",
+] as const;
+
+export type AuditOriginKey = (typeof AUDIT_ORIGIN_KEYS)[number];
+
+export const AUDIT_TIME_RANGES = ["1d", "7d", "15d", "30d", "all"] as const;
+export type AuditTimeRange = (typeof AUDIT_TIME_RANGES)[number];
+
+export const SYSTEM_AUDIT_ACTOR_ID = "__sistema__" as const;
+
+export type AuditBadgeVariant =
+  "success" | "primary" | "warning" | "danger" | "neutral" | "plan";
+
+export interface AuditActionPresentation {
+  tipoEvento: AuditActionEvent;
+  label: string;
+  variant: AuditBadgeVariant;
+  badgeClassName: string;
+  dotClassName: string;
+}
+
+export interface AuditFilterParams {
+  actorId?: string;
+  origen?: string;
+  timeRange: AuditTimeRange;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AuditActorOption {
+  id: string;
+  nombre: string;
+  correo?: string | null;
+}
+
+export interface AuditOriginOption {
+  value: string;
+  label: string;
+}
+
 export interface AuditLogEntry {
   id: number;
   accion: "crear" | "editar" | "borrar" | string;
+  tipoEvento: AuditActionEvent;
   tabla: string;
+  origen: string;
+  origenLabel: string;
   registroId: string | null;
+  entidadNombre: string | null;
+  actorId: string | null;
   actorNombre: string;
+  actorCorreo: string | null;
   resumen: string;
+  cambios: string[];
+  camposModificados?: string[];
   creadoEn: string;
+}
+
+export interface AuditLogsQueryResult {
+  entries: AuditLogEntry[];
+  totalCount: number;
+  hasMore: boolean;
+  actors: AuditActorOption[];
+  origins: AuditOriginOption[];
 }
 
 export interface UsersProfilesBundle {
@@ -199,6 +289,10 @@ export interface UsersProfilesBundle {
   invitations: InvitationRecord[];
   exitRequests: ExitRequestRecord[];
   auditLogs: AuditLogEntry[];
+  auditTotalCount?: number;
+  auditHasMore?: boolean;
+  auditActors?: AuditActorOption[];
+  auditOrigins?: AuditOriginOption[];
   activePlanCode: PlanCode;
   allowedPlanModules: CanonicalModuleCode[];
 }
@@ -496,3 +590,31 @@ export const SETTINGS_SUBMODULES: SettingsSubmodule[] = [
       "Suscripción activa, licencias de técnicos, almacenamiento y facturación SaaS.",
   },
 ];
+
+export type UsersProfilesTabId =
+  | "personas"
+  | "invitaciones-salidas"
+  | "perfiles"
+  | "equipos"
+  | "aprobaciones"
+  | "actividad";
+
+export const USERS_PROFILES_TABS: {
+  id: UsersProfilesTabId;
+  label: string;
+  hasIcon?: boolean;
+}[] = [
+  { id: "personas", label: "Personas", hasIcon: true },
+  { id: "invitaciones-salidas", label: "Invitaciones y salidas" },
+  { id: "perfiles", label: "Perfiles y permisos" },
+  { id: "equipos", label: "Equipos" },
+  { id: "aprobaciones", label: "Aprobaciones" },
+  { id: "actividad", label: "Actividad" },
+];
+
+export function parseUsersProfilesTab(rawTab?: string): UsersProfilesTabId {
+  if (rawTab && USERS_PROFILES_TABS.some((tab) => tab.id === rawTab)) {
+    return rawTab as UsersProfilesTabId;
+  }
+  return "personas";
+}

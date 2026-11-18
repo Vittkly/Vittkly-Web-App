@@ -5,6 +5,7 @@ import {
   CompanySettingsForm,
   getCompanySettingsBundle,
   getUsersProfilesBundle,
+  parseUsersProfilesTab,
   UsersProfilesView,
   SettingsPlaceholderCanvas,
   SETTINGS_SUBMODULES,
@@ -15,12 +16,17 @@ interface SettingsSectionPageProps {
   params: Promise<{
     section: string;
   }>;
+  searchParams?: Promise<{
+    tab?: string;
+  }>;
 }
 
 export default async function SettingsSectionPage({
   params,
+  searchParams,
 }: SettingsSectionPageProps) {
   const { section: sectionSlug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const { userId, active } = await resolveActiveOrganization();
 
   if (!userId) redirect("/login");
@@ -40,7 +46,13 @@ export default async function SettingsSectionPage({
   // 2. MÓDULO ACTIVO: Usuarios y perfiles (CFG-USR)
   if (sectionSlug === "usuarios-perfiles") {
     const bundle = await getUsersProfilesBundle(active.id);
-    return <UsersProfilesView bundle={bundle} companyName={active.name} />;
+    return (
+      <UsersProfilesView
+        bundle={bundle}
+        companyName={active.name}
+        initialTab={parseUsersProfilesTab(resolvedSearchParams?.tab)}
+      />
+    );
   }
 
   // 2. RESTO DE MÓDULOS: Cascarones limpios "Próximamente disponible"

@@ -62,7 +62,7 @@ export function Badge({
     },
     tenant: {
       badge:
-        "bg-tenant-accent-soft text-on-tenant-accent border border-tenant-accent/30",
+        "bg-tenant-accent-soft text-success-ink border border-tenant-accent/30",
       dot: "bg-tenant-accent",
     },
     outline: {
@@ -70,8 +70,9 @@ export function Badge({
       dot: "bg-line-strong",
     },
     plan: {
-      badge: "bg-primary-ink text-white border border-transparent shadow-xs",
-      dot: "bg-white",
+      badge:
+        "bg-primary-ink text-on-primary border border-transparent shadow-xs",
+      dot: "bg-on-primary",
     },
     role: {
       badge: "bg-surface-raised text-ink border border-line-strong shadow-xs",

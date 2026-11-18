@@ -680,7 +680,7 @@ export function ProfileFormModal({
             <button
               type="submit"
               disabled={isSaving}
-              className="bg-primary hover:bg-primary-hover cursor-pointer rounded-xl px-4 py-2 text-xs font-bold text-white transition-colors disabled:opacity-50"
+              className="bg-primary text-on-primary hover:bg-primary-hover cursor-pointer rounded-xl px-4 py-2 text-xs font-bold transition-colors disabled:opacity-50"
             >
               {isSaving ? "Guardando perfil..." : "Guardar perfil"}
             </button>
