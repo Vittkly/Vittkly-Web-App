@@ -1441,13 +1441,10 @@ grant execute on function public.guardar_perfil_empresa(uuid, uuid, text, text, 
 
 -- ---------------------------------------------------------------------
 -- 8. Cobertura de triggers auditar() en tablas activas (23 auditadas;
---    intentos_ingreso y auditoria excluidas intencionalmente)
+--    intentos_ingreso y auditoria excluidas intencionalmente).
+--    Usa to_regclass para verificar existencia previa de cada tabla
+--    y evitar errores si algunas tablas de etapas posteriores no existen aún.
 -- ---------------------------------------------------------------------
-drop trigger if exists auditar on public.verificaciones;
-create trigger auditar
-  after insert or update or delete on public.verificaciones
-  for each row execute function public.auditar();
-
 do $$
 declare
   v_tabla text;
@@ -1478,20 +1475,22 @@ declare
   ];
 begin
   foreach v_tabla in array v_tablas loop
-    if not exists (
-      select 1
-        from pg_trigger t
-        join pg_class c on c.oid = t.tgrelid
-        join pg_namespace n on n.oid = c.relnamespace
-       where n.nspname = 'public'
-         and c.relname = v_tabla
-         and t.tgname = 'auditar'
-         and not t.tgisinternal
-    ) then
-      execute format(
-        'create trigger auditar after insert or update or delete on public.%I for each row execute function public.auditar();',
-        v_tabla
-      );
+    if to_regclass(format('public.%I', v_tabla)) is not null then
+      if not exists (
+        select 1
+          from pg_trigger t
+          join pg_class c on c.oid = t.tgrelid
+          join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'public'
+           and c.relname = v_tabla
+           and t.tgname = 'auditar'
+           and not t.tgisinternal
+      ) then
+        execute format(
+          'create trigger auditar after insert or update or delete on public.%I for each row execute function public.auditar();',
+          v_tabla
+        );
+      end if;
     end if;
   end loop;
 end $$;
@@ -1527,23 +1526,26 @@ create policy "staff ve auditoria"
   using (public.es_staff('admin'));
 
 -- Completar FORCE ROW LEVEL SECURITY en tablas Etapa 0 restantes (25/25)
-alter table public.planes                enable row level security;
-alter table public.planes                force row level security;
-alter table public.modulos               enable row level security;
-alter table public.modulos               force row level security;
-alter table public.plan_modulos          enable row level security;
-alter table public.plan_modulos          force row level security;
-alter table public.permisos              enable row level security;
-alter table public.permisos              force row level security;
-alter table public.staff_plataforma      enable row level security;
-alter table public.staff_plataforma      force row level security;
-alter table public.cuentas               enable row level security;
-alter table public.cuentas               force row level security;
-alter table public.suscripciones         enable row level security;
-alter table public.suscripciones         force row level security;
-alter table public.empresas              enable row level security;
-alter table public.empresas              force row level security;
-alter table public.empresa_configuracion enable row level security;
-alter table public.empresa_configuracion force row level security;
-alter table public.intentos_ingreso      enable row level security;
-alter table public.intentos_ingreso      force row level security;
+do $$
+declare
+  v_tabla text;
+  v_tablas text[] := array[
+    'planes',
+    'modulos',
+    'plan_modulos',
+    'permisos',
+    'staff_plataforma',
+    'cuentas',
+    'suscripciones',
+    'empresas',
+    'empresa_configuracion',
+    'intentos_ingreso'
+  ];
+begin
+  foreach v_tabla in array v_tablas loop
+    if to_regclass(format('public.%I', v_tabla)) is not null then
+      execute format('alter table public.%I enable row level security;', v_tabla);
+      execute format('alter table public.%I force row level security;', v_tabla);
+    end if;
+  end loop;
+end $$;

@@ -141,108 +141,7 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
           isCollapsed ? "p-2 lg:w-20" : "p-3 sm:p-3.5 lg:w-64"
         } shrink-0 flex-col gap-2.5 border-r transition-all duration-200 lg:min-h-dvh`}
       >
-      {/* 1. Selector de Empresa / Identidad (side-brand) */}
-      <div className="flex flex-col gap-2 p-1">
-        <Link
-          href="/select-org"
-          className="group hover:bg-surface-raised flex min-h-[46px] w-full cursor-pointer items-center gap-2.5 rounded-xl p-1.5 transition-colors"
-          title="Cambiar de empresa"
-          aria-label="Cambiar de empresa"
-        >
-          <CompanyAvatar
-            name={companyName}
-            menuIconUrl={activeOrg?.menuIconUrl}
-            logoUrl={activeOrg?.logoUrl}
-            brandColor={activeOrg?.brandColor}
-            size="md"
-            shape="circle"
-            className="group-hover:border-primary"
-          />
-          <span className="flex min-w-0 flex-1 flex-col leading-tight">
-            <b className="text-ink truncate text-xs font-bold">{companyName}</b>
-            <small className="text-ink-muted truncate text-[11px] font-semibold">
-              Perfil: {roleName}
-            </small>
-          </span>
-          <ChevronsUpDown className="text-ink-muted group-hover:text-ink h-4 w-4 shrink-0 transition-colors" />
-        </Link>
-
-        {/* Botón "+ Crear" con Menú Dropdown Rápido */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowCrearMenu((prev) => !prev)}
-            aria-expanded={showCrearMenu}
-            className="bg-primary text-on-primary hover:bg-primary-hover flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl text-xs font-bold shadow-xs transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Crear</span>
-          </button>
-
-          {showCrearMenu && (
-            <div className="border-line bg-surface-raised shadow-2 animate-sc-in absolute top-11 right-0 left-0 z-40 flex flex-col gap-0.5 rounded-xl border p-1.5">
-              <Link
-                href="/dashboard/cotizaciones"
-                onClick={() => setShowCrearMenu(false)}
-                className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
-              >
-                <FileText className="text-primary-ink h-3.5 w-3.5" />
-                <span>Cotización</span>
-              </Link>
-              <Link
-                href="/dashboard/clientes"
-                onClick={() => setShowCrearMenu(false)}
-                className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
-              >
-                <UserCheck className="text-primary-ink h-3.5 w-3.5" />
-                <span>Cliente</span>
-              </Link>
-              <Link
-                href="/dashboard/inventario"
-                onClick={() => setShowCrearMenu(false)}
-                className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
-              >
-                <PackageCheck className="text-primary-ink h-3.5 w-3.5" />
-                <span>Movimiento de inventario</span>
-              </Link>
-              <Link
-                href="/dashboard/academia"
-                onClick={() => setShowCrearMenu(false)}
-                className="text-ink hover:bg-surface-sunken flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold transition-colors"
-              >
-                <BookOpen className="text-primary-ink h-3.5 w-3.5" />
-                <span>Artículo de la Biblioteca</span>
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 2. Herramientas de Navegación: Expandir / Plegar todo */}
-      <div className="-my-1 flex justify-end gap-1 px-1">
-        <button
-          type="button"
-          onClick={expandAll}
-          className="text-primary-ink cursor-pointer rounded-sm p-1 text-[10px] font-bold hover:underline"
-        >
-          Expandir todo
-        </button>
-        <span className="text-line-strong text-[10px] select-none">•</span>
-        <button
-          type="button"
-          onClick={collapseAll}
-          className="text-primary-ink cursor-pointer rounded-sm p-1 text-[10px] font-bold hover:underline"
-        >
-          Plegar todo
-        </button>
-      </div>
-
-      {/* 3. Menú de Secciones y Módulos */}
-      <nav
-        className="flex flex-1 flex-col gap-1 overflow-y-auto px-1 py-1"
-        role="navigation"
-        aria-label="Secciones"
-      >
+        {/* 1. Selector de Empresa / Identidad (side-brand) */}
         <div className="flex flex-col gap-2 p-1">
           <Link
             href="/select-org"
@@ -250,9 +149,15 @@ export function ModulesSidebar(props: ModulesSidebarProps) {
             title="Cambiar de empresa"
             aria-label="Cambiar de empresa"
           >
-            <span className="bg-surface-raised border-line text-primary-ink group-hover:border-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold shadow-xs transition-colors">
-              {companyName.slice(0, 2).toUpperCase()}
-            </span>
+            <CompanyAvatar
+              name={companyName}
+              menuIconUrl={activeOrg?.menuIconUrl}
+              logoUrl={activeOrg?.logoUrl}
+              brandColor={activeOrg?.brandColor}
+              size="md"
+              shape="circle"
+              className="group-hover:border-primary"
+            />
             <span className="flex min-w-0 flex-1 flex-col leading-tight">
               <b className="text-ink truncate text-xs font-bold">
                 {companyName}
