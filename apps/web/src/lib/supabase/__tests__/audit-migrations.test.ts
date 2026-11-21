@@ -223,6 +223,40 @@ function extractFunctionBody(sql: string, fnName: string): string {
   return match[1];
 }
 
+function extractGuardedTableLoop(
+  sql: string,
+  bodyPattern: RegExp,
+): { block: string; tables: Set<string> } {
+  const blocks = [...sql.matchAll(/do\s+\$\$([\s\S]*?)end\s+\$\$;/gi)].map(
+    (m) => m[1],
+  );
+  const block = blocks.find((candidate) => bodyPattern.test(candidate));
+  if (!block) {
+    throw new Error(`Guarded DO block not found for pattern ${bodyPattern}`);
+  }
+  if (
+    !/to_regclass\(\s*format\(\s*'public\.%I',\s*v_tabla\s*\)\s*\)\s+is\s+not\s+null/i.test(
+      block,
+    )
+  ) {
+    throw new Error(
+      `Guarded DO block misses to_regclass check: ${bodyPattern}`,
+    );
+  }
+  const arrayMatch = block.match(
+    /v_tablas\s+text\[\]\s*:=\s*array\[([\s\S]*?)\];/i,
+  );
+  if (!arrayMatch) {
+    throw new Error(`v_tablas array not found in block: ${bodyPattern}`);
+  }
+  const tables = new Set(
+    [...arrayMatch[1].matchAll(/'([a-z0-9_]+)'/gi)].map((m) =>
+      m[1].toLowerCase(),
+    ),
+  );
+  return { block, tables };
+}
+
 const repoRoot = findRepoRoot();
 const migrationsDir = path.join(repoRoot, "supabase", "migrations");
 const migrationFiles = fs
@@ -374,6 +408,15 @@ describe("M1 RLS FORCE, Immutability & Select Policies", () => {
   });
 
   it("enables and forces RLS on all 25 public tables across the migration set", () => {
+    const { block: forceRlsDoBlock, tables: dynamicForceRlsTables } =
+      extractGuardedTableLoop(
+        vit65Sql,
+        /alter\s+table\s+public\.%I\s+force\s+row\s+level\s+security/i,
+      );
+    expect(forceRlsDoBlock).toMatch(
+      /alter\s+table\s+public\.%I\s+enable\s+row\s+level\s+security/i,
+    );
+
     for (const table of ALL_PUBLIC_TABLES) {
       expect(allMigrationsSql).toMatch(
         new RegExp(
@@ -381,12 +424,11 @@ describe("M1 RLS FORCE, Immutability & Select Policies", () => {
           "i",
         ),
       );
-      expect(allMigrationsSql).toMatch(
-        new RegExp(
-          `alter\\s+table\\s+public\\.${table}\\s+force\\s+row\\s+level\\s+security`,
-          "i",
-        ),
-      );
+      const hasStaticForce = new RegExp(
+        `alter\\s+table\\s+public\\.${table}\\s+force\\s+row\\s+level\\s+security`,
+        "i",
+      ).test(allMigrationsSql);
+      expect(hasStaticForce || dynamicForceRlsTables.has(table)).toBe(true);
     }
   });
 
@@ -539,20 +581,18 @@ describe("M1 public.auditar(), Redaction, Noise Suppression & Trigger Coverage",
   });
 
   it("ensures auditar triggers cover all 23 auditable tables while excluding intentos_ingreso and auditoria", () => {
-    expect(vit65Sql).toMatch(
-      /create\s+trigger\s+auditar[^;]*on\s+public\.verificaciones[^;]*execute\s+function\s+public\.auditar\(\)/i,
-    );
-    const tablasListMatch = vit65Sql.match(
-      /v_tablas\s+text\[\]\s*:=\s*array\[([\s\S]*?)\];/i,
-    );
-    expect(tablasListMatch).not.toBeNull();
-    const tablasList = tablasListMatch![1];
+    const { block: triggerDoBlock, tables: dynamicTriggerTables } =
+      extractGuardedTableLoop(
+        vit65Sql,
+        /create\s+trigger\s+auditar\s+after\s+insert\s+or\s+update\s+or\s+delete\s+on\s+public\.%I\s+for\s+each\s+row\s+execute\s+function\s+public\.auditar\(\)/i,
+      );
+    expect(triggerDoBlock).toMatch(/t\.tgname\s*=\s*'auditar'/i);
 
     for (const table of AUDITED_TABLES) {
-      expect(tablasList).toContain(`'${table}'`);
+      expect(dynamicTriggerTables.has(table)).toBe(true);
     }
-    expect(tablasList).not.toContain("'intentos_ingreso'");
-    expect(tablasList).not.toContain("'auditoria'");
+    expect(dynamicTriggerTables.has("intentos_ingreso")).toBe(false);
+    expect(dynamicTriggerTables.has("auditoria")).toBe(false);
     expect(allMigrationsSql).not.toMatch(
       /create\s+trigger\s+auditar[^;]*on\s+public\.intentos_ingreso\b/i,
     );
