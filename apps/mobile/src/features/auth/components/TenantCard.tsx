@@ -1,11 +1,12 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CompanyAvatarImage } from '@/components/ui/CompanyAvatarImage';
 import { CheckIcon, CheckSquareIcon, ForwardIcon } from '@/components/icons';
 import { tokens, useTheme } from '@/theme';
 
 import type { Tenant } from '../types/auth.types';
-import { formatMembershipRoleLabel, getInitials } from '../utils/profile';
+import { formatMembershipRoleLabel } from '../utils/profile';
 
 export interface TenantCardProps {
   tenant: Tenant;
@@ -36,7 +37,7 @@ export function TenantCard({
     esPropietario: tenant.esPropietario,
   });
   const locationMeta = [tenant.rubro, tenant.ciudad].filter(Boolean).join(' · ');
-  const companyInitials = getInitials(tenant.name);
+  const hasAvatarImage = Boolean(tenant.menuIconUrl?.trim() || tenant.logoUrl?.trim());
   const isHighlighted = isSelected || isLastActive;
   const badgeLabel = isLastActive ? 'Última activa' : isSelected ? 'Activa' : null;
 
@@ -73,23 +74,24 @@ export function TenantCard({
             width: AVATAR_SIZE,
             height: AVATAR_SIZE,
             borderRadius: radius.pill,
-            backgroundColor: isHighlighted ? colors.tenantAccent : colors.tenantAccentSoft,
+            backgroundColor: hasAvatarImage
+              ? colors.surfaceRaised
+              : isHighlighted
+                ? colors.tenantAccent
+                : colors.tenantAccentSoft,
             borderColor: isHighlighted ? colors.tenantAccent : colors.line,
             borderWidth: 1,
           },
         ]}
       >
-        <Text
-          style={[
-            typography.bodyStrong,
-            {
-              fontFamily: fontFamilies.bold,
-              color: isHighlighted ? colors.onTenantAccent : colors.successInk,
-            },
-          ]}
-        >
-          {companyInitials}
-        </Text>
+        <CompanyAvatarImage
+          name={tenant.name}
+          menuIconUrl={tenant.menuIconUrl}
+          logoUrl={tenant.logoUrl}
+          size={AVATAR_SIZE - 4}
+          textColor={isHighlighted ? colors.onTenantAccent : colors.successInk}
+          fontSize={14}
+        />
       </View>
 
       <View style={[styles.infoColumn, { gap: spacing.space1 }]}>

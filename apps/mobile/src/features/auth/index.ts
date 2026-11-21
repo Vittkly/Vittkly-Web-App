@@ -58,3 +58,4 @@ export * from './utils/validators';
 export * from './utils/profile';
 export * from './utils/pin-hash';
 export * from './utils/tenant-sync';
+export * from './utils/oauth';

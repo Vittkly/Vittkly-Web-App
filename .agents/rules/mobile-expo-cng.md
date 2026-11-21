@@ -1,6 +1,7 @@
 ---
+trigger: glob
 description: Reglas de desarrollo para Expo SDK 58, React Native 0.88 y Expo Router en la App Móvil
-globs: ['apps/mobile/**']
+globs: '**/apps/mobile/**'
 ---
 
 # Mobile Architecture: Expo SDK 58 & Continuous Native Generation

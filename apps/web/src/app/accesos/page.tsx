@@ -9,14 +9,31 @@ import { AccesosEmpresaView } from "@/features/tenants/components/AccesosEmpresa
 
 export const dynamic = "force-dynamic";
 
-export default async function AccesosPage() {
-  const [{ userId, organizations, totalActiveCount }, cookieStore] =
-    await Promise.all([getOrganizationOptions(), cookies()]);
+interface AccesosPageProps {
+  searchParams?: Promise<{ stay?: string | string[] }>;
+}
+
+export default async function AccesosPage({ searchParams }: AccesosPageProps) {
+  const [
+    { userId, organizations, totalActiveCount },
+    cookieStore,
+    resolvedSearchParams,
+  ] = await Promise.all([
+    getOrganizationOptions(),
+    cookies(),
+    searchParams ?? Promise.resolve<{ stay?: string | string[] }>({}),
+  ]);
 
   if (!userId) redirect("/login");
 
+  const stayParam = resolvedSearchParams.stay;
+  const shouldStay = Array.isArray(stayParam)
+    ? stayParam.includes("1")
+    : stayParam === "1";
+
   const hasActiveCookie = Boolean(cookieStore.get(ACTIVE_ORG_COOKIE)?.value);
   if (
+    !shouldStay &&
     !hasActiveCookie &&
     totalActiveCount === 1 &&
     organizations.length === 1

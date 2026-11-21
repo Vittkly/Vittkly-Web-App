@@ -12,6 +12,7 @@ import type {
   AuthState,
   BiometricType,
   LoginResult,
+  OAuthProvider,
   SetSessionPayload,
   SignInWithPasswordParams,
   VerifyOtpParams,
@@ -35,6 +36,7 @@ export interface AuthContextValue extends AuthState {
   isPinRequired: boolean;
   setSession: (payload: SetSessionPayload) => Promise<void>;
   loginWithPassword: (params: SignInWithPasswordParams) => Promise<LoginResult>;
+  loginWithOAuth: (provider: OAuthProvider) => Promise<LoginResult | null>;
   requestPasswordReset: (email: string) => Promise<void>;
   verifyRecoveryOtp: (email: string, token: string) => Promise<LoginResult>;
   verifyPasswordResetCode: (email: string, token: string) => Promise<void>;

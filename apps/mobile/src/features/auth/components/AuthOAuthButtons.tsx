@@ -1,11 +1,24 @@
 import React from 'react';
-import { Pressable, StyleProp, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 
 import { GoogleIcon, MicrosoftIcon } from '@/components/icons';
 import { tokens, useTheme } from '@/theme';
 
+import type { OAuthProvider } from '../types/auth.types';
+
 export interface AuthOAuthButtonsProps {
   disabled?: boolean;
+  loadingProvider?: OAuthProvider | null;
+  onGooglePress?: () => void | Promise<void>;
+  onMicrosoftPress?: () => void | Promise<void>;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
@@ -17,11 +30,37 @@ const OAUTH_ICON_SIZE = tokens.spacing.space4 + tokens.spacing.space1 / 2; // 18
  * con divisor superior "o", replicando `.vk-divider` y `.vk-oauth-stack` de `vittkly-campo-app.html`.
  */
 export function AuthOAuthButtons({
-  disabled = true,
+  disabled = false,
+  loadingProvider = null,
+  onGooglePress,
+  onMicrosoftPress,
   style,
   testID = 'auth-oauth-buttons',
 }: AuthOAuthButtonsProps) {
   const { colors, spacing, radius, typography, control } = useTheme();
+
+  const providers: {
+    id: OAuthProvider;
+    testID: string;
+    label: string;
+    onPress?: () => void | Promise<void>;
+    renderIcon: () => React.ReactNode;
+  }[] = [
+    {
+      id: 'google',
+      testID: 'oauth-google-btn',
+      label: 'Continuar con Google',
+      onPress: onGooglePress,
+      renderIcon: () => <GoogleIcon size={OAUTH_ICON_SIZE} />,
+    },
+    {
+      id: 'microsoft',
+      testID: 'oauth-microsoft-btn',
+      label: 'Continuar con Microsoft',
+      onPress: onMicrosoftPress,
+      renderIcon: () => <MicrosoftIcon size={OAUTH_ICON_SIZE} />,
+    },
+  ];
 
   return (
     <View testID={testID} style={[styles.container, { gap: spacing.space2 }, style]}>
@@ -32,49 +71,44 @@ export function AuthOAuthButtons({
       </View>
 
       <View style={[styles.oauthStack, { gap: spacing.space2 }]}>
-        <Pressable
-          testID="oauth-google-btn"
-          accessibilityRole="button"
-          accessibilityLabel="Continuar con Google"
-          accessibilityState={{ disabled }}
-          disabled={disabled}
-          style={[
-            styles.oauthButton,
-            {
-              minHeight: control.lg,
-              borderRadius: radius.pill,
-              backgroundColor: colors.surfaceSunken,
-              paddingHorizontal: spacing.space4,
-              gap: spacing.space2,
-              opacity: disabled ? 0.55 : 1,
-            },
-          ]}
-        >
-          <GoogleIcon size={OAUTH_ICON_SIZE} />
-          <Text style={[typography.button, { color: colors.ink }]}>Continuar con Google</Text>
-        </Pressable>
+        {providers.map((item) => {
+          const isLoading = loadingProvider === item.id;
+          const isDisabled = disabled || loadingProvider !== null || !item.onPress;
 
-        <Pressable
-          testID="oauth-microsoft-btn"
-          accessibilityRole="button"
-          accessibilityLabel="Continuar con Microsoft"
-          accessibilityState={{ disabled }}
-          disabled={disabled}
-          style={[
-            styles.oauthButton,
-            {
-              minHeight: control.lg,
-              borderRadius: radius.pill,
-              backgroundColor: colors.surfaceSunken,
-              paddingHorizontal: spacing.space4,
-              gap: spacing.space2,
-              opacity: disabled ? 0.55 : 1,
-            },
-          ]}
-        >
-          <MicrosoftIcon size={OAUTH_ICON_SIZE} />
-          <Text style={[typography.button, { color: colors.ink }]}>Continuar con Microsoft</Text>
-        </Pressable>
+          return (
+            <Pressable
+              key={item.id}
+              testID={item.testID}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+              accessibilityState={{ disabled: isDisabled, busy: isLoading }}
+              disabled={isDisabled}
+              onPress={() => {
+                if (item.onPress) {
+                  void item.onPress();
+                }
+              }}
+              style={({ pressed }) => [
+                styles.oauthButton,
+                {
+                  minHeight: control.lg,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.surfaceSunken,
+                  paddingHorizontal: spacing.space4,
+                  gap: spacing.space2,
+                  opacity: isDisabled && !isLoading ? 0.55 : pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={colors.ink} />
+              ) : (
+                item.renderIcon()
+              )}
+              <Text style={[typography.button, { color: colors.ink }]}>{item.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );

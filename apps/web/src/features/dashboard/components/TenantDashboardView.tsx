@@ -130,16 +130,33 @@ export function TenantDashboardView({
   canAccessConfig = true,
 }: TenantDashboardViewProps) {
   const [period, setPeriod] = useState<PeriodKey>("mes");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [channel, setChannel] = useState<ChannelKey>("todos");
   const [showTableDetails, setShowTableDetails] = useState(false);
   const [activeChartMonth, setActiveChartMonth] = useState<number | null>(11);
   const [doneAvisos, setDoneAvisos] = useState<Record<number, boolean>>({});
   const [showAllAvisos, setShowAllAvisos] = useState(false);
 
+  const handleSelectPeriod = (next: PeriodKey) => {
+    setPeriod(next);
+    if (next === "custom" && !customFrom && !customTo) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      setCustomFrom(`${year}-${month}-01`);
+      setCustomTo(`${year}-${month}-${day}`);
+    }
+  };
+
   const allowedSet = allowedModules ? new Set(allowedModules) : null;
   const filteredAvisos = allowedSet
     ? AVISOS_ITEMS.filter((av) => allowedSet.has(av.moduleCode))
     : AVISOS_ITEMS;
+  const pendingAvisosCount = filteredAvisos.filter(
+    (av) => av.nivel !== "info" && !doneAvisos[av.id],
+  ).length;
   const canQuotations = !allowedSet || allowedSet.has("cotizaciones");
   const canReports = !allowedSet || allowedSet.has("reportes");
 
@@ -150,6 +167,12 @@ export function TenantDashboardView({
   const visibleAvisos = showAllAvisos
     ? filteredAvisos
     : filteredAvisos.slice(0, 6);
+
+  const [normFrom, normTo] =
+    customFrom && customTo && customFrom > customTo
+      ? [customTo, customFrom]
+      : [customFrom, customTo];
+  const customRangeLabel = `${normFrom || "inicio"} al ${normTo || "hoy"}`;
 
   // Período etiqueta
   const periodDateLabel =
@@ -163,7 +186,7 @@ export function TenantDashboardView({
             ? "Año 2026"
             : period === "todo"
               ? "Histórico completo"
-              : "Rango personalizado";
+              : customRangeLabel;
 
   // Serie de 12 meses para el gráfico "Ventas por mes"
   const monthlySeries = [
@@ -181,8 +204,14 @@ export function TenantDashboardView({
     { ym: "2026-04", label: "Abr", part: 14850, a365: 5900, sales: 31 },
   ];
 
+  const showParticular = channel !== "a365";
+  const showA365 = channel !== "directo";
+
   const maxMonthTotal = Math.max(
-    ...monthlySeries.map((s) => s.part + (channel !== "directo" ? s.a365 : 0)),
+    1,
+    ...monthlySeries.map(
+      (s) => (showParticular ? s.part : 0) + (showA365 ? s.a365 : 0),
+    ),
   );
 
   return (
@@ -197,16 +226,23 @@ export function TenantDashboardView({
               Avisos
             </h2>
             <p className="text-ink-muted text-xs">
-              5 por atender · toca un aviso para ir directo al problema.
+              {pendingAvisosCount > 0
+                ? `${pendingAvisosCount} por atender`
+                : "Sin pendientes urgentes"}{" "}
+              · toca un aviso para ir directo al problema.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAllAvisos((prev) => !prev)}
-            className="border-line bg-surface-sunken hover:bg-surface-raised text-ink shrink-0 cursor-pointer self-start rounded-xl border px-3 py-1.5 text-xs font-bold shadow-2xs transition-colors sm:self-auto"
-          >
-            {showAllAvisos ? "Mostrar 6 avisos" : "Ver los 8 avisos"}
-          </button>
+          {filteredAvisos.length > 6 && (
+            <button
+              type="button"
+              onClick={() => setShowAllAvisos((prev) => !prev)}
+              className="border-line bg-surface-sunken hover:bg-surface-raised text-ink shrink-0 cursor-pointer self-start rounded-xl border px-3 py-1.5 text-xs font-bold shadow-2xs transition-colors sm:self-auto"
+            >
+              {showAllAvisos
+                ? "Mostrar 6 avisos"
+                : `Ver los ${filteredAvisos.length} avisos`}
+            </button>
+          )}
         </div>
 
         {/* Grid Bento de tarjetas de avisos (av-dg) */}
@@ -221,7 +257,7 @@ export function TenantDashboardView({
                   : "border-l-primary";
             const badgeClass =
               av.nivel === "rojo"
-                ? "bg-danger-soft text-danger font-bold"
+                ? "bg-danger-soft text-danger-ink font-bold"
                 : av.nivel === "ambar"
                   ? "bg-warning-soft text-warning-ink font-bold"
                   : "bg-primary-soft text-primary-ink font-bold";
@@ -230,7 +266,7 @@ export function TenantDashboardView({
               <div key={av.id} className="flex items-stretch gap-1.5">
                 <Link
                   href={av.href}
-                  className={`border-line bg-surface hover:bg-surface-sunken flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-l-4 p-3 transition-all ${borderClass} ${
+                  className={`border-line bg-surface hover:bg-surface-sunken flex min-w-0 flex-1 items-start gap-3 rounded-xl border border-l-4 p-3 transition-all sm:items-center ${borderClass} ${
                     isDone ? "opacity-55" : ""
                   }`}
                 >
@@ -244,13 +280,13 @@ export function TenantDashboardView({
                       {av.mod}
                     </em>
                     <b
-                      className={`text-ink truncate text-xs font-bold sm:text-sm ${
+                      className={`text-ink text-xs leading-snug font-bold sm:text-sm ${
                         isDone ? "text-ink-muted line-through" : ""
                       }`}
                     >
                       {av.titulo}
                     </b>
-                    <small className="text-ink-muted line-clamp-1 text-[11px]">
+                    <small className="text-ink-muted text-[11px] leading-snug">
                       {av.detalle}
                     </small>
                   </div>
@@ -302,22 +338,22 @@ export function TenantDashboardView({
 
         <div className="flex flex-col gap-2.5">
           {/* Paso 1 */}
-          <div className="border-line bg-surface flex items-center gap-3 rounded-xl border p-3 transition-colors sm:p-3.5">
-            <span className="bg-success flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold text-white">
+          <div className="border-line bg-surface flex flex-wrap items-start gap-3 rounded-xl border p-3 transition-colors min-[520px]:flex-nowrap min-[520px]:items-center sm:p-3.5">
+            <span className="bg-success text-on-success flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-xs font-bold">
               ✓
             </span>
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 basis-[160px] flex-col">
               <b className="text-ink text-xs font-bold sm:text-sm">
                 Completa los datos de tu empresa
               </b>
-              <small className="text-ink-muted truncate text-[11px]">
+              <small className="text-ink-muted text-[11px] leading-snug">
                 Logo, WhatsApp, RUC y cuenta bancaria para los documentos.
               </small>
             </div>
             {canAccessConfig && (
               <Link
                 href="/dashboard/configuraciones/empresa"
-                className="border-line bg-surface-raised hover:bg-surface-sunken text-ink shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors"
+                className="border-line bg-surface-raised hover:bg-surface-sunken text-ink ml-10 shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors min-[520px]:ml-0"
               >
                 Configurar empresa
               </Link>
@@ -325,22 +361,22 @@ export function TenantDashboardView({
           </div>
 
           {/* Paso 2 */}
-          <div className="border-line bg-surface flex items-center gap-3 rounded-xl border p-3 transition-colors sm:p-3.5">
+          <div className="border-line bg-surface flex flex-wrap items-start gap-3 rounded-xl border p-3 transition-colors min-[520px]:flex-nowrap min-[520px]:items-center sm:p-3.5">
             <span className="border-line bg-surface-sunken text-ink-muted flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold">
               2
             </span>
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 basis-[160px] flex-col">
               <b className="text-ink text-xs font-bold sm:text-sm">
                 Registra tu tarifario o servicios
               </b>
-              <small className="text-ink-muted truncate text-[11px]">
+              <small className="text-ink-muted text-[11px] leading-snug">
                 Crea tus ítems, precios base y unidades para cotizar rápido.
               </small>
             </div>
             {canAccessConfig && (
               <Link
                 href="/dashboard/configuraciones/mix-tarifarios"
-                className="border-line bg-surface-raised hover:bg-surface-sunken text-ink shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors"
+                className="border-line bg-surface-raised hover:bg-surface-sunken text-ink ml-10 shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-colors min-[520px]:ml-0"
               >
                 Ver tarifarios
               </Link>
@@ -348,22 +384,22 @@ export function TenantDashboardView({
           </div>
 
           {/* Paso 3 */}
-          <div className="border-line bg-surface flex items-center gap-3 rounded-xl border p-3 transition-colors sm:p-3.5">
+          <div className="border-line bg-surface flex flex-wrap items-start gap-3 rounded-xl border p-3 transition-colors min-[520px]:flex-nowrap min-[520px]:items-center sm:p-3.5">
             <span className="border-line bg-surface-sunken text-ink-muted flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold">
               3
             </span>
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 basis-[160px] flex-col">
               <b className="text-ink text-xs font-bold sm:text-sm">
                 Crea tu primera cotización
               </b>
-              <small className="text-ink-muted truncate text-[11px]">
+              <small className="text-ink-muted text-[11px] leading-snug">
                 Elige un cliente, agrega servicios y envíala por WhatsApp.
               </small>
             </div>
             {canQuotations && (
               <Link
                 href="/dashboard/cotizaciones"
-                className="bg-primary hover:bg-primary-hover text-on-primary shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold shadow-xs transition-colors"
+                className="bg-primary hover:bg-primary-hover text-on-primary ml-10 shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold shadow-xs transition-colors min-[520px]:ml-0"
               >
                 Nueva cotización
               </Link>
@@ -410,7 +446,8 @@ export function TenantDashboardView({
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setPeriod(p.id as PeriodKey)}
+                aria-pressed={period === p.id}
+                onClick={() => handleSelectPeriod(p.id as PeriodKey)}
                 className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                   period === p.id
                     ? "bg-surface-raised text-primary-ink font-bold shadow-xs"
@@ -422,7 +459,27 @@ export function TenantDashboardView({
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          {period === "custom" && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <input
+                type="date"
+                aria-label="Fecha desde"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="border-line-strong bg-surface text-ink focus-visible:outline-focus rounded-lg border px-2 py-1 text-xs"
+              />
+              <span className="text-ink-muted">a</span>
+              <input
+                type="date"
+                aria-label="Fecha hasta"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="border-line-strong bg-surface text-ink focus-visible:outline-focus rounded-lg border px-2 py-1 text-xs"
+              />
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
             <div className="bg-surface-sunken border-line flex items-center gap-1 rounded-xl border p-1">
               {[
                 { id: "todos", label: "Todos" },
@@ -432,6 +489,7 @@ export function TenantDashboardView({
                 <button
                   key={c.id}
                   type="button"
+                  aria-pressed={channel === c.id}
                   onClick={() => setChannel(c.id as ChannelKey)}
                   className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                     channel === c.id
@@ -444,7 +502,7 @@ export function TenantDashboardView({
               ))}
             </div>
 
-            <span className="text-ink-muted hidden text-xs font-medium whitespace-nowrap sm:inline-block">
+            <span className="text-ink-muted text-xs font-medium whitespace-nowrap">
               📅 {periodDateLabel}
             </span>
           </div>
@@ -491,7 +549,7 @@ export function TenantDashboardView({
           <b className="text-warning-ink font-mono text-xl leading-tight font-extrabold tabular-nums">
             31%
           </b>
-          <small className="text-ink-muted flex flex-wrap items-center gap-1.5 truncate text-[11px]">
+          <small className="text-ink-muted flex flex-wrap items-center gap-1.5 text-[11px]">
             <span>ventas / cotizaciones</span>
             <span className="text-line-strong select-none">•</span>
             <span className="text-danger-ink font-mono font-bold">↓ -59%</span>
@@ -592,14 +650,16 @@ export function TenantDashboardView({
                 Monto vendido por mes de emisión, últimos 12 meses.
               </p>
             </div>
-            <div className="text-ink-muted flex items-center gap-3 text-xs">
-              <span className="inline-flex items-center gap-1.5">
-                <i className="bg-primary inline-block h-2.5 w-2.5 rounded-xs" />
-                <span>Particular</span>
-              </span>
-              {channel !== "directo" && (
+            <div className="text-ink-muted flex flex-wrap items-center gap-3 text-xs">
+              {showParticular && (
                 <span className="inline-flex items-center gap-1.5">
-                  <i className="inline-block h-2.5 w-2.5 rounded-xs bg-[#6a4bc4]" />
+                  <i className="bg-primary inline-block h-2.5 w-2.5 rounded-xs" />
+                  <span>Particular</span>
+                </span>
+              )}
+              {showA365 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="bg-warning ring-warning-ink/30 inline-block h-2.5 w-2.5 rounded-xs ring-1 ring-inset" />
                   <span>A365</span>
                 </span>
               )}
@@ -613,61 +673,87 @@ export function TenantDashboardView({
                 const partHeight = Math.round((s.part / maxMonthTotal) * 100);
                 const a365Height = Math.round((s.a365 / maxMonthTotal) * 100);
                 const isSelected = activeChartMonth === idx;
+                const monthTotal =
+                  (showParticular ? s.part : 0) + (showA365 ? s.a365 : 0);
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={s.ym}
                     onClick={() => setActiveChartMonth(idx)}
-                    className={`flex h-full flex-1 cursor-pointer flex-col items-center justify-end rounded-lg p-1 transition-colors ${
+                    aria-pressed={isSelected}
+                    aria-label={`${s.label} ${s.ym.slice(0, 4)}: S/ ${monthTotal.toLocaleString()}`}
+                    className={`focus-visible:outline-focus flex h-full flex-1 cursor-pointer flex-col items-center justify-end rounded-lg p-1 transition-colors focus-visible:outline-2 ${
                       isSelected
                         ? "bg-surface-sunken"
                         : "hover:bg-surface-sunken/60"
                     }`}
-                    title={`${s.label}: S/ ${(s.part + s.a365).toLocaleString()}`}
+                    title={`${s.label} ${s.ym.slice(0, 4)}: S/ ${monthTotal.toLocaleString()}`}
                   >
-                    <div className="flex h-36 w-full items-end justify-center gap-0.5">
-                      <div
-                        style={{ height: `${partHeight}%` }}
-                        className="bg-primary w-full max-w-[14px] rounded-t-sm transition-all"
-                      />
-                      {channel !== "directo" && (
-                        <div
-                          style={{ height: `${a365Height}%` }}
-                          className="w-full max-w-[14px] rounded-t-sm bg-[#6a4bc4] transition-all"
+                    <span className="flex h-36 w-full items-end justify-center gap-0.5">
+                      {showParticular && (
+                        <span
+                          style={{ height: `${partHeight}%` }}
+                          className="bg-primary block w-full max-w-[14px] rounded-t-sm transition-all"
                         />
                       )}
-                    </div>
-                    <span className="text-ink-muted mt-1 font-mono text-[10px]">
+                      {showA365 && (
+                        <span
+                          style={{ height: `${a365Height}%` }}
+                          className="bg-warning ring-warning-ink/30 block w-full max-w-[14px] rounded-t-sm ring-1 transition-all ring-inset"
+                        />
+                      )}
+                    </span>
+                    <span
+                      className={`text-ink-muted mt-1 font-mono text-[10px] ${
+                        idx % 2 === 1 ? "invisible sm:visible" : ""
+                      }`}
+                    >
                       {s.label}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
 
             {/* Tooltip de mes seleccionado */}
             {activeChartMonth !== null && (
-              <div className="bg-surface-sunken border-line mt-2.5 flex items-center justify-between rounded-xl border p-2 text-xs">
+              <div className="bg-surface-sunken border-line mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border p-2 text-xs">
                 <span className="text-ink font-bold">
-                  {monthlySeries[activeChartMonth].label} 2026:
+                  {monthlySeries[activeChartMonth].label}{" "}
+                  {monthlySeries[activeChartMonth].ym.slice(0, 4)}:
                 </span>
-                <span className="text-ink-muted text-xs">
-                  Particular:{" "}
-                  <b className="text-ink font-mono tabular-nums">
-                    S/ {monthlySeries[activeChartMonth].part.toLocaleString()}
-                  </b>{" "}
-                  · A365:{" "}
-                  <b className="text-ink font-mono tabular-nums">
-                    S/ {monthlySeries[activeChartMonth].a365.toLocaleString()}
-                  </b>{" "}
-                  · Total:{" "}
-                  <b className="text-primary-ink font-mono tabular-nums">
-                    S/{" "}
-                    {(
-                      monthlySeries[activeChartMonth].part +
-                      monthlySeries[activeChartMonth].a365
-                    ).toLocaleString()}
-                  </b>
+                <span className="text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                  {showParticular && (
+                    <span>
+                      Particular:{" "}
+                      <b className="text-ink font-mono tabular-nums">
+                        S/{" "}
+                        {monthlySeries[activeChartMonth].part.toLocaleString()}
+                      </b>
+                    </span>
+                  )}
+                  {showA365 && (
+                    <span>
+                      {showParticular ? "· " : ""}A365:{" "}
+                      <b className="text-ink font-mono tabular-nums">
+                        S/{" "}
+                        {monthlySeries[activeChartMonth].a365.toLocaleString()}
+                      </b>
+                    </span>
+                  )}
+                  <span>
+                    · Total:{" "}
+                    <b className="text-primary-ink font-mono tabular-nums">
+                      S/{" "}
+                      {(
+                        (showParticular
+                          ? monthlySeries[activeChartMonth].part
+                          : 0) +
+                        (showA365 ? monthlySeries[activeChartMonth].a365 : 0)
+                      ).toLocaleString()}
+                    </b>
+                  </span>
                 </span>
               </div>
             )}
@@ -758,7 +844,7 @@ export function TenantDashboardView({
               <div key={f.label} className="flex flex-col gap-1">
                 <div
                   style={{ width: f.width }}
-                  className="bg-primary flex h-7 min-w-[40px] items-center rounded-md px-2.5 font-mono text-xs font-bold text-white transition-all"
+                  className="bg-primary text-on-primary flex h-7 min-w-[40px] items-center rounded-md px-2.5 font-mono text-xs font-bold transition-all"
                 >
                   {f.count}
                 </div>
@@ -932,13 +1018,13 @@ export function TenantDashboardView({
             ].map((t) => (
               <div
                 key={t.client}
-                className="bg-surface-sunken border-line flex items-center justify-between rounded-xl border p-2.5"
+                className="bg-surface-sunken border-line flex items-center justify-between gap-2 rounded-xl border p-2.5"
               >
                 <div className="flex min-w-0 flex-col">
                   <b className="text-ink truncate font-semibold">{t.client}</b>
                   <small className="text-ink-muted text-[11px]">{t.date}</small>
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex shrink-0 flex-col items-end">
                   <span className="bg-warning-soft text-warning-ink border-warning/30 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-bold">
                     {t.margin}
                   </span>
@@ -1095,7 +1181,7 @@ export function TenantDashboardView({
             />
             <div
               style={{ flex: 25 }}
-              className="bg-[#c0567f]"
+              className="bg-vitta ring-primary/25 ring-1 ring-inset"
               title="Deluxe: 25%"
             />
             <div
@@ -1117,7 +1203,7 @@ export function TenantDashboardView({
             </div>
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5">
-                <i className="inline-block h-2.5 w-2.5 rounded-xs bg-[#c0567f]" />
+                <i className="bg-vitta ring-primary/25 inline-block h-2.5 w-2.5 rounded-xs ring-1 ring-inset" />
                 <span>Deluxe</span>
               </span>
               <b className="text-ink font-mono">
@@ -1233,13 +1319,15 @@ export function TenantDashboardView({
                 },
               ].map((row) => (
                 <tr key={row.srv} className="hover:bg-surface-sunken/40">
-                  <td className="text-ink flex items-center gap-1.5 p-2.5 font-medium">
-                    <span>{row.srv}</span>
-                    {row.isA365 && (
-                      <span className="py-0.2 rounded border border-[#6a4bc4]/20 bg-[#6a4bc4]/10 px-1.5 text-[9px] font-bold text-[#6a4bc4]">
-                        A365
-                      </span>
-                    )}
+                  <td className="text-ink p-2.5 font-medium">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span>{row.srv}</span>
+                      {row.isA365 && (
+                        <span className="border-primary/20 bg-primary-soft text-primary-ink rounded border px-1.5 py-0.5 text-[9px] font-bold">
+                          A365
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="text-ink-muted p-2.5">{row.mod}</td>
                   <td className="text-ink p-2.5 text-right font-mono tabular-nums">
@@ -1471,7 +1559,7 @@ export function TenantDashboardView({
               key={`${item.client}-${item.time}`}
               className="flex flex-col justify-between gap-2 py-3 sm:flex-row sm:items-center"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="flex min-w-[70px] flex-col">
                   <b className="text-ink font-semibold">{item.date}</b>
                   <small className="text-ink-muted font-mono">
@@ -1498,8 +1586,8 @@ export function TenantDashboardView({
         </div>
       </div>
 
-      {/* Footer Tecnológico Oficial */}
-      <div className="text-ink-muted mt-4 flex items-center justify-center gap-1.5 py-4 text-xs font-semibold">
+      {/* Footer Tecnológico Oficial (solo móvil; desktop ya lo renderiza el sidebar) */}
+      <div className="border-line text-ink-muted mt-4 flex items-center justify-center gap-1.5 border-t py-4 text-xs font-semibold lg:hidden">
         <span>Con tecnología de</span>
         <VittklyLogo variant="wordmark" height={18} />
       </div>

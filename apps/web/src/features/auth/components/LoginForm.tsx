@@ -1,18 +1,15 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useActionState,
-} from "react";
+import React, { useState, useEffect, useRef, useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Clock, Users, Smartphone, AlertCircle } from "lucide-react";
 import { loginAction } from "@/features/auth/actions/auth.actions";
+import { useOAuthSignIn } from "@/features/auth/hooks/useOAuthSignIn";
 import type { AuthActionState } from "@/features/auth/types/auth.types";
+import { MobileOnlyAccessModal } from "@/features/tenants/components/MobileOnlyAccessModal";
 import { AuthCard } from "./AuthCard";
+import { OAuthProviderIcon } from "./OAuthProviderIcon";
 
 const initialState: AuthActionState = {
   error: null,
@@ -29,39 +26,14 @@ export function LoginForm() {
     loginAction,
     initialState,
   );
+  const { oauthProvider, oauthError, clearOAuthError, handleOAuthSignIn } =
+    useOAuthSignIn({ from: "login" });
   const [showPassword, setShowPassword] = useState(false);
   const [emailValue, setEmailValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
   const [now, setNow] = useState<number>(() => Date.now());
   const [showTecModal, setShowTecModal] = useState(false);
   const tecTriggerRef = useRef<HTMLButtonElement>(null);
-  const tecCloseRef = useRef<HTMLButtonElement>(null);
-
-  const handleCloseTecModal = useCallback(() => {
-    setShowTecModal(false);
-    requestAnimationFrame(() => {
-      tecTriggerRef.current?.focus();
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!showTecModal) return;
-    tecCloseRef.current?.focus();
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        handleCloseTecModal();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [showTecModal, handleCloseTecModal]);
 
   useEffect(() => {
     if (!state.blockedUntil) return;
@@ -162,18 +134,22 @@ export function LoginForm() {
         </div>
       )}
 
-      {!isLocked && state.error && (
+      {!isLocked && (oauthError || state.error) && (
         <div
           role="alert"
           className="bg-danger-soft text-danger-ink border-danger/20 animate-sc-in flex items-start gap-2.5 rounded-xl border p-3 text-xs font-semibold"
         >
           <AlertCircle className="text-danger mt-0.5 h-4 w-4 shrink-0" />
-          <span>{state.error}</span>
+          <span>{oauthError || state.error}</span>
         </div>
       )}
 
       {/* Formulario Principal de Autenticación */}
-      <form action={formAction} className="flex flex-col gap-3">
+      <form
+        action={formAction}
+        onSubmit={() => clearOAuthError()}
+        className="flex flex-col gap-3"
+      >
         {/* Campo Correo */}
         <div className="flex flex-col gap-1">
           <label htmlFor="lgU" className="text-ink-muted text-xs font-semibold">
@@ -266,54 +242,32 @@ export function LoginForm() {
         <button
           type="button"
           aria-label="Continuar con Google"
-          onClick={() => {}}
-          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft focus-visible:outline-focus flex min-h-[56px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 text-[11px] leading-tight font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5 focus-visible:outline-2 sm:min-h-[46px] sm:flex-row sm:gap-1.5 sm:px-2 sm:py-0 sm:text-xs"
+          aria-busy={oauthProvider === "google"}
+          disabled={isPending || isLocked || oauthProvider !== null}
+          onClick={() => void handleOAuthSignIn("google")}
+          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft focus-visible:outline-focus flex min-h-[56px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 text-[11px] leading-tight font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:min-h-[46px] sm:flex-row sm:gap-1.5 sm:px-2 sm:py-0 sm:text-xs"
         >
-          <svg
-            width="17"
-            height="17"
-            viewBox="0 0 48 48"
-            aria-hidden="true"
-            className="shrink-0"
-          >
-            <path
-              fill="#FFC107"
-              d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"
-            />
-            <path
-              fill="#FF3D00"
-              d="m6.3 14.7 6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
-            />
-            <path
-              fill="#4CAF50"
-              d="M24 44c5.5 0 10.5-2.1 14.3-5.6l-6.6-5.6C29.7 34.5 27 35.5 24 35.5c-5.3 0-9.7-3.4-11.3-8.1l-6.5 5C9.6 39.6 16.2 44 24 44z"
-            />
-            <path
-              fill="#1976D2"
-              d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.6 5.6C41.8 35.8 44 30.3 44 24c0-1.3-.1-2.7-.4-3.5z"
-            />
-          </svg>
+          <OAuthProviderIcon
+            provider="google"
+            loading={oauthProvider === "google"}
+            size={17}
+          />
           <span className="text-center">Google</span>
         </button>
 
         <button
           type="button"
           aria-label="Continuar con Microsoft"
-          onClick={() => {}}
-          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft focus-visible:outline-focus flex min-h-[56px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 text-[11px] leading-tight font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5 focus-visible:outline-2 sm:min-h-[46px] sm:flex-row sm:gap-1.5 sm:px-2 sm:py-0 sm:text-xs"
+          aria-busy={oauthProvider === "microsoft"}
+          disabled={isPending || isLocked || oauthProvider !== null}
+          onClick={() => void handleOAuthSignIn("microsoft")}
+          className="border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft focus-visible:outline-focus flex min-h-[56px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 text-[11px] leading-tight font-bold shadow-xs transition-all duration-150 hover:-translate-y-0.5 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:min-h-[46px] sm:flex-row sm:gap-1.5 sm:px-2 sm:py-0 sm:text-xs"
         >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 23 23"
-            aria-hidden="true"
-            className="shrink-0"
-          >
-            <rect x="1" y="1" width="10" height="10" fill="#F25022" />
-            <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
-            <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
-            <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
-          </svg>
+          <OAuthProviderIcon
+            provider="microsoft"
+            loading={oauthProvider === "microsoft"}
+            size={15}
+          />
           <span className="text-center">Microsoft</span>
         </button>
 
@@ -381,158 +335,13 @@ export function LoginForm() {
         </button>
       </div>
 
-      {/* Modal / Dialog Informativo Técnico */}
-      {showTecModal && (
-        <div
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseTecModal();
-          }}
-          className="animate-sc-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tecModalTitle"
-            className="from-hero-from to-hero-to border-hero-ink/15 text-hero-ink shadow-2 relative flex max-h-[calc(100dvh-2rem)] w-full max-w-[420px] flex-col gap-4 overflow-y-auto overscroll-contain rounded-[24px] border bg-gradient-to-br p-5 text-left sm:p-7"
-          >
-            {/* Icono superior del celular */}
-            <div className="border-hero-ink/20 bg-hero-ink/10 text-hero-ink flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border">
-              <Smartphone className="h-6 w-6" aria-hidden="true" />
-            </div>
-
-            {/* Título y descripción principal */}
-            <div className="flex flex-col gap-1.5">
-              <h2
-                id="tecModalTitle"
-                className="text-hero-ink text-[1.25rem] font-bold tracking-tight sm:text-[1.35rem]"
-              >
-                Los técnicos entran por la app
-              </h2>
-              <p className="text-hero-ink/80 text-[0.82rem] leading-relaxed">
-                Si trabajas en campo, registra tus servicios desde el celular:
-                agenda, ruta, fotos y cierre de cada servicio.
-              </p>
-            </div>
-
-            {/* Pasos Numerados */}
-            <div className="my-1 flex flex-col gap-3.5">
-              <div className="flex items-start gap-3.5">
-                <span className="bg-hero-ink/15 text-hero-ink flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                  1
-                </span>
-                <div className="flex flex-col text-xs leading-snug">
-                  <b className="text-hero-ink text-[0.84rem] font-bold">
-                    Descarga la app
-                  </b>
-                  <span className="text-hero-ink/80">
-                    Disponible para iOS y Android.
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5">
-                <span className="bg-hero-ink/15 text-hero-ink flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                  2
-                </span>
-                <div className="flex flex-col text-xs leading-snug">
-                  <b className="text-hero-ink text-[0.84rem] font-bold">
-                    Ingresa con tu celular
-                  </b>
-                  <span className="text-hero-ink/80">
-                    Escribe el número que registró tu administrador.
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5">
-                <span className="bg-hero-ink/15 text-hero-ink flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                  3
-                </span>
-                <div className="flex flex-col text-xs leading-snug">
-                  <b className="text-hero-ink text-[0.84rem] font-bold">
-                    Confirma el código
-                  </b>
-                  <span className="text-hero-ink/80">
-                    Te lo enviamos por WhatsApp.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Contenedores informativos de App Store y Google Play */}
-            <div className="my-0.5 grid grid-cols-1 gap-2.5 min-[360px]:grid-cols-2">
-              <div className="border-hero-ink/20 bg-hero-ink/10 text-hero-ink flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 shadow-xs">
-                <svg
-                  className="h-4 w-4 shrink-0 fill-current"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.8 6.55c.55-.68.92-1.63.82-2.58-.81.03-1.79.54-2.37 1.22-.52.6-.98 1.56-.85 2.49.91.07 1.84-.48 2.4-1.13z" />
-                </svg>
-                <div className="flex flex-col text-left leading-none">
-                  <span className="text-hero-ink/75 text-[10px] font-medium">
-                    Próximamente en
-                  </span>
-                  <span className="mt-0.5 text-xs font-extrabold">
-                    App Store
-                  </span>
-                </div>
-              </div>
-
-              <div className="border-hero-ink/20 bg-hero-ink/10 text-hero-ink flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 shadow-xs">
-                <svg
-                  className="h-4 w-4 shrink-0"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    fill="#EA4335"
-                    d="M3.609 1.814L13.792 12 3.61 22.186a1.458 1.458 0 0 1-.21-.81V2.624c0-.315.075-.589.21-.81z"
-                  />
-                  <path
-                    fill="#FBBC04"
-                    d="M17.33 11.286l-3.538-2.044L13.792 12l3.538 2.758 2.935-1.696c.717-.414.717-1.09 0-1.504l-2.935-1.696z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M3.61 22.186l11.6-10.772 2.122 2.122-11.45 6.612a1.45 1.45 0 0 1-.772.282c-.2 0-.38-.052-.5-.144z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M3.609 1.814c.12-.092.3-.144.5-.144a1.45 1.45 0 0 1 .772.282l11.45 6.612-2.122 2.122L3.61 1.814z"
-                  />
-                </svg>
-                <div className="flex flex-col text-left leading-none">
-                  <span className="text-hero-ink/75 text-[10px] font-medium">
-                    Próximamente en
-                  </span>
-                  <span className="mt-0.5 text-xs font-extrabold">
-                    Google Play
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Texto inferior de configuración web */}
-            <p className="border-hero-ink/15 text-hero-ink/80 border-t pt-3 text-[0.76rem] leading-relaxed">
-              ¿Necesitas ver la agenda en una computadora? Pide a tu
-              administrador que active tu{" "}
-              <b className="text-hero-ink">Acceso web</b> en Configuración →
-              Usuarios.
-            </p>
-
-            {/* Botón inferior Volver a iniciar sesión */}
-            <button
-              ref={tecCloseRef}
-              type="button"
-              onClick={handleCloseTecModal}
-              className="text-hero-ink/90 hover:bg-hero-ink/10 hover:text-hero-ink focus-visible:outline-hero-ink mt-1 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-xs font-bold transition-colors focus-visible:outline-2"
-            >
-              <span>← Volver a iniciar sesión</span>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Modal informativo de acceso exclusivo móvil */}
+      <MobileOnlyAccessModal
+        isOpen={showTecModal}
+        mode="login"
+        onClose={() => setShowTecModal(false)}
+        returnFocusRef={tecTriggerRef}
+      />
 
       {/* Términos y Privacidad */}
       <p className="text-ink-muted mt-1 text-center text-[0.72rem] leading-relaxed">

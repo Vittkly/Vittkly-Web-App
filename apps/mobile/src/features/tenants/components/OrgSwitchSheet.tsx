@@ -29,6 +29,8 @@ export function OrgSwitchSheet({ visible, onClose, onSwitched }: OrgSwitchSheetP
           name: t.name,
           slug: t.slug,
           logoUrl: t.logoUrl,
+          menuIconUrl: t.menuIconUrl,
+          brandColor: t.brandColor,
           role: t.role,
           jobTitle: t.jobTitle,
           canViewPrices: t.canViewPrices,

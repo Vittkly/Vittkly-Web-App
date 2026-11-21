@@ -80,12 +80,12 @@ export function SettingsSecondaryNav() {
                 aria-selected={active}
                 className={`rounded-pill inline-flex shrink-0 items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   active
-                    ? "bg-primary font-bold text-white shadow-xs"
+                    ? "bg-primary text-on-primary font-bold shadow-xs"
                     : "bg-surface-sunken text-ink-muted hover:text-ink hover:bg-surface-raised border-line border"
                 }`}
               >
                 <Icon
-                  className={`h-3.5 w-3.5 shrink-0 ${active ? "text-white" : "text-ink-muted"}`}
+                  className={`h-3.5 w-3.5 shrink-0 ${active ? "text-on-primary" : "text-ink-muted"}`}
                 />
                 <span>{sub.name}</span>
                 {sub.isActiveModule && !active && (
@@ -157,7 +157,7 @@ export function SettingsSecondaryNav() {
                             title="Módulo activo y conectado a base de datos"
                           />
                         ) : (
-                          <span className="text-ink-muted/60 font-mono text-[9px] uppercase">
+                          <span className="text-ink-muted font-mono text-[9px] uppercase">
                             {sub.code.split("-")[1]}
                           </span>
                         )}

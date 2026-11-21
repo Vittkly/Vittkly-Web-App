@@ -8,6 +8,9 @@ interface MisAccesosEmpresaItem {
   nombre?: string | null;
   rubro?: string | null;
   ciudad?: string | null;
+  logo_ruta?: string | null;
+  icono_menu_ruta?: string | null;
+  color_marca?: string | null;
   perfil_id?: string | null;
   perfil_nombre?: string | null;
   perfil_codigo?: string | null;
@@ -36,6 +39,7 @@ interface MembresiaDetailRow {
     razon_social: string;
     nombre_comercial: string | null;
     logo_ruta: string | null;
+    icono_menu_ruta?: string | null;
     color_marca: string | null;
     modelo_operacion: string | null;
     rubro: string | null;
@@ -122,6 +126,7 @@ function mapDetailRowToTenant(row: MembresiaDetailRow): Tenant | null {
     rubro: empresa.rubro,
     ciudad: empresa.ciudad,
     logoUrl: empresa.logo_ruta,
+    menuIconUrl: empresa.icono_menu_ruta ?? null,
     brandColor: empresa.color_marca,
     modeloOperacion: empresa.modelo_operacion,
     role: resolveMembershipRole(esPropietario, perfil?.codigo, permisos),
@@ -156,8 +161,9 @@ function mapRpcItemToFallbackTenant(item: MisAccesosEmpresaItem): Tenant {
     slug: buildEmpresaSlug(displayName, item.empresa_id),
     rubro: item.rubro ?? null,
     ciudad: item.ciudad ?? null,
-    logoUrl: null,
-    brandColor: null,
+    logoUrl: item.logo_ruta ?? null,
+    menuIconUrl: item.icono_menu_ruta ?? null,
+    brandColor: item.color_marca ?? null,
     modeloOperacion: null,
     role: resolveMembershipRole(esPropietario, perfilCodigo),
     esPropietario,
@@ -227,6 +233,7 @@ export const tenantRepository = {
             razon_social,
             nombre_comercial,
             logo_ruta,
+            icono_menu_ruta,
             color_marca,
             modelo_operacion,
             rubro,

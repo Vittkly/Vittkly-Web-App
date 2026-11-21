@@ -12,6 +12,7 @@ import type {
   AuthState,
   BiometricType,
   LoginResult,
+  OAuthProvider,
   SetSessionPayload,
   SignInWithPasswordParams,
   VerifyOtpParams,
@@ -125,6 +126,17 @@ export function useAuthSessionActions({
     [establishUserSession],
   );
 
+  const loginWithOAuth = useCallback(
+    async (provider: OAuthProvider): Promise<LoginResult | null> => {
+      const sessionResult = await authRepository.signInWithOAuth(provider);
+      if (!sessionResult) {
+        return null;
+      }
+      return establishUserSession(sessionResult);
+    },
+    [establishUserSession],
+  );
+
   const requestPasswordReset = useCallback(async (email: string) => {
     await authRepository.resetPasswordForEmail(email);
   }, []);
@@ -226,6 +238,7 @@ export function useAuthSessionActions({
   return {
     setSession,
     loginWithPassword,
+    loginWithOAuth,
     requestPasswordReset,
     verifyRecoveryOtp,
     verifyPasswordResetCode,

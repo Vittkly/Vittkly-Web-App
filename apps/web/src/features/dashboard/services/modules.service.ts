@@ -48,6 +48,10 @@ export interface DashboardContextResult {
     moneda: string;
     pais: string;
     activa: boolean;
+    logoRuta: string | null;
+    iconoMenuRuta: string | null;
+    colorMarca: string | null;
+    menuAcordeon: boolean;
   };
   activePlan: {
     id: string;
@@ -393,19 +397,37 @@ export async function getDashboardContext(
     });
   });
 
-  // Configuraciones exclusivo para Propietario o Admin ('admin' / 'administrador')
-  const canAccessConfig = isAdmin;
+  //Acceso a Configuraciones: Propietario, Admin/Administrador, permiso configuracion.editar o módulo configuraciones asignado
+  const hasConfigEditPermission =
+    userPermissionsMap.has("configuracion.editar") &&
+    userPermissionsMap.get("configuracion.editar")?.alcance !== "ninguna";
+  const rawProfileConfig = activePerfilRow?.configuracion as
+    { modulos?: unknown } | null | undefined;
+  const hasConfigModuleAssigned =
+    (Array.isArray(rawProfileConfig?.modulos) &&
+      rawProfileConfig.modulos.includes("configuraciones")) ||
+    userPermissionsMap.has("configuracion.ver") ||
+    userPermissionsMap.has("configuraciones.ver");
+
+  const canEditConfig = isAdmin || hasConfigEditPermission;
+  const canAccessConfig = canEditConfig || hasConfigModuleAssigned;
   const canViewPrices = isAdmin || userPermissionsMap.has("precios.ver");
   const canValidateServices =
     isAdmin || userPermissionsMap.has("servicios.validar");
-  const canEditConfig = isAdmin;
-  const canManageUsers = isAdmin;
+  const canManageUsers =
+    isAdmin ||
+    (userPermissionsMap.has("usuarios.invitar") &&
+      userPermissionsMap.get("usuarios.invitar")?.alcance !== "ninguna");
 
-  // 9. Consultar Catálogo de Módulos en BD para estado `disponible` / orden
-  const { data: dbModulos } = await supabase
-    .from("modulos")
-    .select("*")
-    .order("orden", { ascending: true });
+  // Consultar empresa_configuracion para menu_acordeon y catálogo de módulos en paralelo
+  const [{ data: dbModulos }, { data: empresaCfgRow }] = await Promise.all([
+    supabase.from("modulos").select("*").order("orden", { ascending: true }),
+    supabase
+      .from("empresa_configuracion")
+      .select("menu_acordeon")
+      .eq("empresa_id", activeEmpresa.id)
+      .maybeSingle(),
+  ]);
 
   const dbModuloByCode = new Map(
     (dbModulos && dbModulos.length > 0 ? dbModulos : CANONICAL_DB_FALLBACK).map(
@@ -608,6 +630,10 @@ export async function getDashboardContext(
       moneda: activeEmpresa.moneda,
       pais: activeEmpresa.pais,
       activa: activeEmpresa.activa,
+      logoRuta: activeEmpresa.logo_ruta ?? null,
+      iconoMenuRuta: activeEmpresa.icono_menu_ruta ?? null,
+      colorMarca: activeEmpresa.color_marca ?? null,
+      menuAcordeon: Boolean(empresaCfgRow?.menu_acordeon),
     },
     activePlan: {
       id: planId,

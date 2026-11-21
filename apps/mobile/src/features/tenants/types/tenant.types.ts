@@ -7,6 +7,7 @@ export interface Organization {
   rubro?: string | null;
   ciudad?: string | null;
   logoUrl?: string | null;
+  menuIconUrl?: string | null;
   brandColor?: string | null;
   role?: MembershipRole | string;
   roleName?: string | null;

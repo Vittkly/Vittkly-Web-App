@@ -9,6 +9,8 @@ export interface InvitationDetails {
   empresaId: string;
   empresaNombre: string;
   empresaLogoUrl: string | null;
+  empresaMenuIconUrl?: string | null;
+  empresaBrandColor?: string | null;
   perfilId: string;
   perfilNombre: string;
   perfilCodigo: string;
@@ -138,11 +140,31 @@ async function processInvitationRow(
   }
 
   // Consultar datos de la empresa
-  const { data: empresaData } = await adminClient
+  const { data: primaryEmp, error: empErr } = await adminClient
     .from("empresas")
-    .select("id, razon_social, nombre_comercial, logo_ruta")
+    .select(
+      "id, razon_social, nombre_comercial, logo_ruta, icono_menu_ruta, color_marca",
+    )
     .eq("id", invRow.empresa_id)
     .maybeSingle();
+
+  let empresaData = primaryEmp as {
+    id: string;
+    razon_social: string;
+    nombre_comercial: string | null;
+    logo_ruta: string | null;
+    icono_menu_ruta?: string | null;
+    color_marca?: string | null;
+  } | null;
+
+  if (empErr?.message?.includes("icono_menu_ruta")) {
+    const fallbackEmp = await adminClient
+      .from("empresas")
+      .select("id, razon_social, nombre_comercial, logo_ruta, color_marca")
+      .eq("id", invRow.empresa_id)
+      .maybeSingle();
+    empresaData = fallbackEmp.data as typeof empresaData;
+  }
 
   // Consultar datos del perfil
   const { data: perfilData } = await adminClient
@@ -156,6 +178,8 @@ async function processInvitationRow(
     empresaData?.razon_social ||
     "Empresa Vittkly";
   const empresaLogoUrl = empresaData?.logo_ruta ?? null;
+  const empresaMenuIconUrl = empresaData?.icono_menu_ruta ?? null;
+  const empresaBrandColor = empresaData?.color_marca ?? null;
   const perfilNombre = perfilData?.nombre || "Colaborador";
   const perfilCodigo = perfilData?.codigo || "colaborador";
   const maskedObj =
@@ -174,6 +198,8 @@ async function processInvitationRow(
     empresaId: invRow.empresa_id,
     empresaNombre,
     empresaLogoUrl,
+    empresaMenuIconUrl,
+    empresaBrandColor,
     perfilId: invRow.perfil_id,
     perfilNombre,
     perfilCodigo,

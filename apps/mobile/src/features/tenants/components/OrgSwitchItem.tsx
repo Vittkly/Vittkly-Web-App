@@ -1,8 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CompanyAvatarImage } from '@/components/ui/CompanyAvatarImage';
 import { CheckIcon } from '@/components/icons';
-import { formatMembershipRoleLabel, getInitials } from '@/features/auth/utils/profile';
+import { formatMembershipRoleLabel } from '@/features/auth/utils/profile';
 import { useTheme } from '@/theme';
 import type { Organization } from '../types/tenant.types';
 
@@ -16,7 +17,7 @@ export interface OrgSwitchItemProps {
 export function OrgSwitchItem({ org, isSelected, isLastActive, onSelect }: OrgSwitchItemProps) {
   const { colors, spacing, radius, typography, fontFamilies, control } = useTheme();
 
-  const initials = getInitials(org.name);
+  const hasAvatarImage = Boolean(org.menuIconUrl?.trim() || org.logoUrl?.trim());
   const roleDisplay = formatMembershipRoleLabel({
     role: org.role,
     jobTitle: org.jobTitle,
@@ -57,24 +58,24 @@ export function OrgSwitchItem({ org, isSelected, isLastActive, onSelect }: OrgSw
             width: control.lg - 6,
             height: control.lg - 6,
             borderRadius: radius.pill,
-            backgroundColor: isSelected ? colors.tenantAccent : colors.tenantAccentSoft,
+            backgroundColor: hasAvatarImage
+              ? colors.surfaceRaised
+              : isSelected
+                ? colors.tenantAccent
+                : colors.tenantAccentSoft,
             borderColor: colors.tenantAccent,
             borderWidth: 1,
           },
         ]}
       >
-        <Text
-          style={[
-            typography.bodyStrong,
-            {
-              fontFamily: fontFamilies.bold,
-              color: isSelected ? colors.onTenantAccent : colors.successInk,
-              fontSize: 14,
-            },
-          ]}
-        >
-          {initials}
-        </Text>
+        <CompanyAvatarImage
+          name={org.name}
+          menuIconUrl={org.menuIconUrl}
+          logoUrl={org.logoUrl}
+          size={control.lg - 8}
+          textColor={isSelected ? colors.onTenantAccent : colors.successInk}
+          fontSize={14}
+        />
       </View>
 
       <View style={styles.orgInfo}>

@@ -1,6 +1,7 @@
 ---
+trigger: glob
 description: Fidelidad estricta al artefacto del cliente. Prohíbe inventar pantallas, copys, métricas, datos o navegación que no existan en el diseño.
-globs: ['apps/web/src/**/*.tsx', 'apps/mobile/**/*.tsx']
+globs: '**/apps/web/src/**/*.tsx, **/apps/mobile/**/*.tsx'
 ---
 
 # Fidelidad al Artefacto del Cliente (Regla Maestra de Diseño)

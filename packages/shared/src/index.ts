@@ -3,6 +3,7 @@ import { z } from 'zod';
 export * from './auth/login.schema';
 export * from './tenants/organization.schema';
 export * from './settings/member-identity.schema';
+export * from './settings/company-settings.schema';
 export * from './dashboard/modules-manifest';
 
 /**

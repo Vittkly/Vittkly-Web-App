@@ -15,11 +15,27 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
+  formatAuditLogEntry,
+  getAuditOriginFilterValues,
+  getAuditOriginLabel,
+  getTimeRangeCutoffMs,
+  matchesAuditSearch,
+  normalizeAuditOrigin,
+  type AuditActorInfo,
+  type AuditFormatContext,
+  type RawAuditLogRow,
+} from "./audit-formatter";
+import {
   mapFlagsToAccessLabel,
   maskDocumentNumber,
+  SYSTEM_AUDIT_ACTOR_ID,
   type AccessLabel,
   type AccessScope,
+  type AuditActorOption,
+  type AuditFilterParams,
   type AuditLogEntry,
+  type AuditLogsQueryResult,
+  type AuditOriginOption,
   type CompanyProfile,
   type DocumentLookupResult,
   type DocumentType,
@@ -32,6 +48,11 @@ import {
   type TeamMember,
   type UsersProfilesBundle,
 } from "../types/settings.types";
+
+export const DEFAULT_AUDIT_PAGE_SIZE = 25;
+
+const AUDIT_SELECT_COLUMNS =
+  "id, empresa_id, usuario_id, accion, tipo_evento, origen, actor_nombre, actor_correo, entidad_nombre, campos_modificados, detalle, metadatos, tabla, registro_id, antes, despues, creado_en";
 
 interface StandardProfilePreset {
   codigo: string;
@@ -562,78 +583,370 @@ function splitFullName(
   return { fullName: clean, firstName, lastName };
 }
 
-function describeAuditRecord(
-  accion: string,
-  tabla: string,
-  antes: Record<string, unknown> | null,
-  despues: Record<string, unknown> | null,
-): string {
-  const verbo =
-    accion === "crear"
-      ? "Creó registro en"
-      : accion === "editar"
-        ? "Actualizó registro en"
-        : accion === "borrar"
-          ? "Eliminó registro en"
-          : `${accion} en`;
+type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-  if (tabla === "membresias") {
-    const estadoNuevo = despues?.estado as string | undefined;
-    const estadoAnterior = antes?.estado as string | undefined;
-    if (estadoNuevo === "desvinculada") {
-      return "Desvinculó a un miembro de la empresa";
+function upsertActorDirectoryEntry(
+  userNamesById: Map<string, AuditActorInfo>,
+  userId: string | null | undefined,
+  fullName: string | null | undefined,
+  email?: string | null,
+) {
+  if (!userId) return;
+  const cleanName = (fullName ?? "").trim();
+  const cleanEmail = (email ?? "").trim() || null;
+  const existing = userNamesById.get(userId);
+  if (!existing) {
+    userNamesById.set(userId, {
+      fullName: cleanName || "Sin nombre",
+      email: cleanEmail,
+    });
+    return;
+  }
+  const hasRealExisting =
+    Boolean(existing.fullName) && existing.fullName !== "Sin nombre";
+  const resolvedName =
+    hasRealExisting || !cleanName ? existing.fullName : cleanName;
+  userNamesById.set(userId, {
+    fullName: resolvedName,
+    email: existing.email || cleanEmail,
+  });
+}
+
+async function enrichDirectoryFromRpc(
+  supabase: ServerSupabaseClient,
+  empresaId: string,
+  userNamesById: Map<string, AuditActorInfo>,
+): Promise<void> {
+  if (typeof supabase.rpc !== "function") return;
+  try {
+    const { data, error } = await supabase.rpc(
+      "directorio_empresa" as never,
+      { p_empresa_id: empresaId } as never,
+    );
+    if (error || !Array.isArray(data)) return;
+    for (const item of data as Array<{
+      usuario_id?: string | null;
+      nombre?: string | null;
+    }>) {
+      if (typeof item?.usuario_id === "string" && item.nombre?.trim()) {
+        upsertActorDirectoryEntry(
+          userNamesById,
+          item.usuario_id,
+          item.nombre,
+          null,
+        );
+      }
     }
-    if (estadoNuevo && estadoAnterior && estadoNuevo !== estadoAnterior) {
-      return `Cambió estado de membresía de ${estadoAnterior} a ${estadoNuevo}`;
+  } catch {
+    // RPC opcional en mocks de pruebas; se respalda en membresías y snapshot actor_nombre.
+  }
+}
+
+function isGenericActorLabel(name: string | null | undefined): boolean {
+  const lower = (name ?? "").trim().toLowerCase();
+  return (
+    !lower ||
+    lower === "usuario" ||
+    lower === "sistema" ||
+    lower === "sistema / administrador" ||
+    lower === "sin nombre"
+  );
+}
+
+function buildAuditFilterOptions(
+  metaRows: Array<{
+    usuario_id?: string | null;
+    actor_nombre?: string | null;
+    actor_correo?: string | null;
+    origen?: string | null;
+    tabla: string;
+  }>,
+  empresaId: string,
+  context: AuditFormatContext,
+): { actors: AuditActorOption[]; origins: AuditOriginOption[] } {
+  const actorMap = new Map<string, AuditActorOption>();
+  const originMap = new Map<string, AuditOriginOption>();
+
+  for (const row of metaRows) {
+    const uid = row.usuario_id ?? null;
+    const actorKey = uid ?? SYSTEM_AUDIT_ACTOR_ID;
+    const dir = uid ? context.userNamesById?.get(uid) : undefined;
+    const snapName = (row.actor_nombre ?? "").trim();
+    const snapEmail = (row.actor_correo ?? "").trim() || null;
+    const isGenericSnap = isGenericActorLabel(snapName);
+
+    let nombre: string;
+    if (!uid) {
+      nombre =
+        snapName && snapName.toLowerCase() !== "sistema / administrador"
+          ? snapName
+          : "Sistema";
+    } else if (!isGenericSnap) {
+      nombre = snapName;
+    } else if (dir?.fullName && !isGenericActorLabel(dir.fullName)) {
+      nombre = dir.fullName;
+    } else if (context.currentUserId && uid === context.currentUserId) {
+      nombre = "Tú (Administrador)";
+    } else {
+      nombre = "Usuario";
     }
+
+    const existingActor = actorMap.get(actorKey);
+    if (!existingActor) {
+      actorMap.set(actorKey, {
+        id: actorKey,
+        nombre,
+        correo: snapEmail ?? dir?.email ?? null,
+      });
+    } else {
+      const existingIsGeneric =
+        isGenericActorLabel(existingActor.nombre) ||
+        existingActor.nombre === "Tú (Administrador)";
+      const nextIsReal =
+        !isGenericActorLabel(nombre) && nombre !== "Tú (Administrador)";
+      if (existingIsGeneric && nextIsReal) {
+        existingActor.nombre = nombre;
+      }
+      if (!existingActor.correo && (snapEmail || dir?.email)) {
+        existingActor.correo = snapEmail ?? dir?.email ?? null;
+      }
+    }
+
+    const canonicalOrigin = normalizeAuditOrigin(
+      row.origen,
+      row.tabla,
+      empresaId,
+    );
+    if (!originMap.has(canonicalOrigin)) {
+      originMap.set(canonicalOrigin, {
+        value: canonicalOrigin,
+        label: getAuditOriginLabel(canonicalOrigin, row.tabla, empresaId),
+      });
+    }
+  }
+
+  const actors = Array.from(actorMap.values()).sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
+  );
+  const origins = Array.from(originMap.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, "es", { sensitivity: "base" }),
+  );
+
+  return { actors, origins };
+}
+
+async function queryAuditLogsInternal(
+  supabase: ServerSupabaseClient,
+  empresaId: string,
+  params: AuditFilterParams,
+  context: AuditFormatContext,
+): Promise<AuditLogsQueryResult> {
+  const limit = Math.max(
+    1,
+    Math.min(params.limit ?? DEFAULT_AUDIT_PAGE_SIZE, 200),
+  );
+  const offset = Math.max(0, params.offset ?? 0);
+  const timeRange = params.timeRange ?? "all";
+  const search = (params.search ?? "").trim();
+
+  const actorFilter = params.actorId?.trim();
+  const hasActorFilter =
+    Boolean(actorFilter) && actorFilter !== "all" && actorFilter !== "todos";
+
+  const originFilter = params.origen?.trim();
+  const originValues =
+    originFilter && originFilter !== "all" && originFilter !== "todos"
+      ? getAuditOriginFilterValues(originFilter)
+      : [];
+
+  const cutoffMs = getTimeRangeCutoffMs(timeRange);
+
+  const metaPromise = supabase
+    .from("auditoria")
+    .select("usuario_id, actor_nombre, actor_correo, origen, tabla")
+    .eq("empresa_id", empresaId)
+    .order("creado_en", { ascending: false })
+    .limit(2000);
+
+  let dataQuery = search
+    ? supabase.from("auditoria").select(AUDIT_SELECT_COLUMNS)
+    : supabase
+        .from("auditoria")
+        .select(AUDIT_SELECT_COLUMNS, { count: "exact" });
+
+  dataQuery = dataQuery.eq("empresa_id", empresaId);
+
+  if (hasActorFilter && actorFilter) {
+    if (actorFilter === SYSTEM_AUDIT_ACTOR_ID) {
+      dataQuery = dataQuery.is("usuario_id", null);
+    } else {
+      dataQuery = dataQuery.eq("usuario_id", actorFilter);
+    }
+  }
+
+  if (originValues.length > 0) {
+    const safeValues = Array.from(
+      new Set(
+        originValues
+          .map((v) => v.trim().toLowerCase())
+          .filter((v) => /^[a-z0-9_-]+$/.test(v)),
+      ),
+    );
     if (
-      antes?.perfil_id &&
-      despues?.perfil_id &&
-      antes.perfil_id !== despues.perfil_id
+      safeValues.length > 0 &&
+      typeof (dataQuery as { or?: unknown }).or === "function"
     ) {
-      return "Actualizó el perfil asignado a un miembro";
+      const list = safeValues.join(",");
+      dataQuery = dataQuery.or(
+        `origen.in.(${list}),and(origen.is.null,tabla.in.(${list}))`,
+      );
+    } else {
+      dataQuery = dataQuery.in("origen", originValues);
     }
-    return `${verbo} membresías del equipo`;
   }
 
-  if (tabla === "invitaciones") {
-    const tipo = (despues?.tipo ?? antes?.tipo ?? "nueva_cuenta") as string;
-    const maskedRaw = (despues?.datos_enmascarados ??
-      antes?.datos_enmascarados ??
-      null) as Record<string, unknown> | null;
-    const rawCorreo = (despues?.correo ?? antes?.correo ?? "") as string;
-    const label =
-      tipo === "cuenta_existente"
-        ? ((maskedRaw?.correo as string | undefined) ??
-          (maskedRaw?.nombre as string | undefined) ??
-          (rawCorreo ? maskEmailAddress(rawCorreo) : "") ??
-          "cuenta existente")
-        : rawCorreo;
-    const estado = (despues?.estado ?? "") as string;
-    if (accion === "crear") {
-      return `Envió invitación a ${label || "nuevo colaborador"}`;
+  if (cutoffMs !== null) {
+    dataQuery = dataQuery.gte("creado_en", new Date(cutoffMs).toISOString());
+  }
+
+  dataQuery = dataQuery.order("creado_en", { ascending: false });
+
+  const [
+    { data: metaRows, error: metaError },
+    { data: rawRows, error: dataError, count },
+  ] = await Promise.all([
+    metaPromise,
+    search
+      ? dataQuery.limit(2000)
+      : dataQuery.range(offset, offset + limit - 1),
+  ]);
+
+  if (dataError) {
+    throw new Error(
+      dataError.message || "No se pudo consultar el registro de actividad.",
+    );
+  }
+
+  if (metaError) {
+    throw new Error(
+      metaError.message ||
+        "No se pudo consultar los filtros del registro de actividad.",
+    );
+  }
+
+  const rows = (rawRows ?? []) as RawAuditLogRow[];
+  const formattedRows = rows.map((row) => formatAuditLogEntry(row, context));
+
+  let entries: AuditLogEntry[];
+  let totalCount: number;
+  if (search) {
+    const matched = formattedRows.filter((entry) =>
+      matchesAuditSearch(entry, search),
+    );
+    totalCount = matched.length;
+    entries = matched.slice(offset, offset + limit);
+  } else {
+    entries = formattedRows;
+    totalCount = typeof count === "number" ? count : entries.length;
+  }
+
+  const hasMore = offset + entries.length < totalCount;
+  const metaSource =
+    Array.isArray(metaRows) && metaRows.length > 0
+      ? (metaRows as Array<{
+          usuario_id?: string | null;
+          actor_nombre?: string | null;
+          actor_correo?: string | null;
+          origen?: string | null;
+          tabla: string;
+        }>)
+      : rows;
+  const { actors, origins } = buildAuditFilterOptions(
+    metaSource,
+    empresaId,
+    context,
+  );
+
+  return {
+    entries,
+    totalCount,
+    hasMore,
+    actors,
+    origins,
+  };
+}
+
+export async function queryAuditLogs(
+  empresaId: string,
+  params: AuditFilterParams = { timeRange: "all" },
+): Promise<AuditLogsQueryResult> {
+  const supabase = await createClient();
+
+  let currentUserId = "";
+  try {
+    const authRes = await supabase.auth?.getUser?.();
+    currentUserId = authRes?.data?.user?.id ?? "";
+  } catch {
+    currentUserId = "";
+  }
+
+  const userNamesById = new Map<string, AuditActorInfo>();
+  const profileNamesById = new Map<string, string>();
+  let companyName: string | null = null;
+
+  await enrichDirectoryFromRpc(supabase, empresaId, userNamesById);
+
+  const [membresiasRes, perfilesRes, empresaRes] = await Promise.all([
+    supabase
+      .from("membresias")
+      .select(
+        "usuario_id, usuarios:usuario_id (nombre, nombres, apellidos, correo)",
+      )
+      .eq("empresa_id", empresaId),
+    supabase.from("perfiles").select("id, nombre").eq("empresa_id", empresaId),
+    supabase
+      .from("empresas")
+      .select("nombre_comercial, razon_social")
+      .eq("id", empresaId)
+      .maybeSingle(),
+  ]);
+
+  for (const row of membresiasRes?.data ?? []) {
+    const u = Array.isArray(row.usuarios) ? row.usuarios[0] : row.usuarios;
+    if (!row.usuario_id) continue;
+    const { fullName } = splitFullName(
+      u?.nombre,
+      (u as { nombres?: string | null } | null)?.nombres,
+      (u as { apellidos?: string | null } | null)?.apellidos,
+    );
+    upsertActorDirectoryEntry(
+      userNamesById,
+      row.usuario_id,
+      fullName,
+      u?.correo ?? null,
+    );
+  }
+
+  for (const p of perfilesRes?.data ?? []) {
+    if (p.id && p.nombre) {
+      profileNamesById.set(p.id, p.nombre);
     }
-    if (estado === "anulada") {
-      return `Anuló invitación previa (${label || "colaborador"})`;
-    }
-    return `${verbo} invitaciones (${estado || "actualización"})`;
   }
 
-  if (tabla === "perfiles") {
-    const nombre = (despues?.nombre ?? antes?.nombre ?? "perfil") as string;
-    if (accion === "crear") return `Creó el perfil «${nombre}»`;
-    if (accion === "editar") return `Actualizó el perfil «${nombre}»`;
-    if (accion === "borrar") return `Eliminó el perfil «${nombre}»`;
+  if (empresaRes?.data) {
+    companyName =
+      (empresaRes.data as { nombre_comercial?: string | null })
+        .nombre_comercial ||
+      (empresaRes.data as { razon_social?: string | null }).razon_social ||
+      null;
   }
 
-  if (tabla === "solicitudes_salida") {
-    const estado = (despues?.estado ?? "") as string;
-    if (estado === "aprobada") return "Aprobó una solicitud de salida";
-    if (estado === "rechazada") return "Rechazó una solicitud de salida";
-    return "Registró movimiento en solicitudes de salida";
-  }
-
-  return `${verbo} ${tabla}`;
+  return queryAuditLogsInternal(supabase, empresaId, params, {
+    userNamesById,
+    profileNamesById,
+    companyName,
+    currentUserId,
+  });
 }
 
 export const getUsersProfilesBundle = cache(
@@ -652,9 +965,15 @@ export const getUsersProfilesBundle = cache(
 
     const { data: empresaRow } = await supabase
       .from("empresas")
-      .select("cuenta_id")
+      .select("cuenta_id, nombre_comercial, razon_social")
       .eq("id", empresaId)
       .maybeSingle();
+
+    const companyName =
+      (empresaRow as { nombre_comercial?: string | null } | null)
+        ?.nombre_comercial ||
+      (empresaRow as { razon_social?: string | null } | null)?.razon_social ||
+      null;
 
     if (empresaRow?.cuenta_id) {
       const { data: subRow } = await supabase
@@ -809,21 +1128,12 @@ export const getUsersProfilesBundle = cache(
       .eq("empresa_id", empresaId)
       .order("creado_en", { ascending: false });
 
-    // 5. Consultar auditoría de la empresa activa
-    const { data: rawAuditoria } = await supabase
-      .from("auditoria")
-      .select(
-        "id, empresa_id, usuario_id, accion, tabla, registro_id, antes, despues, creado_en",
-      )
-      .eq("empresa_id", empresaId)
-      .order("creado_en", { ascending: false })
-      .limit(60);
-
     // Mapa rápido de perfiles por ID
     const profileMap = new Map<
       string,
       { id: string; nombre: string; codigo: string | null; es_base: boolean }
     >();
+    const profileNamesById = new Map<string, string>();
     for (const p of rawProfiles ?? []) {
       profileMap.set(p.id, {
         id: p.id,
@@ -831,13 +1141,12 @@ export const getUsersProfilesBundle = cache(
         codigo: p.codigo,
         es_base: p.es_base,
       });
+      profileNamesById.set(p.id, p.nombre);
     }
 
-    // Mapa de nombres de usuario para enriquecer salidas y auditoría
-    const userNamesById = new Map<
-      string,
-      { fullName: string; email: string | null }
-    >();
+    // Mapa de nombres de usuario para enriquecer salidas y auditoría (incluyendo desvinculados)
+    const userNamesById = new Map<string, AuditActorInfo>();
+    await enrichDirectoryFromRpc(supabase, empresaId, userNamesById);
 
     // Conteo de miembros activos/suspendidos por perfil
     const usageByProfileId = new Map<string, number>();
@@ -848,16 +1157,6 @@ export const getUsersProfilesBundle = cache(
       const rawEstado =
         (row as { estado?: string }).estado ??
         (row.activo ? "activa" : "desactivada");
-
-      // Las membresías desvinculadas ya no forman parte de la tabla activa de Personas
-      if (rawEstado === "desvinculada") {
-        continue;
-      }
-
-      usageByProfileId.set(
-        row.perfil_id,
-        (usageByProfileId.get(row.perfil_id) ?? 0) + 1,
-      );
 
       const u = Array.isArray(row.usuarios) ? row.usuarios[0] : row.usuarios;
       const p = Array.isArray(row.perfiles) ? row.perfiles[0] : row.perfiles;
@@ -876,7 +1175,18 @@ export const getUsersProfilesBundle = cache(
         u?.correo || (isCurrent ? (currentUser?.email ?? "") : "") || "";
       const phone = u?.celular ?? null;
 
-      userNamesById.set(row.usuario_id, { fullName, email });
+      // Registrar en el directorio de actores ANTES de omitir desvinculados de la tabla activa
+      upsertActorDirectoryEntry(userNamesById, row.usuario_id, fullName, email);
+
+      // Las membresías desvinculadas ya no forman parte de la tabla activa de Personas
+      if (rawEstado === "desvinculada") {
+        continue;
+      }
+
+      usageByProfileId.set(
+        row.perfil_id,
+        (usageByProfileId.get(row.perfil_id) ?? 0) + 1,
+      );
 
       const accesoWeb = row.acceso_web ?? true;
       const accesoApp =
@@ -1130,41 +1440,44 @@ export const getUsersProfilesBundle = cache(
       };
     });
 
-    // Construir registros de auditoría
-    const auditLogs: AuditLogEntry[] = (rawAuditoria ?? []).map((a) => {
-      const actorMeta = a.usuario_id
-        ? userNamesById.get(a.usuario_id)
-        : undefined;
-      const antesObj =
-        a.antes && typeof a.antes === "object" && !Array.isArray(a.antes)
-          ? (a.antes as Record<string, unknown>)
-          : null;
-      const despuesObj =
-        a.despues && typeof a.despues === "object" && !Array.isArray(a.despues)
-          ? (a.despues as Record<string, unknown>)
-          : null;
-
-      return {
-        id: a.id,
-        accion: a.accion,
-        tabla: a.tabla,
-        registroId: a.registro_id,
-        actorNombre:
-          actorMeta?.fullName ??
-          (a.usuario_id && a.usuario_id === currentUserId
-            ? "Tú (Administrador)"
-            : "Sistema / Administrador"),
-        resumen: describeAuditRecord(a.accion, a.tabla, antesObj, despuesObj),
-        creadoEn: a.creado_en,
-      };
-    });
+    // Construir registros de auditoría con columnas extendidas, paginación y filtros iniciales
+    let auditResult: AuditLogsQueryResult = {
+      entries: [],
+      totalCount: 0,
+      hasMore: false,
+      actors: [],
+      origins: [],
+    };
+    try {
+      auditResult = await queryAuditLogsInternal(
+        supabase,
+        empresaId,
+        {
+          timeRange: "all",
+          limit: DEFAULT_AUDIT_PAGE_SIZE,
+          offset: 0,
+        },
+        {
+          userNamesById,
+          profileNamesById,
+          companyName,
+          currentUserId,
+        },
+      );
+    } catch {
+      // Mantiene resiliencia del bundle de configuración si auditoría falla o es restringida
+    }
 
     return {
       members,
       profiles,
       invitations,
       exitRequests,
-      auditLogs,
+      auditLogs: auditResult.entries,
+      auditTotalCount: auditResult.totalCount,
+      auditHasMore: auditResult.hasMore,
+      auditActors: auditResult.actors,
+      auditOrigins: auditResult.origins,
       activePlanCode,
       allowedPlanModules,
     };

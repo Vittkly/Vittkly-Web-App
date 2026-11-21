@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { GeneratedInvitationPayload } from "../actions/users-profiles.actions";
-import type { UsersProfilesBundle } from "../types/settings.types";
 import {
-  UsersProfilesHeader,
   USERS_PROFILES_TABS,
+  parseUsersProfilesTab,
+  type UsersProfilesBundle,
   type UsersProfilesTabId,
-} from "./UsersProfilesHeader";
+} from "../types/settings.types";
+import { UsersProfilesHeader } from "./UsersProfilesHeader";
 import { UsersProfilesTable } from "./UsersProfilesTable";
 import { AddMemberModal } from "./AddMemberModal";
 import { InvitationDetailsModal } from "./InvitationDetailsModal";
@@ -19,16 +20,41 @@ import { ActivityAuditTab } from "./ActivityAuditTab";
 export interface UsersProfilesViewProps {
   bundle: UsersProfilesBundle;
   companyName: string;
+  initialTab?: UsersProfilesTabId;
 }
 
 export function UsersProfilesView({
   bundle,
   companyName,
+  initialTab,
 }: UsersProfilesViewProps) {
-  const [activeTab, setActiveTab] = useState<UsersProfilesTabId>("personas");
+  const [activeTab, setActiveTab] = useState<UsersProfilesTabId>(() =>
+    parseUsersProfilesTab(initialTab),
+  );
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [activeInvitationModal, setActiveInvitationModal] =
     useState<GeneratedInvitationPayload | null>(null);
+
+  const handleTabChange = (nextTab: UsersProfilesTabId) => {
+    setActiveTab(nextTab);
+    if (typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href);
+        if (nextTab === "personas") {
+          url.searchParams.delete("tab");
+        } else {
+          url.searchParams.set("tab", nextTab);
+        }
+        window.history.replaceState(
+          null,
+          "",
+          `${url.pathname}${url.search}${url.hash}`,
+        );
+      } catch {
+        // Ignora entornos sin History API completa
+      }
+    }
+  };
 
   const activeTabMeta = USERS_PROFILES_TABS.find((t) => t.id === activeTab);
 
@@ -38,7 +64,7 @@ export function UsersProfilesView({
       <UsersProfilesHeader
         companyName={companyName}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
       />
 
       {/* Contenido según pestaña seleccionada */}
@@ -69,7 +95,13 @@ export function UsersProfilesView({
       )}
 
       {activeTab === "actividad" && (
-        <ActivityAuditTab auditLogs={bundle.auditLogs} />
+        <ActivityAuditTab
+          auditLogs={bundle.auditLogs}
+          initialTotal={bundle.auditTotalCount ?? bundle.auditLogs.length}
+          initialHasMore={bundle.auditHasMore ?? false}
+          actorOptions={bundle.auditActors}
+          originOptions={bundle.auditOrigins}
+        />
       )}
 
       {(activeTab === "equipos" || activeTab === "aprobaciones") && (

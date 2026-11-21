@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { organizationIdSchema } from "@vittkly/shared";
@@ -18,7 +18,19 @@ import { setActiveOrganizationCookies } from "../services/org-session";
 export interface ActionResult<T = undefined> {
   ok: boolean;
   error?: string;
+  message?: string;
   data?: T;
+}
+
+function getSafeActionError(err: unknown, fallback: string): string {
+  if (
+    err instanceof Error &&
+    err.message &&
+    !err.message.includes("NEXT_REDIRECT")
+  ) {
+    return err.message;
+  }
+  return fallback;
 }
 
 const respondInvitationSchema = z.object({
@@ -95,10 +107,12 @@ export async function enterCompanyAction(
   redirect("/dashboard");
 }
 
-/** Acepta o rechaza una invitación pendiente desde /accesos. */
+/** Acepta o rechaza una invitación pendiente desde /accesos sin redirigir fuera de la vista. */
 export async function respondInvitationAction(
   input: z.infer<typeof respondInvitationSchema>,
-): Promise<ActionResult<{ aceptada: boolean; accesoWeb: boolean }>> {
+): Promise<
+  ActionResult<{ accepted: boolean; accesoWeb: boolean; empresaNombre: string }>
+> {
   const parsed = respondInvitationSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -112,30 +126,40 @@ export async function respondInvitationAction(
 
   try {
     const result = await respondInvitation(parsed.data);
+    const accepted = Boolean(result.aceptada);
+    const accesoWeb = Boolean(result.acceso_web);
+    const empresaNombre = accepted ? (result.empresa_nombre?.trim() ?? "") : "";
 
-    if (result.aceptada && result.empresa_id && result.acceso_web) {
-      await setActiveOrganizationCookies(result.empresa_id);
-      await persistLastOrganization(userId, result.empresa_id);
-      revalidatePath("/", "layout");
-      redirect("/dashboard");
+    let message = "Invitación rechazada.";
+    if (accepted) {
+      if (accesoWeb) {
+        message = empresaNombre
+          ? `Invitación aceptada correctamente. Ya puedes entrar a ${empresaNombre}.`
+          : "Invitación aceptada correctamente. Ya puedes entrar a la empresa.";
+      } else {
+        message = empresaNombre
+          ? `Invitación aceptada. Tu acceso en ${empresaNombre} es exclusivo desde la app móvil.`
+          : "Invitación aceptada. Tu acceso es exclusivo desde la app móvil.";
+      }
     }
 
-    revalidatePath("/accesos");
-    revalidatePath("/dashboard", "layout");
+    // No invocamos revalidatePath aquí: en Next.js 16 dispara un re-render del action POST
+    // sin `?stay=1` y provoca el auto-redirect a `/accesos/auto` cuando es la 1.ª empresa.
+    // `AccesosEmpresaView` navega a `/accesos?stay=1` y ejecuta `router.refresh()` (`force-dynamic`).
     return {
       ok: true,
+      message,
       data: {
-        aceptada: Boolean(result.aceptada),
-        accesoWeb: Boolean(result.acceso_web),
+        accepted,
+        accesoWeb,
+        empresaNombre,
       },
     };
   } catch (err) {
+    unstable_rethrow(err);
     return {
       ok: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "No se pudo responder la invitación.",
+      error: getSafeActionError(err, "No se pudo responder la invitación."),
     };
   }
 }
@@ -157,10 +181,10 @@ export async function requestExitAction(
     revalidatePath("/accesos");
     return { ok: true };
   } catch (err) {
+    unstable_rethrow(err);
     return {
       ok: false,
-      error:
-        err instanceof Error ? err.message : "No se pudo enviar la solicitud.",
+      error: getSafeActionError(err, "No se pudo enviar la solicitud."),
     };
   }
 }
@@ -182,12 +206,10 @@ export async function requestExitSupportAction(
     revalidatePath("/accesos");
     return { ok: true };
   } catch (err) {
+    unstable_rethrow(err);
     return {
       ok: false,
-      error:
-        err instanceof Error
-          ? err.message
-          : "No se pudo solicitar apoyo a soporte.",
+      error: getSafeActionError(err, "No se pudo solicitar apoyo a soporte."),
     };
   }
 }
@@ -222,10 +244,10 @@ export async function createAdditionalCompanyAction(
       planCodigo: safePlanCodigo,
     });
   } catch (err) {
+    unstable_rethrow(err);
     return {
       ok: false,
-      error:
-        err instanceof Error ? err.message : "No se pudo crear la empresa.",
+      error: getSafeActionError(err, "No se pudo crear la empresa."),
     };
   }
 
