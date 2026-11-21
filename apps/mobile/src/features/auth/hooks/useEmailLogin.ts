@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { sanitizeNetworkError } from '../services/network-error';
+import type { LoginResult, OAuthProvider } from '../types/auth.types';
 import { isValidEmail } from '../utils/validators';
 import { useAuth } from './useAuth';
 import { useAuthBackNavigation } from './useAuthBackNavigation';
@@ -11,8 +12,27 @@ export interface EmailLoginFieldErrors {
   password?: string;
 }
 
+function navigateAfterLogin(result: LoginResult) {
+  if (result.tenants.length === 0) {
+    router.replace('/(auth)/org-selector');
+    return;
+  }
+
+  if (!result.hasPin) {
+    router.replace('/(auth)/quick-access-prompt');
+    return;
+  }
+
+  if (result.tenants.length > 1 && !result.activeOrganizationId) {
+    router.replace('/(auth)/org-selector');
+    return;
+  }
+
+  router.replace('/');
+}
+
 export function useEmailLogin() {
-  const { loginWithPassword } = useAuth();
+  const { loginWithPassword, loginWithOAuth } = useAuth();
   const { handleBack } = useAuthBackNavigation('/(auth)/welcome');
 
   const [email, setEmail] = useState('');
@@ -21,11 +41,13 @@ export function useEmailLogin() {
   const [fieldErrors, setFieldErrors] = useState<EmailLoginFieldErrors>({});
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [oauthProvider, setOauthProvider] = useState<OAuthProvider | null>(null);
 
+  const isOAuthSubmitting = oauthProvider !== null;
   const handleBackPress = () => handleBack('/(auth)/welcome');
 
   const handleLoginSubmit = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || isOAuthSubmitting) return;
 
     const errors: EmailLoginFieldErrors = {};
     const cleanEmail = email.trim().toLowerCase();
@@ -51,28 +73,33 @@ export function useEmailLogin() {
         password,
       });
 
-      if (result.tenants.length === 0) {
-        router.replace('/(auth)/org-selector');
-        return;
-      }
-
-      if (!result.hasPin) {
-        router.replace('/(auth)/quick-access-prompt');
-        return;
-      }
-
-      if (result.tenants.length > 1 && !result.activeOrganizationId) {
-        router.replace('/(auth)/org-selector');
-        return;
-      }
-
-      router.replace('/');
+      navigateAfterLogin(result);
     } catch (err: unknown) {
       setAuthError(
         sanitizeNetworkError(err, 'Credenciales inválidas. Verifica tu correo y contraseña.'),
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOAuthLogin = async (provider: OAuthProvider) => {
+    if (isSubmitting || isOAuthSubmitting) return;
+
+    setOauthProvider(provider);
+    setAuthError(null);
+
+    try {
+      const result = await loginWithOAuth(provider);
+      if (result) {
+        navigateAfterLogin(result);
+      }
+    } catch (err: unknown) {
+      setAuthError(
+        sanitizeNetworkError(err, 'No se pudo completar el inicio de sesión. Intenta nuevamente.'),
+      );
+    } finally {
+      setOauthProvider(null);
     }
   };
 
@@ -88,7 +115,10 @@ export function useEmailLogin() {
     authError,
     setAuthError,
     isSubmitting,
+    oauthProvider,
+    isOAuthSubmitting,
     handleBackPress,
     handleLoginSubmit,
+    handleOAuthLogin,
   };
 }

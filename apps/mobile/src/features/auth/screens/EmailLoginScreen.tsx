@@ -28,9 +28,14 @@ export function EmailLoginScreen() {
     authError,
     setAuthError,
     isSubmitting,
+    oauthProvider,
+    isOAuthSubmitting,
     handleBackPress,
     handleLoginSubmit,
+    handleOAuthLogin,
   } = useEmailLogin();
+
+  const isBusy = isSubmitting || isOAuthSubmitting;
 
   return (
     <AuthScreenLayout
@@ -55,7 +60,7 @@ export function EmailLoginScreen() {
             testID="login-email-input"
             label="Correo electrónico"
             value={email}
-            editable={!isSubmitting}
+            editable={!isBusy}
             onChangeText={(text) => {
               setEmail(text);
               setAuthError(null);
@@ -75,7 +80,7 @@ export function EmailLoginScreen() {
             toggleTestID="login-toggle-password-btn"
             label="Contraseña"
             value={password}
-            editable={!isSubmitting}
+            editable={!isBusy}
             onChangeText={(text) => {
               setPassword(text);
               setAuthError(null);
@@ -110,14 +115,19 @@ export function EmailLoginScreen() {
             shape="pill"
             block
             isLoading={isSubmitting}
-            disabled={isSubmitting}
+            disabled={isBusy}
             onPress={() => void handleLoginSubmit()}
           >
             Iniciar sesión
           </Button>
 
           {/* Botones OAuth */}
-          <AuthOAuthButtons disabled />
+          <AuthOAuthButtons
+            disabled={isBusy}
+            loadingProvider={oauthProvider}
+            onGooglePress={() => void handleOAuthLogin('google')}
+            onMicrosoftPress={() => void handleOAuthLogin('microsoft')}
+          />
         </View>
 
         <Text style={[typography.small, styles.legalText, { color: colors.inkMuted }]}>

@@ -7,6 +7,8 @@ export type AccessScope = 'web' | 'app' | 'both';
 
 export type OtpFlowType = 'phone' | 'recovery';
 
+export type OAuthProvider = 'google' | 'microsoft';
+
 export type BiometricType = 'facial' | 'fingerprint' | 'iris' | 'none';
 
 /**

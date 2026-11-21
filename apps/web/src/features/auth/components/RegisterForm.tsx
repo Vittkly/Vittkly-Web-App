@@ -4,9 +4,11 @@ import React, { useState, useEffect, useRef, useActionState } from "react";
 import Link from "next/link";
 import { Building2 } from "lucide-react";
 import { registerAction } from "@/features/auth/actions/auth.actions";
+import { useOAuthSignIn } from "@/features/auth/hooks/useOAuthSignIn";
 import type { AuthActionState } from "@/features/auth/types/auth.types";
 import { VittklyLogo } from "@/components/brand/VittklyLogo";
 import { PlanSelectorStep } from "@/features/tenants/components/PlanSelectorStep";
+import { OAuthProviderIcon } from "./OAuthProviderIcon";
 
 const initialState: AuthActionState = {
   error: null,
@@ -40,7 +42,7 @@ const verClass =
   "text-primary-ink hover:bg-primary-soft focus-visible:outline-focus absolute top-[4px] right-[4px] bottom-[4px] min-w-[44px] cursor-pointer rounded-lg px-2 text-[0.75rem] font-bold transition-colors focus-visible:outline-2";
 
 const oauthClass =
-  "border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft focus-visible:outline-focus flex min-h-[54px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[11px] leading-tight font-bold shadow-xs transition-all duration-150 hover:-translate-y-px focus-visible:outline-2 sm:min-h-[42px] sm:flex-row sm:gap-2 sm:py-0 sm:text-xs";
+  "border-line bg-surface-raised text-ink hover:border-primary hover:bg-primary-soft focus-visible:outline-focus flex min-h-[54px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[11px] leading-tight font-bold shadow-xs transition-all duration-150 hover:-translate-y-px focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:min-h-[42px] sm:flex-row sm:gap-2 sm:py-0 sm:text-xs";
 
 type DocType = "DNI" | "carné de extranjería" | "pasaporte";
 
@@ -71,6 +73,8 @@ export function RegisterForm() {
     registerAction,
     initialState,
   );
+  const { oauthProvider, oauthError, clearOAuthError, handleOAuthSignIn } =
+    useOAuthSignIn({ from: "register" });
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [showPw, setShowPw] = useState(false);
@@ -121,6 +125,7 @@ export function RegisterForm() {
   const fe = (k: string) => localError[k] || state.fieldErrors?.[k];
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    clearOAuthError();
     if (step === 1) {
       e.preventDefault();
       const errs: Record<string, string> = {};
@@ -222,12 +227,13 @@ export function RegisterForm() {
           {/* Indicador de paso (1 o 2 de 3) */}
           <StepProgressIndicator step={step} />
 
-          {state.error && !Object.keys(state.fieldErrors ?? {}).length && (
+          {(oauthError ||
+            (state.error && !Object.keys(state.fieldErrors ?? {}).length)) && (
             <div
               role="alert"
               className="bg-danger-soft text-danger-ink rounded-lg px-3 py-1 text-[0.72rem] leading-snug font-semibold"
             >
-              {state.error}
+              {oauthError || state.error}
             </div>
           )}
 
@@ -572,49 +578,31 @@ export function RegisterForm() {
                 <button
                   type="button"
                   aria-label="Registrarte con Google"
+                  aria-busy={oauthProvider === "google"}
+                  disabled={isPending || oauthProvider !== null}
+                  onClick={() => void handleOAuthSignIn("google")}
                   className={oauthClass}
                 >
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill="#FFC107"
-                      d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"
-                    />
-                    <path
-                      fill="#FF3D00"
-                      d="m6.3 14.7 6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
-                    />
-                    <path
-                      fill="#4CAF50"
-                      d="M24 44c5.5 0 10.5-2.1 14.3-5.6l-6.6-5.6C29.7 34.5 27 35.5 24 35.5c-5.3 0-9.7-3.4-11.3-8.1l-6.5 5C9.6 39.6 16.2 44 24 44z"
-                    />
-                    <path
-                      fill="#1976D2"
-                      d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.6 5.6C41.8 35.8 44 30.3 44 24c0-1.3-.1-2.7-.4-3.5z"
-                    />
-                  </svg>
+                  <OAuthProviderIcon
+                    provider="google"
+                    loading={oauthProvider === "google"}
+                    size={15}
+                  />
                   Google
                 </button>
                 <button
                   type="button"
                   aria-label="Registrarte con Microsoft"
+                  aria-busy={oauthProvider === "microsoft"}
+                  disabled={isPending || oauthProvider !== null}
+                  onClick={() => void handleOAuthSignIn("microsoft")}
                   className={oauthClass}
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 23 23"
-                    aria-hidden="true"
-                  >
-                    <rect x="1" y="1" width="10" height="10" fill="#F25022" />
-                    <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
-                    <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
-                    <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
-                  </svg>
+                  <OAuthProviderIcon
+                    provider="microsoft"
+                    loading={oauthProvider === "microsoft"}
+                    size={14}
+                  />
                   Microsoft
                 </button>
               </div>

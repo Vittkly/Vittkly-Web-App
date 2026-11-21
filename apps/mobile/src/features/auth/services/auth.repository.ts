@@ -1,15 +1,21 @@
 import type { User } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 
 import { supabase } from '@/services/supabase';
 
 import type {
   AuthSessionResult,
+  OAuthProvider,
   SignInWithPasswordParams,
   UserProfile,
   VerifyOtpParams,
 } from '../types/auth.types';
+import { getSupabaseOAuthConfig, parseOAuthCallbackUrl } from '../utils/oauth';
 import { sanitizeNetworkError } from './network-error';
 import { tenantRepository } from './tenant.repository';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface UsuarioRow {
   id: string;
@@ -104,6 +110,22 @@ function readCloudPinFromUser(user: User): { hasCloudPin: boolean; cloudPinHash:
   };
 }
 
+async function buildAuthSessionResult(accessToken: string, user: User): Promise<AuthSessionResult> {
+  const [usuarioRow, tenants] = await Promise.all([
+    fetchUsuarioRow(user.id),
+    tenantRepository.fetchUserTenants(user.id),
+  ]);
+  const { hasCloudPin, cloudPinHash } = readCloudPinFromUser(user);
+
+  return {
+    token: accessToken,
+    user: mapUserProfile(user, usuarioRow),
+    tenants,
+    hasCloudPin,
+    cloudPinHash,
+  };
+}
+
 /**
  * Repositorio canónico de Autenticación y Usuarios para Vittkly Mobile.
  * Consume Supabase Auth + la tabla canónica `public.usuarios` de Etapa 0.
@@ -146,19 +168,103 @@ export const authRepository = {
       );
     }
 
-    const [usuarioRow, tenants] = await Promise.all([
-      fetchUsuarioRow(data.user.id),
-      tenantRepository.fetchUserTenants(data.user.id),
-    ]);
-    const { hasCloudPin, cloudPinHash } = readCloudPinFromUser(data.user);
+    return buildAuthSessionResult(data.session.access_token, data.user);
+  },
 
-    return {
-      token: data.session.access_token,
-      user: mapUserProfile(data.user, usuarioRow),
-      tenants,
-      hasCloudPin,
-      cloudPinHash,
-    };
+  /**
+   * Inicia sesión mediante OAuth externo (Google o Microsoft) usando WebBrowser + Deep Link.
+   * Retorna `null` si el usuario canceló la ventana del proveedor.
+   */
+  async signInWithOAuth(provider: OAuthProvider): Promise<AuthSessionResult | null> {
+    const config = getSupabaseOAuthConfig(provider);
+    const redirectTo = Linking.createURL('auth/callback');
+
+    let oauthUrl: string | undefined;
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: config.supabaseProvider,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+          ...(config.scopes ? { scopes: config.scopes } : {}),
+          queryParams: config.queryParams,
+        },
+      });
+      if (error || !data?.url) {
+        throw new Error(
+          sanitizeNetworkError(error, `No se pudo iniciar la autenticación con ${config.label}.`),
+        );
+      }
+      oauthUrl = data.url;
+    } catch (err: unknown) {
+      throw new Error(
+        sanitizeNetworkError(
+          err,
+          `No pudimos conectarnos con ${config.label}. Verifica tu conexión a internet.`,
+        ),
+      );
+    }
+
+    const browserResult = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectTo);
+    if (browserResult.type === 'cancel' || browserResult.type === 'dismiss') {
+      return null;
+    }
+    if (browserResult.type !== 'success' || !browserResult.url) {
+      throw new Error(`No se pudo completar el acceso con ${config.label}. Intenta nuevamente.`);
+    }
+
+    const params = parseOAuthCallbackUrl(browserResult.url);
+    if (params.error === 'access_denied') {
+      return null;
+    }
+    if (params.error) {
+      throw new Error(
+        sanitizeNetworkError(
+          new Error(params.error_description || params.error),
+          `No se pudo completar el acceso con ${config.label}.`,
+        ),
+      );
+    }
+
+    let sessionData;
+    let sessionError;
+    try {
+      if (params.code) {
+        const res = await supabase.auth.exchangeCodeForSession(params.code);
+        sessionData = res.data;
+        sessionError = res.error;
+      } else if (params.access_token && params.refresh_token) {
+        const res = await supabase.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token,
+        });
+        sessionData = res.data;
+        sessionError = res.error;
+      } else {
+        throw new Error(`No se recibieron credenciales válidas de ${config.label}.`);
+      }
+    } catch (err: unknown) {
+      throw new Error(
+        sanitizeNetworkError(err, `No se pudo validar tu sesión con ${config.label}.`),
+      );
+    }
+
+    if (sessionError || !sessionData.session || !sessionData.user) {
+      throw new Error(
+        sanitizeNetworkError(sessionError, `No se pudo iniciar sesión con ${config.label}.`),
+      );
+    }
+
+    try {
+      await supabase
+        .from('usuarios')
+        .update({ ultimo_ingreso_en: new Date().toISOString() })
+        .eq('id', sessionData.user.id);
+    } catch {
+      // Operación best-effort: no bloquea el ingreso móvil
+    }
+
+    return buildAuthSessionResult(sessionData.session.access_token, sessionData.user);
   },
 
   /**
@@ -224,19 +330,7 @@ export const authRepository = {
       throw new Error(sanitizeNetworkError(error, 'Código incorrecto o expirado.'));
     }
 
-    const [usuarioRow, tenants] = await Promise.all([
-      fetchUsuarioRow(data.user.id),
-      tenantRepository.fetchUserTenants(data.user.id),
-    ]);
-    const { hasCloudPin, cloudPinHash } = readCloudPinFromUser(data.user);
-
-    return {
-      token: data.session.access_token,
-      user: mapUserProfile(data.user, usuarioRow),
-      tenants,
-      hasCloudPin,
-      cloudPinHash,
-    };
+    return buildAuthSessionResult(data.session.access_token, data.user);
   },
 
   /**
@@ -287,19 +381,7 @@ export const authRepository = {
       );
     }
 
-    const [usuarioRow, tenants] = await Promise.all([
-      fetchUsuarioRow(data.user.id),
-      tenantRepository.fetchUserTenants(data.user.id),
-    ]);
-    const { hasCloudPin, cloudPinHash } = readCloudPinFromUser(data.user);
-
-    return {
-      token: data.session.access_token,
-      user: mapUserProfile(data.user, usuarioRow),
-      tenants,
-      hasCloudPin,
-      cloudPinHash,
-    };
+    return buildAuthSessionResult(data.session.access_token, data.user);
   },
 
   /**
@@ -367,19 +449,7 @@ export const authRepository = {
         return null;
       }
 
-      const [usuarioRow, tenants] = await Promise.all([
-        fetchUsuarioRow(data.session.user.id),
-        tenantRepository.fetchUserTenants(data.session.user.id),
-      ]);
-      const { hasCloudPin, cloudPinHash } = readCloudPinFromUser(data.session.user);
-
-      return {
-        token: data.session.access_token,
-        user: mapUserProfile(data.session.user, usuarioRow),
-        tenants,
-        hasCloudPin,
-        cloudPinHash,
-      };
+      return await buildAuthSessionResult(data.session.access_token, data.session.user);
     } catch {
       return null;
     }
