@@ -1,0 +1,21 @@
+{
+  "name": "@vittkly/ui-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./colors": "./src/colors.ts",
+    "./scales": "./src/scales.ts",
+    "./typography": "./src/typography.ts",
+    "./brand": "./src/brand.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@vittkly/config-typescript": "workspace:*",
+    "typescript": "^5.8.2"
+  }
+}

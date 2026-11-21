@@ -1,0 +1,215 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { CompanyAvatarImage } from '@/components/ui/CompanyAvatarImage';
+import { CheckIcon, CheckSquareIcon, ForwardIcon } from '@/components/icons';
+import { tokens, useTheme } from '@/theme';
+
+import type { Tenant } from '../types/auth.types';
+import { formatMembershipRoleLabel } from '../utils/profile';
+
+export interface TenantCardProps {
+  tenant: Tenant;
+  isSelected: boolean;
+  isLastActive?: boolean;
+  disabled?: boolean;
+  onSelect: (tenant: Tenant) => void | Promise<void>;
+}
+
+const AVATAR_SIZE = tokens.control.lg; // 48px
+const ICON_SIZE = tokens.spacing.space4 + tokens.spacing.space1; // 20px
+const SMALL_ICON_SIZE = tokens.spacing.space4; // 16px
+const ACTIVE_DOT_SIZE = tokens.spacing.space2; // 8px
+
+export function TenantCard({
+  tenant,
+  isSelected,
+  isLastActive = false,
+  disabled = false,
+  onSelect,
+}: TenantCardProps) {
+  const { colors, spacing, radius, typography, control, fontFamilies } = useTheme();
+
+  const roleLabel = formatMembershipRoleLabel({
+    role: tenant.role,
+    jobTitle: tenant.jobTitle,
+    perfilNombre: tenant.perfilNombre,
+    esPropietario: tenant.esPropietario,
+  });
+  const locationMeta = [tenant.rubro, tenant.ciudad].filter(Boolean).join(' · ');
+  const hasAvatarImage = Boolean(tenant.menuIconUrl?.trim() || tenant.logoUrl?.trim());
+  const isHighlighted = isSelected || isLastActive;
+  const badgeLabel = isLastActive ? 'Última activa' : isSelected ? 'Activa' : null;
+
+  return (
+    <Pressable
+      testID={`tenant-card-${tenant.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={`Seleccionar empresa ${tenant.name}, rol ${roleLabel}`}
+      accessibilityState={{ selected: isSelected, disabled }}
+      disabled={disabled}
+      onPress={() => onSelect(tenant)}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          minHeight: control.lg + spacing.space6,
+          borderRadius: radius.md,
+          padding: spacing.space4,
+          backgroundColor: isHighlighted
+            ? colors.tenantAccentSoft
+            : pressed
+              ? colors.primarySoft
+              : colors.surfaceRaised,
+          borderColor: isHighlighted ? colors.tenantAccent : pressed ? colors.primary : colors.line,
+          borderWidth: isHighlighted ? 2 : 1.5,
+          gap: spacing.space3,
+          opacity: disabled ? 0.5 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.orgAvatar,
+          {
+            width: AVATAR_SIZE,
+            height: AVATAR_SIZE,
+            borderRadius: radius.pill,
+            backgroundColor: hasAvatarImage
+              ? colors.surfaceRaised
+              : isHighlighted
+                ? colors.tenantAccent
+                : colors.tenantAccentSoft,
+            borderColor: isHighlighted ? colors.tenantAccent : colors.line,
+            borderWidth: 1,
+          },
+        ]}
+      >
+        <CompanyAvatarImage
+          name={tenant.name}
+          menuIconUrl={tenant.menuIconUrl}
+          logoUrl={tenant.logoUrl}
+          size={AVATAR_SIZE - 4}
+          textColor={isHighlighted ? colors.onTenantAccent : colors.successInk}
+          fontSize={14}
+        />
+      </View>
+
+      <View style={[styles.infoColumn, { gap: spacing.space1 }]}>
+        <View style={[styles.titleRow, { gap: spacing.space2 }]}>
+          <Text
+            testID={`tenant-card-name-${tenant.id}`}
+            style={[
+              typography.bodyStrong,
+              styles.companyName,
+              { fontFamily: fontFamilies.bold, color: colors.ink },
+            ]}
+            numberOfLines={1}
+          >
+            {tenant.name}
+          </Text>
+
+          {badgeLabel ? (
+            <View
+              testID={
+                isLastActive
+                  ? `tenant-card-last-active-badge-${tenant.id}`
+                  : `tenant-card-active-badge-${tenant.id}`
+              }
+              style={[
+                styles.activeTenantBadge,
+                {
+                  backgroundColor: colors.surfaceRaised,
+                  borderColor: colors.tenantAccent,
+                  borderRadius: radius.pill,
+                  paddingHorizontal: spacing.space2,
+                  paddingVertical: spacing.space1 / 2,
+                  gap: spacing.space1,
+                },
+              ]}
+            >
+              <View
+                style={{
+                  width: ACTIVE_DOT_SIZE,
+                  height: ACTIVE_DOT_SIZE,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.tenantAccent,
+                }}
+              />
+              <Text style={[typography.label, { color: colors.successInk }]}>{badgeLabel}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {locationMeta ? (
+          <Text style={[typography.small, { color: colors.inkMuted }]} numberOfLines={1}>
+            {locationMeta}
+          </Text>
+        ) : null}
+
+        <View style={[styles.roleRow, { gap: spacing.space2 }]}>
+          <View
+            style={[
+              styles.roleBadge,
+              {
+                backgroundColor: isSelected ? colors.surfaceRaised : colors.surfaceSunken,
+                borderRadius: radius.pill,
+                paddingHorizontal: spacing.space2,
+                paddingVertical: spacing.space1,
+                gap: spacing.space1,
+              },
+            ]}
+          >
+            <CheckSquareIcon size={SMALL_ICON_SIZE} color={colors.primaryInk} />
+            <Text style={[typography.small, { color: colors.inkMuted }]}>{roleLabel}</Text>
+          </View>
+
+          {tenant.validaServicios ? (
+            <View
+              style={[
+                styles.roleBadge,
+                {
+                  backgroundColor: colors.tenantAccentSoft,
+                  borderRadius: radius.pill,
+                  paddingHorizontal: spacing.space2,
+                  paddingVertical: spacing.space1,
+                },
+              ]}
+            >
+              <Text style={[typography.label, { color: colors.successInk }]}>Valida servicios</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.trailingIndicator,
+          {
+            width: control.sm,
+            height: control.sm,
+            borderRadius: radius.pill,
+            backgroundColor: isSelected ? colors.tenantAccent : 'transparent',
+          },
+        ]}
+      >
+        {isSelected ? (
+          <CheckIcon size={SMALL_ICON_SIZE} color={colors.onTenantAccent} />
+        ) : (
+          <ForwardIcon size={ICON_SIZE} color={colors.inkMuted} />
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: { width: '100%', flexDirection: 'row', alignItems: 'center' },
+  orgAvatar: { alignItems: 'center', justifyContent: 'center' },
+  infoColumn: { flex: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center' },
+  companyName: { flexShrink: 1 },
+  activeTenantBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
+  roleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  roleBadge: { flexDirection: 'row', alignItems: 'center' },
+  trailingIndicator: { alignItems: 'center', justifyContent: 'center' },
+});
